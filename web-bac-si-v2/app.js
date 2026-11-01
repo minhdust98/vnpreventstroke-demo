@@ -10,7 +10,7 @@
     role: null, route: '', qtab: 'act', qgroup: 'all', drawer: null, page: null, collapsed: false, theme: 'light', menu: null,
     al: {}, notes: {}, adv: {},
     pf: { q: '', need: 'all', group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' },
-    qx: null, qc: null, qmove: false, qnotes: {}, sn: {}, day: 0, drafts: {},
+    qx: null, qc: null, qmove: false, qnotes: {}, sn: {}, day: 0, drafts: {}, pdmenu: false, sheetAnim: false,
     pv: { metric: 'bp', range: 30 }, mg: { sel: null }, ap: { mode: 'week', anchor: 0, filter: 'all' }, appts: [],
     tool: 'esrs', ti: {}, set: { days: [0, 1, 2, 3, 4, 5, 6].map(() => ({ on: false, from: '08:00', to: '11:30' })), busy: [], saved: null },
     mgr: { group: 'all', period: 7 }, mq: null, cls: {}, sres: [], ew: false,
@@ -32,7 +32,7 @@
     if (!h) { S.role = null; S.route = ''; return; }
     const parts = h.split('/'); S.role = parts[0] === 'm' ? 'manager' : 'doctor';
     if (S.role === 'doctor') {
-      if (parts[1] === 'patient' && V.byId[parts[2]]) { S.route = 'd/patient'; S.page = S.page && S.page.id === parts[2] ? S.page : { id: parts[2], tab: 'sum' }; }
+      if (parts[1] === 'patient' && V.byId[parts[2]]) { S.route = 'd/patient'; S.page = S.page && S.page.id === parts[2] ? S.page : { id: parts[2], tab: 'home' }; }
       else S.route = 'd/' + (['home', 'patients', 'appts', 'msgs', 'tools', 'settings'].includes(parts[1]) ? parts[1] : 'home');
     } else S.route = 'm/' + (['overview', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'overview');
   };
@@ -72,7 +72,7 @@
   function renderMain() {
     const m = $('#main'), r = S.route, fx = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.i : null, pos = fx && document.activeElement.selectionStart;
     const top = m.scrollTop, inner = Array.from(m.querySelectorAll('.dash .scroll')).map((x) => x.scrollTop);
-    m.className = r === 'd/home' ? 'nos' : '';
+    m.className = r === 'd/home' || r === 'd/patient' ? 'nos' : '';
     let h = '';
     if (r === 'd/home') h = W.home();
     else if (r === 'd/patients') h = W.patients();
@@ -80,7 +80,7 @@
     else if (r === 'd/msgs') h = W.msgs();
     else if (r === 'd/tools') h = W.tools();
     else if (r === 'd/settings') h = W.settings();
-    else if (r === 'd/patient') h = '<div class="page">' + W.patientView(V.byId[S.page.id], S.page.tab, 'page') + '</div>';
+    else if (r === 'd/patient') h = W.patientView(V.byId[S.page.id], S.page.tab, 'page');
     else if (r === 'm/overview') h = W.overview();
     else if (r === 'm/list') h = W.mlist();
     else if (r === 'm/thresholds') h = W.thresholds();
@@ -93,17 +93,21 @@
     }
     if (fx) { const n = m.querySelector('[data-i="' + fx + '"]'); if (n && fx !== 'gs') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* number/select */ } } }
     const th = $('#thread'); if (th) th.scrollTop = th.scrollHeight;
+    if (r === 'd/patient') { W.fitChart(); S.sheetAnim = false; }
   }
   function renderDrawer() {
-    const ov = $('#ov'), old = ov.querySelector('.pd-body'), top = old ? old.scrollTop : 0;
-    if (!S.drawer) { ov.innerHTML = ''; return; }
+    const ov = $('#ov'), old = ov.querySelector('.pd-body'), top = old && ov.dataset.tab === (S.drawer && S.drawer.id + S.drawer.tab) ? old.scrollTop : 0, first = !ov.querySelector('#drawer');
+    if (!S.drawer) { ov.innerHTML = ''; ov.dataset.tab = ''; return; }
     const p = V.byId[S.drawer.id];
-    ov.innerHTML = '<div id="scrim" data-a="close"></div><aside id="drawer" role="dialog" aria-label="Hồ sơ ' + esc(p.name) + '">' + W.patientView(p, S.drawer.tab, 'drawer') + '</aside>';
+    ov.innerHTML = '<aside id="drawer" class="' + (first ? 'enter' : '') + '" role="dialog" aria-label="Hồ sơ ' + esc(p.name) + '">' + W.patientView(p, S.drawer.tab, 'drawer') + '</aside>';
+    ov.dataset.tab = S.drawer.id + S.drawer.tab; S.sheetAnim = false;
     const b = ov.querySelector('.pd-body'); if (b) b.scrollTop = top;
     const th = ov.querySelector('#thread'); if (th) th.scrollTop = th.scrollHeight;
+    W.fitChart();
   }
   function render() {
     document.documentElement.dataset.theme = S.theme;
+    document.body.classList.toggle('sw-col', !!S.collapsed);
     if (!shell()) { $('#ov').innerHTML = ''; return; }
     renderSide(); renderTop(); renderMain(); renderDrawer();
   }
@@ -111,10 +115,14 @@
 
   /* ---------- mở hồ sơ ---------- */
   const openP = (id, tab) => {
-    if (S.route === 'd/patient') { S.page = { id, tab: tab || 'sum' }; location.hash = '#/d/patient/' + id; render(); return; }
-    S.drawer = { id, tab: tab || (S.drawer && S.drawer.id === id ? S.drawer.tab : 'sum') }; S.menu = null; render();
+    if (S.route === 'd/patient') { S.page = { id, tab: tab || 'home' }; location.hash = '#/d/patient/' + id; S.sheetAnim = !!tab; render(); return; }
+    const had = S.drawer && S.drawer.id === id;
+    S.drawer = { id, tab: tab || (had ? S.drawer.tab : 'home'), direct: !!tab && !had }; S.menu = null; S.pdmenu = false; S.sheetAnim = !!tab; render();
   };
-  const curP = () => V.byId[(S.route === 'd/patient' ? S.page : S.drawer).id];
+  const curV = () => (S.route === 'd/patient' ? S.page : S.drawer);
+  const curP = () => V.byId[curV().id];
+  const noteBox = (el) => el.closest('#modal') || document.getElementById('main');
+  const noteInput = (el) => noteBox(el).querySelector('[data-i="qnote"]');
   const syncAppt = (pid) => {
     const p = V.byId[pid]; const L = S.appts.filter((a) => a.pid === pid && a.status !== 'canceled' && a.status !== 'done' && a.by === 'doctor' || (a.pid === pid && a.status === 'confirmed')).filter((a) => a.d >= 0).sort((a, b) => a.d - b.d || a.time.localeCompare(b.time));
     if (L.length) p.appt = Object.assign({}, p.appt, { d: L[0].d, time: L[0].time, status: 'scheduled' });
@@ -140,10 +148,13 @@
     demo: () => U.demoMsg(),
     open: (el) => openP(el.dataset.id, el.dataset.tab),
     msgto: (el) => { if (S.route === 'd/msgs') { S.mg.sel = el.dataset.id; render(); } else openP(el.dataset.id, 'msg'); },
-    close: () => { S.drawer = null; S.pv.metric = 'bp'; render(); },
-    fullpage: (el) => { const id = el.dataset.id, tab = S.drawer ? S.drawer.tab : 'sum'; S.drawer = null; S.page = { id, tab }; location.hash = '#/d/patient/' + id; },
+    close: () => { S.drawer = null; S.pdmenu = false; S.pv.metric = 'bp'; render(); },
+    sheetclose: () => { const v = curV(); if (v.direct) { if (S.route === 'd/patient') { v.tab = 'home'; v.direct = false; render(); } else H.close(); return; } v.tab = 'home'; S.pv.metric = 'bp'; if (S.route === 'd/patient') render(); else renderDrawer(); },
+    pdmenu: () => { S.pdmenu = !S.pdmenu; if (S.route === 'd/patient') render(); else renderDrawer(); },
+    pinfo: (el) => W.infoModal(V.byId[el.dataset.id]),
+    pdone: (el) => W.pdoneModal(V.byId[el.dataset.id]),
     back: () => { if (history.length > 1) history.back(); else go('d/patients'); },
-    ptab: (el) => { const t = el.dataset.t; if (S.route === 'd/patient') S.page.tab = t; else S.drawer.tab = t; if (S.route === 'd/patient') render(); else renderDrawer(); },
+    ptab: (el) => { const t = el.dataset.t, v = curV(), wasHome = v.tab === 'home'; v.tab = t; if (t === 'home') v.direct = false; if (el.dataset.m) S.pv.metric = el.dataset.m; S.sheetAnim = wasHome && t !== 'home'; S.pdmenu = false; if (S.route === 'd/patient') render(); else renderDrawer(); },
     call: (el) => { const p = V.byId[el.dataset.id]; U.toast('Gọi ' + p.name + ': ' + p.phone + ' (số giả). Tính năng minh họa, demo không thực hiện cuộc gọi.'); },
     qtab: (el) => { S.qtab = el.dataset.v; S.qx = null; S.qc = null; if (S.route !== 'd/home') go('d/home'); else render(); },
     /* xử lý nhanh tại hàng đợi */
@@ -158,26 +169,28 @@
       S.qc = id; render();
     },
     qcancel: () => { S.qc = null; render(); },
-    qchip: (el) => { const id = el.dataset.id; S.qnotes[id] = el.dataset.v; const n = document.getElementById('qnote'); if (n) { n.value = el.dataset.v; n.focus(); } say('q_msg', ''); },
+    qchip: (el) => { const id = el.dataset.id, n = noteInput(el), mb = noteBox(el).querySelector('.qmsgbox'); S.qnotes[id] = el.dataset.v; if (n) { n.value = el.dataset.v; n.focus(); } if (mb) mb.innerHTML = ''; },
     qdone: (el) => {
-      const id = el.dataset.id, p = V.byId[id], n = document.getElementById('qnote'), note = (n ? n.value : S.qnotes[id] || '').trim();
-      if (!note) { say('q_msg', box('errbox', 'Cần ghi chú ngắn: bấm một nút ghi chú hoặc tự nhập.')); if (n) n.focus(); return; }
+      const id = el.dataset.id, p = V.byId[id], n = noteInput(el), inModal = !!el.closest('#modal'), note = (n ? n.value : S.qnotes[id] || '').trim();
+      if (!note) { const mb = noteBox(el).querySelector('.qmsgbox'); if (mb) mb.innerHTML = box('errbox', 'Cần ghi chú ngắn: bấm một nút ghi chú hoặc tự nhập.'); if (n) n.focus(); return; }
       W.levelReasons(p).forEach((r) => { const k = id + ':' + r.code; if (W.alertState(id, r.code).status !== 'done') S.al[k] = { status: 'done', note, sig: W.sigOf(r), by: D.doctor.short, at: { d: 0, h: NOWH } }; });
       delete S.sn[id]; delete S.qnotes[id];
+      if (inModal) { U.closeModal(); render(); U.toast('Đã ghi nhận xử lý ' + p.name + '. Mức theo dõi giữ nguyên vì tính từ dữ liệu.'); return; }
       nextInQueue('Đã ghi nhận xử lý ' + p.name + '. Mức theo dõi giữ nguyên vì tính từ dữ liệu.');
     },
     qsnooze: (el) => {
-      const id = el.dataset.id, p = V.byId[id], n = +el.dataset.n, inp = document.getElementById('qnote'), note = (inp ? inp.value : '').trim(), until = S.day + n;
+      const id = el.dataset.id, p = V.byId[id], n = +el.dataset.n, inp = noteInput(el), inModal = !!el.closest('#modal'), note = (inp ? inp.value : '').trim(), until = S.day + n;
       const rec = { d: 0, h: NOWH, by: D.doctor.short, text: 'Hẹn xem lại sau ' + n + ' ngày (' + T.fmtDMY(until) + ')' + (note ? ': ' + note : '') + '.' };
       (S.notes[id] = S.notes[id] || []).push(rec);
       S.sn[id] = { until, n, note, rec, sigs: S.cls[id].reasons.map(W.sigOf) };
       delete S.qnotes[id];
+      if (inModal) { U.closeModal(); render(); U.toast(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới. Mức theo dõi giữ nguyên.'); return; }
       nextInQueue(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới. Mức theo dõi giữ nguyên.');
     },
     qundo: (el) => {
       const id = el.dataset.id, n = S.sn[id];
       if (n) { S.notes[id] = (S.notes[id] || []).filter((x) => x !== n.rec); delete S.sn[id]; } else W.levelReasons(V.byId[id]).forEach((r) => { delete S.al[id + ':' + r.code]; });
-      S.qx = id; S.qmove = true; render(); U.toast('Đã hoàn tác.');
+      if (!el.closest('#drawer') && S.route === 'd/home') { S.qx = id; S.qmove = true; } render(); U.toast('Đã hoàn tác.');
     },
     qtua: () => { S.day += 3; render(); U.toast('Demo đã tua thêm 3 ngày, chỉ để thử hẹn xem lại. Số liệu và ngày trên trang không đổi.'); },
     need: (el) => { const sr = $('#sres'), gs = $('#gs'); if (sr) sr.hidden = true; if (gs) gs.value = ''; S.pf = Object.assign({}, S.pf, { q: '', need: el.dataset.k, group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' }); S.drawer = null; go('d/patients'); },
@@ -284,6 +297,8 @@
 
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-a]');
+    if (e.target.closest && e.target.closest('.nav a') && S.drawer) { S.drawer = null; S.pdmenu = false; renderDrawer(); }
+    if (S.pdmenu && !(el && el.dataset.a === 'pdmenu')) { S.pdmenu = false; if (S.route === 'd/patient') render(); else if (S.drawer) renderDrawer(); }
     if (!el) { if (S.menu && !e.target.closest('.menu')) { S.menu = null; renderTop(); } const sr = $('#sres'); if (sr && !e.target.closest('.tb-search')) sr.hidden = true; return; }
     const a = el.dataset.a; if (el.tagName === 'A') e.preventDefault();
     if (S.menu && a !== 'umenu' && a !== 'bell') S.menu = null;
@@ -293,12 +308,12 @@
     const t = e.target, typing = /INPUT|TEXTAREA|SELECT/.test(t.tagName);
     if (e.key === 'Enter' && t.dataset && t.dataset.a === 'open' && !typing) { H.open(t); return; }
     if ((e.key === 'Enter' || e.key === ' ') && t.dataset && t.dataset.a === 'qx' && !typing) { e.preventDefault(); H.qx(t); return; }
-    if (e.key === 'Escape') { if (!$('#modal').hidden) U.closeModal(); else if (S.drawer) H.close(); else if (S.qx) { S.qx = null; S.qc = null; render(); } const sr = $('#sres'); if (sr) sr.hidden = true; return; }
+    if (e.key === 'Escape') { if (!$('#modal').hidden) U.closeModal(); else if (S.pdmenu) H.pdmenu(); else if ((S.drawer || S.route === 'd/patient') && curV() && curV().tab !== 'home') H.sheetclose(); else if (S.drawer) H.close(); else if (S.qx) { S.qx = null; S.qc = null; render(); } const sr = $('#sres'); if (sr) sr.hidden = true; return; }
     if (typing || e.ctrlKey || e.metaKey) { if (t.id === 'gs' && e.key === 'Enter') { const sr = $('#sres'), nk = V.ins.needOf(t.value); if (nk) { H.need({ dataset: { k: nk } }); return; } if (S.sres.length) { sr.hidden = true; t.value = ''; openP(S.sres[0].id); } } return; }
     if (e.key === '/' && S.role === 'doctor') { e.preventDefault(); const gs = $('#gs'); if (gs) gs.focus(); }
     if ((e.key === 'j' || e.key === 'k') && S.role === 'doctor' && S.drawer) {
       const L = S.route === 'd/home' ? W.queueList(S.qtab, S.qgroup) : S.route === 'd/patients' ? W.filterPatients() : D.patients; const i = L.findIndex((p) => p.id === S.drawer.id);
-      const n = L[i + (e.key === 'j' ? 1 : -1)]; if (n) { S.drawer.id = n.id; render(); }
+      const n = L[i + (e.key === 'j' ? 1 : -1)]; if (n) { S.drawer.id = n.id; S.drawer.direct = false; render(); }
     }
   });
   document.addEventListener('input', (e) => {
@@ -331,6 +346,7 @@
     tipEl.textContent = h.dataset.tip; tipEl.hidden = false;
     tipEl.style.left = Math.min(innerWidth - tipEl.offsetWidth - 8, e.clientX + 12) + 'px'; tipEl.style.top = (e.clientY - 34) + 'px';
   });
+  window.addEventListener('resize', () => W.fitChart());
   window.addEventListener('hashchange', () => { parseHash(); S.drawer = null; S.menu = null; render(); });
 
   parseHash(); render();

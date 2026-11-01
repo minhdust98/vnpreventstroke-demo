@@ -46,6 +46,7 @@
 
   /* ---------- chip, trạng thái ---------- */
   U.lvl = { act: { t: 'Cần can thiệp', ic: 'alert' }, watch: { t: 'Cần theo dõi', ic: 'watch' }, ok: { t: 'Ổn định', ic: 'check' } };
+  U.mark = (k) => '<span class="mk mk-' + k + '" role="img" aria-label="' + (k === 'act' ? 'Cần can thiệp' : k === 'watch' ? 'Cần theo dõi' : 'Ổn định') + '"></span>';
   U.chip = (k, txt) => '<span class="chip ' + k + '">' + ic(U.lvl[k].ic) + esc(txt || U.lvl[k].t) + '</span>';
   U.tierChip = (t, scale) => {
     if (!t) return '';

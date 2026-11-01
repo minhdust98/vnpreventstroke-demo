@@ -50,24 +50,31 @@
   W.newTag = (p) => {
     const ch = W.muted(p) ? null : Ins.changes(p, S().cls[p.id]); if (!ch) return '';
     const tip = 'So với 07:30 hôm qua, cùng quy tắc phân loại. ' + (ch.up ? 'Chuyển mức: ' + lvlName[ch.from] + ' → ' + lvlName[ch.to] + '. ' : '') + (ch.reasons.length ? 'Lý do mới: ' + ch.reasons.map((r) => r.text).join('; ') + '.' : '');
-    return '<span class="newtag" title="' + esc(tip) + '">Mới' + (ch.up ? ' · từ ' + lvlName[ch.from] : '') + '</span>';
+    return '<span class="newtag" title="' + esc(tip) + '">Mới</span>';
   };
+  // Một dòng: tối đa 2 lý do cùng mức nếu vừa chỗ. Lý do đỏ không hiện trên dòng được đếm riêng, không gộp lẫn với lý do mức thấp hơn.
+  W.whyParts = (p) => {
+    const c = S().cls[p.id];
+    if (!c.reasons.length) return { txt: 'Tái khám ' + T.fmtDM(p.appt.d) + ' lúc ' + p.appt.time, more: '', all: '' };
+    const main = c.reasons.filter((x) => x.level === c.level), list = main.length ? main : c.reasons;
+    const two = list.length > 1 && list[0].text.length + list[1].text.length <= 44, shown = list.slice(0, two ? 2 : 1);
+    const hid = list.length - shown.length, low = c.reasons.length - list.length;
+    const more = [hid ? '+' + hid + (c.level === 'act' ? ' đỏ' : '') : '', low ? '+' + low : ''].filter(Boolean).join(' ');
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    return { txt: cap(shown.map((x) => x.text).join(' · ')), more, all: c.reasons.map((x) => x.text).join('; ') };
+  };
+  W.shortTime = (p) => { const d = p.lastData.d; return d === 0 ? T.fmtH(p.lastData.h) : d === -1 ? 'Hôm qua' : T.fmtDM(d); };
   W.qrow = (p, sel) => {
     const s = S(), c = s.cls[p.id], lv = c.level, done = W.handled(p), sn = W.snoozeOf(p), muted = W.muted(p), open = s.qx === p.id && lv !== 'ok';
-    const a = lv !== 'ok' && !muted ? W.actionOf(p) : null, reo = reopenedOf(p);
-    const tags = W.newTag(p) + (sn && sn.fresh ? '<span class="newtag">Có dữ liệu mới</span>' : sn && sn.due ? '<span class="newtag">Đến hạn xem lại</span>' : reo && !sn ? '<span class="newtag">Mở lại: có dữ liệu mới</span>' : '');
-    const state = sn && sn.active ? '<b>Xem lại ' + T.fmtDM(sn.until) + '</b> · ' : done && !sn ? '<b>✓ Đã xử lý</b> · ' : '';
-    const acts = lv === 'ok'
-      ? '<button class="btn sm" data-a="call" data-id="' + p.id + '" title="Gọi (minh họa)">' + ic('phone') + 'Gọi</button><button class="btn sm" data-a="msgto" data-id="' + p.id + '">' + ic('msg') + 'Nhắn</button><button class="btn sm primary" data-a="open" data-id="' + p.id + '">Mở hồ sơ</button>'
-      : (a ? '<button class="btn sm sug" data-a="qdo" data-k="' + a.kind + '" data-id="' + p.id + '" title="' + esc('Gợi ý theo quy tắc, bác sĩ quyết định. Từ: ' + a.reason.text) + '">' + ic('spark') + esc(a.label) + '</button>' +
-        (a.kind === 'call' ? '<button class="btn sm" data-a="qdo" data-k="msg" data-id="' + p.id + '">' + ic('msg') + 'Nhắn</button>' : '<button class="btn sm" data-a="qdo" data-k="call" data-id="' + p.id + '" title="Gọi (minh họa)">' + ic('phone') + 'Gọi</button>') : '') +
-        '<button class="btn sm" data-a="open" data-id="' + p.id + '">Mở hồ sơ</button>';
-    return '<div class="qitem' + (open ? ' open' : '') + '" data-q="' + p.id + '"><div class="qrow' + (muted ? ' done' : '') + (sel === p.id ? ' sel' : '') + '" data-a="' + (lv === 'ok' ? 'open' : 'qx') + '" data-id="' + p.id + '" tabindex="0"' + (lv === 'ok' ? '' : ' aria-expanded="' + open + '"') + '>' +
-      U.av(p, lv) +
-      '<div style="min-width:0"><div class="nm"><a href="#" class="nmlink" data-a="open" data-id="' + p.id + '" title="Mở hồ sơ, chỉ số và chart">' + esc(p.name) + '</a> <span class="muted small" style="font-family:var(--sans);font-weight:400">' + p.age + ' · ' + U.sexName(p) + ' · ' + esc(U.dxShort(p)) + '</span> ' + tags + '</div>' +
-      '<div class="why"><span>' + state + W.why(p, 2) + '</span></div></div>' +
-      '<div class="rt"><div class="dt">Dữ liệu<br><b style="color:var(--ink)">' + esc(W.updTxt(p)) + '</b></div>' +
-      '<div class="qacts">' + acts + '</div>' + (lv === 'ok' ? '' : '<span class="qchev" aria-hidden="true">' + ic(open ? 'chevU' : 'chevD') + '</span>') + '</div></div>' +
+    const a = lv !== 'ok' && !muted ? W.actionOf(p) : null, reo = reopenedOf(p), w = W.whyParts(p);
+    const tags = W.newTag(p) + (sn && sn.fresh ? '<span class="newtag">Có dữ liệu mới</span>' : sn && sn.due ? '<span class="newtag">Đến hạn xem lại</span>' : reo && !sn ? '<span class="newtag">Có dữ liệu mới</span>' : '');
+    const state = sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + ' · ' : done && !sn ? '✓ Đã xử lý · ' : '';
+    return '<div class="qitem ' + lv + (open ? ' open' : '') + '" data-q="' + p.id + '"><div class="qrow' + (muted ? ' done' : '') + (sel === p.id ? ' sel' : '') + '" data-a="' + (lv === 'ok' ? 'open' : 'qx') + '" data-id="' + p.id + '" tabindex="0"' + (lv === 'ok' ? '' : ' aria-expanded="' + open + '"') + '>' +
+      '<div class="qn"><a href="#" class="nmlink" data-a="open" data-id="' + p.id + '" title="Mở hồ sơ: ' + esc(p.name + ', ' + p.age + ' tuổi, ' + U.sexName(p) + ', ' + U.dxShort(p)) + '">' + esc(p.name) + '</a>' + tags + '</div>' +
+      '<div class="why" title="' + esc(w.all) + '"><span class="whyt">' + esc(state + w.txt) + '</span>' + (w.more ? '<span class="whym">' + esc(w.more) + '</span>' : '') + '</div>' +
+      '<span class="qt" title="' + esc('Dữ liệu mới nhất: ' + W.updTxt(p)) + '">' + esc(W.shortTime(p)) + '</span>' +
+      (a ? '<button class="btn sm sug ' + lv + '" data-a="qdo" data-k="' + a.kind + '" data-id="' + p.id + '" title="' + esc('Gợi ý theo quy tắc, bác sĩ quyết định. Từ: ' + a.reason.text) + '">' + ic('spark') + esc(a.label) + '</button>' : '<span></span>') +
+      (lv === 'ok' ? '<span></span>' : '<span class="qchev" aria-hidden="true">' + ic(open ? 'chevU' : 'chevD') + '</span>') + '</div>' +
       (open ? W.qpanel(p) : '') + '</div>';
   };
   /* Bảng xử lý nhanh ngay trong hàng đợi */
@@ -81,15 +88,18 @@
     const sug = a ? '<div class="qsug">' + ic('spark') + '<div><b>Gợi ý theo quy tắc, bác sĩ quyết định:</b> ' + esc(W.TODO[a.reason.code](p)) + ' <span class="xs muted">Lấy từ: ' + esc(a.reason.raw[0] || a.reason.text) + '</span></div></div>' : '';
     const pat = pats.length ? '<div class="qsug">' + ic('chart') + '<div><b>Quy luật trong dữ liệu:</b> ' + esc(pats.join(' ')) + ' <span class="tag prop">[Đề xuất]</span></div></div>' : '';
     const comp = s.qc === p.id ? '<div class="qcomp"><div style="display:flex;gap:8px;align-items:center"><b class="small">Soạn tin cho ' + esc(p.name) + '</b><select data-i="qtpl" data-id="' + p.id + '" aria-label="Chọn mẫu tin"><option value="">Đổi mẫu…</option>' + W.TPL.map((t, i) => '<option value="' + i + '">' + esc(t.t) + '</option>').join('') + '</select><span style="flex:1"></span><button class="btn sm ghost" data-a="msgto" data-id="' + p.id + '">Xem cả hội thoại</button></div><textarea id="qmsg" rows="3" data-i="draft" data-id="' + p.id + '" aria-label="Nội dung tin nhắn">' + esc(W.draftOf(p)) + '</textarea><div style="display:flex;gap:8px;align-items:center"><span class="xs muted" style="flex:1">Mẫu gợi ý [Đề xuất], tên thuốc và số liệu lấy từ hồ sơ. Cần lâm sàng duyệt. Đọc và sửa rồi mới gửi. Demo không gửi tin thật.</span><button class="btn sm" data-a="qcancel">Hủy</button><button class="btn sm primary" data-a="send" data-box="qmsg" data-id="' + p.id + '">' + ic('send') + 'Gửi</button></div></div>' : '';
+    const quick = '<button class="btn sm" data-a="qdo" data-k="call" data-id="' + p.id + '" title="Gọi (minh họa)">' + ic('phone') + 'Gọi</button><button class="btn sm" data-a="qdo" data-k="msg" data-id="' + p.id + '">' + ic('msg') + 'Nhắn</button><button class="btn sm" data-a="open" data-id="' + p.id + '">Mở hồ sơ</button>';
+    const ch = muted ? null : Ins.changes(p, c);
+    const up = ch && ch.up ? '<div class="small" style="color:var(--accent-ink)">Mới: chuyển từ ' + lvlName[ch.from] + ' sang ' + lvlName[ch.to] + ' so với 07:30 hôm qua.</div>' : '';
     let foot;
     if (muted) {
       const lastDone = W.levelReasons(p).map((r) => W.alertState(p.id, r.code)).filter((x) => x.status === 'done').pop();
-      foot = '<div class="qact"><div class="qfoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Hẹn xem lại ' + T.fmtDMY(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới.' : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '') + '. Tự mở lại khi có dữ liệu mới.') + ' Mức theo dõi vẫn giữ vì tính từ dữ liệu.</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div></div>';
+      foot = '<div class="qact"><div class="qfoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Hẹn xem lại ' + T.fmtDMY(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới.' : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '') + '. Tự mở lại khi có dữ liệu mới.') + ' Mức theo dõi vẫn giữ vì tính từ dữ liệu.</span>' + quick + '<button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div></div>';
     } else {
       foot = '<div class="qact"><div class="qnote"><span class="small muted">Ghi chú</span>' + ['Đã gọi BN', 'Đã nhắn BN', 'Đã hẹn khám'].map((t) => '<button class="btn sm" data-a="qchip" data-v="' + t + '" data-id="' + p.id + '">' + t + '</button>').join('') + '<input type="text" id="qnote" data-i="qnote" data-id="' + p.id + '" value="' + esc(s.qnotes[p.id] || '') + '" placeholder="Bắt buộc khi đánh dấu đã xử lý" aria-label="Ghi chú xử lý"></div><div id="q_msg"></div>' +
-        '<div class="qfoot"><button class="btn sm primary" data-a="qdone" data-id="' + p.id + '">' + ic('check') + 'Đã xử lý, sang người kế</button><span class="small muted" style="margin-left:6px">Xem lại sau</span>' + [1, 3, 7].map((n) => '<button class="btn sm" data-a="qsnooze" data-n="' + n + '" data-id="' + p.id + '">' + n + ' ngày</button>').join('') + '<span style="flex:1"></span><span class="xs muted">"Đã xử lý" không đổi mức theo dõi</span></div></div>';
+        '<div class="qfoot"><button class="btn sm primary" data-a="qdone" data-id="' + p.id + '">' + ic('check') + 'Đã xử lý, sang người kế</button><span class="small muted" style="margin-left:6px">Xem lại sau</span>' + [1, 3, 7].map((n) => '<button class="btn sm" data-a="qsnooze" data-n="' + n + '" data-id="' + p.id + '">' + n + ' ngày</button>').join('') + '<span style="flex:1"></span>' + quick + '</div></div>';
     }
-    return '<div class="qx">' + comp + '<div class="qx-grid"><ul class="qreasons">' + reasons + '</ul><div>' + stats + '</div></div>' + (muted ? '' : sug) + pat + (comp ? '' : foot) + '</div>';
+    return '<div class="qx">' + comp + up + '<div class="qx-grid"><ul class="qreasons">' + reasons + '</ul><div>' + stats + '</div></div>' + (muted ? '' : sug) + pat + (comp ? '' : foot) + '</div>';
   };
   W.queueList = (lv, grp) => {
     const pri = (p) => { if (W.muted(p)) return 3; const n = W.snoozeOf(p); if ((n && (n.due || n.fresh)) || reopenedOf(p)) return 0; return Ins.changes(p, S().cls[p.id]) ? 1 : 2; };
@@ -102,31 +112,33 @@
   /* ---------- Tổng quan (không chart, không cuộn trang) ---------- */
   W.home = () => {
     const s = S(), c = R.counts(D.patients, s.cls), ta = W.todayAppts(), pp = W.pendingPatients();
+    const long = pp.filter((p) => R.pending(p).hours > R.cfg.msgHours).length, pendA = s.appts.filter((a) => a.status === 'pending').length;
     const actOpen = W.openCount('act'), watchOpen = W.openCount('watch'), actSn = W.snoozedCount('act'), watchSn = W.snoozedCount('watch');
-    const fresh = (lv) => D.patients.filter((p) => s.cls[p.id].level === lv && !W.muted(p) && Ins.changes(p, s.cls[p.id])).length, fa = fresh('act'), fw = fresh('watch');
+    const fresh = D.patients.filter((p) => s.cls[p.id].level !== 'ok' && !W.muted(p) && Ins.changes(p, s.cls[p.id])).length;
     const anySn = D.patients.some((p) => (W.snoozeOf(p) || {}).active);
-    const long = pp.filter((p) => R.pending(p).hours > R.cfg.msgHours).length;
     const list = W.queueList(s.qtab, s.qgroup);
-    const nextA = ta.find((a) => a.time >= '07:30');
-    const tab = (k, n) => '<button class="' + (s.qtab === k ? 'on' : '') + '" data-a="qtab" data-v="' + k + '">' + U.lvl[k].t + '<span class="n ' + k + '">' + n + '</span></button>';
+    const tab = (k, t, n) => '<button class="' + (s.qtab === k ? 'on' : '') + '" data-a="qtab" data-v="' + k + '">' + U.mark(k) + t + ' ' + n + '</button>';
+    const sub = (open, total, sn) => (open !== total ? open + ' chưa xử lý' + (sn ? ' · ' + sn + ' hẹn xem lại' : '') : '');
+    const kpi = (cls, attrs, label, value, foot) => '<button class="kpi ' + cls + '" ' + attrs + '><div class="kl">' + label + '</div><div class="kv">' + value + '</div><div class="ks">' + foot + '</div></button>';
     return '<div class="dash">' +
-      '<div class="dash-hi"><h1>Chào buổi sáng, ' + D.doctor.short + '</h1><span class="muted">' + (actOpen ? '<b style="color:var(--act-ink)">' + actOpen + ' bệnh nhân cần can thiệp</b> chưa xử lý' : 'Không còn bệnh nhân cần can thiệp chưa xử lý') + (fa + fw ? ' · <b>' + (fa + fw) + ' có dấu hiệu mới</b> so với 07:30 hôm qua (' + fa + ' can thiệp, ' + fw + ' theo dõi)' : '') + ' · ' + T.dow(0) + ', ' + T.fmtDMY(0) + (s.day ? ' · <span class="tag dem">demo đã tua +' + s.day + ' ngày</span>' : '') + '</span></div>' +
+      '<div class="dash-hi"><h1>Chào buổi sáng, ' + D.doctor.short + '</h1>' + (s.day ? '<span class="tag dem">demo đã tua +' + s.day + ' ngày</span>' : '') + '</div>' +
       '<div class="kpis">' +
-      '<button class="kpi" data-a="nav" data-r="d/patients"><div class="kl">' + ic('users') + 'Đang quản lý</div><div class="kv">' + c.total + '<small>bệnh nhân</small></div><div class="ks">' + D.patients.filter((p) => U.group(p) === 'prim').length + ' tiên phát · ' + D.patients.filter((p) => U.group(p) === 'sec').length + ' thứ phát</div></button>' +
-      '<button class="kpi act" data-a="qtab" data-v="act"><div class="kl">' + ic('alert') + 'Cần can thiệp</div><div class="kv">' + c.act + '<small>bệnh nhân</small></div><div class="ks">' + actOpen + ' chưa xử lý' + (actSn ? ' · ' + actSn + ' hẹn xem lại' : '') + '</div></button>' +
-      '<button class="kpi watch" data-a="qtab" data-v="watch"><div class="kl">' + ic('watch') + 'Cần theo dõi</div><div class="kv">' + c.watch + '<small>bệnh nhân</small></div><div class="ks">' + watchOpen + ' chưa xử lý' + (watchSn ? ' · ' + watchSn + ' hẹn xem lại' : '') + '</div></button>' +
-      '<button class="kpi" data-a="nav" data-r="d/appts"><div class="kl">' + ic('calendar') + 'Lịch khám hôm nay</div><div class="kv">' + ta.length + '<small>lượt</small></div><div class="ks">' + (s.appts.filter((a) => a.status === 'pending').length ? s.appts.filter((a) => a.status === 'pending').length + ' lịch chờ xác nhận' : 'Không có lịch chờ xác nhận') + '</div></button>' +
-      '<button class="kpi" data-a="nav" data-r="d/msgs"><div class="kl">' + ic('msg') + 'Tin nhắn chờ trả lời</div><div class="kv">' + pp.length + '<small>bệnh nhân</small></div><div class="ks">' + (long ? long + ' chờ quá ' + R.cfg.msgHours + ' giờ' : 'Không có tin chờ quá ' + R.cfg.msgHours + ' giờ') + '</div></button>' +
+      kpi('', 'data-a="nav" data-r="d/patients"', 'Đang quản lý', c.total, '<span class="tri" role="img" aria-label="' + c.act + ' cần can thiệp, ' + c.watch + ' cần theo dõi, ' + c.ok + ' ổn định"><i style="flex:' + c.act + ';background:var(--act)"></i><i style="flex:' + c.watch + ';background:var(--watch)"></i><i style="flex:' + c.ok + ';background:var(--ok)"></i></span>') +
+      kpi('act', 'data-a="qtab" data-v="act"', U.mark('act') + 'Cần can thiệp', c.act, sub(actOpen, c.act, actSn)) +
+      kpi('watch', 'data-a="qtab" data-v="watch"', U.mark('watch') + 'Cần theo dõi', c.watch, sub(watchOpen, c.watch, watchSn)) +
+      kpi('', 'data-a="nav" data-r="d/appts"', 'Lịch hôm nay', ta.length, pendA ? pendA + ' chờ xác nhận' : '') +
+      kpi('', 'data-a="nav" data-r="d/msgs"', 'Tin chờ trả lời', pp.length, long ? long + ' quá ' + R.cfg.msgHours + ' giờ' : '') +
       '</div>' +
       '<div class="dash-body">' +
-      '<section class="card cardf" aria-label="Hàng đợi ưu tiên"><div class="card-h"><h3>Hàng đợi ưu tiên</h3><div class="seg">' + tab('act', c.act) + tab('watch', c.watch) + tab('ok', c.ok) + '</div><span style="flex:1"></span><label class="small muted">Nhóm&nbsp;<select data-i="qgroup"><option value="all"' + (s.qgroup === 'all' ? ' selected' : '') + '>Tất cả</option><option value="prim"' + (s.qgroup === 'prim' ? ' selected' : '') + '>Tiên phát</option><option value="sec"' + (s.qgroup === 'sec' ? ' selected' : '') + '>Thứ phát</option></select></label></div>' +
-      '<div class="qhint">' + ic('spark') + '<span>Nút có dấu này là gợi ý theo quy tắc từ dữ liệu của bệnh nhân, bác sĩ quyết định. "Mới" so với 07:30 hôm qua.</span><span style="flex:1"></span>' + (anySn ? '<button class="btn sm ghost" data-a="qtua" title="Chỉ để thử trong demo: số liệu không đổi">Tua demo +3 ngày</button>' : '') + '</div>' +
+      '<section class="card cardf" aria-label="Hàng đợi ưu tiên"><div class="card-h"><h3>Hàng đợi</h3>' + (fresh ? '<span class="qhintt" title="So với 07:30 hôm qua, cùng quy tắc phân loại">' + fresh + ' có dấu hiệu mới</span>' : '') +
+      '<span class="qinfo" tabindex="0" title="Nút có dấu sao là gợi ý theo quy tắc từ dữ liệu của bệnh nhân, bác sĩ quyết định. Không dùng AI.">' + ic('info') + '</span>' + (anySn ? '<button class="btn sm ghost" data-a="qtua" title="Chỉ để thử trong demo: số liệu không đổi">Tua demo +3 ngày</button>' : '') +
+      '<span style="flex:1"></span><div class="seg">' + tab('act', 'Can thiệp', c.act) + tab('watch', 'Theo dõi', c.watch) + tab('ok', 'Ổn định', c.ok) + '</div><select data-i="qgroup" aria-label="Nhóm"><option value="all"' + (s.qgroup === 'all' ? ' selected' : '') + '>Tất cả</option><option value="prim"' + (s.qgroup === 'prim' ? ' selected' : '') + '>Tiên phát</option><option value="sec"' + (s.qgroup === 'sec' ? ' selected' : '') + '>Thứ phát</option></select></div>' +
       '<div class="scroll">' + (list.length ? list.map((p) => W.qrow(p, s.drawer && s.drawer.id)).join('') : '<div class="empty">Không có bệnh nhân trong nhóm này.</div>') + '</div></section>' +
       '<div class="col-r">' +
-      '<section class="card cardf"><div class="card-h"><h3>Lịch khám hôm nay</h3><span class="tag">' + ta.length + ' lượt</span><span style="flex:1"></span><button class="btn sm ghost" data-a="nav" data-r="d/appts">Xem lịch</button></div><div class="scroll">' +
-      (ta.length ? ta.map((a) => { const p = P(a.pid), lv = s.cls[p.id].level; return '<div class="mini-row" data-a="open" data-id="' + p.id + '"><span class="tm">' + a.time + '</span><div style="flex:1;min-width:0"><b>' + esc(p.name) + '</b><div class="xs muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(a.reason) + '</div></div>' + (lv !== 'ok' ? '<span class="chip ' + lv + '" title="' + U.lvl[lv].t + '">' + ic(U.lvl[lv].ic) + U.lvl[lv].t.replace('Cần ', '') + '</span>' : '') + (a.status !== 'confirmed' ? W.apStatus(a.status) : '') + '</div>'; }).join('') : '<div class="empty">Hôm nay không có lịch khám.</div>') + '</div></section>' +
-      '<section class="card cardf"><div class="card-h"><h3>Tin nhắn chờ trả lời</h3><span class="tag">' + pp.length + '</span><span style="flex:1"></span><button class="btn sm ghost" data-a="nav" data-r="d/msgs">Mở hộp thư</button></div><div class="scroll">' +
-      (pp.length ? pp.map((p) => { const m = R.pending(p); return '<div class="mini-row" data-a="msgto" data-id="' + p.id + '"><div style="flex:1;min-width:0"><b>' + esc(p.name) + '</b> ' + (m.hours > R.cfg.msgHours ? '<span class="chip watch xs">' + ic('watch') + 'Chờ ' + Math.floor(m.hours) + ' giờ</span>' : '<span class="muted xs">' + Math.max(1, Math.round(m.hours)) + ' giờ trước</span>') + '<div class="xs muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">"' + esc(m.text) + '"</div></div></div>'; }).join('') : '<div class="empty">Không có tin nhắn chờ trả lời.</div>') + '</div></section>' +
+      '<section class="card cardf"><div class="card-h"><h3>Lịch hôm nay</h3><span style="flex:1"></span><button class="lnk" data-a="nav" data-r="d/appts">Xem lịch</button></div><div class="scroll">' +
+      (ta.length ? ta.map((a) => { const p = P(a.pid), lv = s.cls[p.id].level; return '<div class="mini-row" data-a="open" data-tab="sum" data-id="' + p.id + '" title="' + esc(a.reason + ' · ' + lvlName[lv]) + '"><span class="tm">' + a.time + '</span><span class="mn">' + esc(p.name) + '</span>' + (a.status !== 'confirmed' ? W.apStatus(a.status) : '') + U.mark(lv) + '</div>'; }).join('') : '<div class="empty">Hôm nay không có lịch khám.</div>') + '</div></section>' +
+      '<section class="card cardf"><div class="card-h"><h3>Tin chờ trả lời</h3><span style="flex:1"></span><button class="lnk" data-a="nav" data-r="d/msgs">Hộp thư</button></div><div class="scroll">' +
+      (pp.length ? pp.map((p) => { const m = R.pending(p), over = m.hours > R.cfg.msgHours; return '<div class="mini-row" data-a="msgto" data-id="' + p.id + '" title="' + esc(m.text) + '">' + U.mark(over ? 'watch' : 'ok') + '<span class="mn">' + esc(p.name) + '</span><span class="mt">' + Math.max(1, over ? Math.floor(m.hours) : Math.round(m.hours)) + ' giờ</span></div>'; }).join('') : '<div class="empty">Không có tin nhắn chờ trả lời.</div>') + '</div></section>' +
       '</div></div></div>';
   };
 
