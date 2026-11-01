@@ -1,0 +1,338 @@
+/* VNPreventStroke (demo) · trạng thái, điều hướng, khung giao diện, xử lý sự kiện */
+(function (g) {
+  'use strict';
+  const V = g.VNPS, T = V.T, R = V.rules, D = V.data, U = V.ui, W = V.views, esc = U.esc, ic = U.ic;
+  const $ = (s) => document.querySelector(s);
+  V.byId = {}; D.patients.forEach((p) => { V.byId[p.id] = p; });
+
+  /* ---------- trạng thái ---------- */
+  const S = (V.S = {
+    role: null, route: '', qtab: 'act', qgroup: 'all', drawer: null, page: null, collapsed: false, theme: 'light', menu: null,
+    al: {}, notes: {}, adv: {},
+    pf: { q: '', need: 'all', group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' },
+    qx: null, qc: null, qmove: false, qnotes: {}, sn: {}, day: 0, drafts: {},
+    pv: { metric: 'bp', range: 30 }, mg: { sel: null }, ap: { mode: 'week', anchor: 0, filter: 'all' }, appts: [],
+    tool: 'esrs', ti: {}, set: { days: [0, 1, 2, 3, 4, 5, 6].map(() => ({ on: false, from: '08:00', to: '11:30' })), busy: [], saved: null },
+    mgr: { group: 'all', period: 7 }, mq: null, cls: {}, sres: [], ew: false,
+  });
+  let aid = 1;
+  D.patients.forEach((p) => S.appts.push({ id: 'A' + aid++, pid: p.id, d: p.appt.d, time: p.appt.time, dur: 30, reason: p.appt.kind, status: 'confirmed', by: 'doctor' }));
+  D.patients.filter((p) => p.req).forEach((p) => S.appts.push({ id: 'A' + aid++, pid: p.id, d: p.req.want, time: '08:30', dur: 30, reason: 'Xin đổi lịch: ' + p.req.why + ' (qua ' + p.req.via + ')', status: 'pending', by: 'patient' }));
+  const derive = () => { S.cls = R.classifyAll(D.patients, R.cfg); };
+  derive();
+  const NOWH = 7.55;
+  const parseDMY = (s) => { const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) return null; const dt = new Date(+m[3], +m[2] - 1, +m[1]); if (dt.getMonth() !== +m[2] - 1) return null; return Math.round((dt - new Date(2026, 9, 31)) / 864e5); };
+  const val = (id) => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const say = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+  const box = (cls, t) => '<div class="' + cls + '">' + t + '</div>';
+
+  /* ---------- điều hướng ---------- */
+  const parseHash = () => {
+    const h = (location.hash || '#/').slice(2);
+    if (!h) { S.role = null; S.route = ''; return; }
+    const parts = h.split('/'); S.role = parts[0] === 'm' ? 'manager' : 'doctor';
+    if (S.role === 'doctor') {
+      if (parts[1] === 'patient' && V.byId[parts[2]]) { S.route = 'd/patient'; S.page = S.page && S.page.id === parts[2] ? S.page : { id: parts[2], tab: 'sum' }; }
+      else S.route = 'd/' + (['home', 'patients', 'appts', 'msgs', 'tools', 'settings'].includes(parts[1]) ? parts[1] : 'home');
+    } else S.route = 'm/' + (['overview', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'overview');
+  };
+  const go = (r) => { const t = '#/' + r; if (location.hash === t) { render(); } else location.hash = t; };
+
+  /* ---------- khung ---------- */
+  const NAVS = {
+    doctor: () => [['home', 'Tổng quan', 'home'], ['patients', 'Bệnh nhân', 'users'], ['appts', 'Lịch khám', 'calendar', W.todayAppts().length, 'n'], ['msgs', 'Tin nhắn', 'msg', W.pendingPatients().length, ''], ['tools', 'Công cụ tính nguy cơ', 'calc'], ['settings', 'Cài đặt', 'gear']].map((x) => ({ r: 'd/' + x[0], t: x[1], i: x[2], b: x[3], bc: x[4] })),
+    manager: () => [{ r: 'm/overview', t: 'Tổng hợp đơn vị', i: 'chart' }, { r: 'm/thresholds', t: 'Thang điểm & ngưỡng', i: 'gear' }],
+  };
+  function shell() {
+    const app = $('#app');
+    if (!S.role) { app.className = 'nosidebar'; app.innerHTML = W.landing(); app.dataset.shell = ''; return false; }
+    app.className = S.collapsed ? 'collapsed' : '';
+    if (app.dataset.shell !== S.role) { app.innerHTML = '<aside id="side"></aside><div class="col"><header id="top"></header><main id="main"></main></div>'; app.dataset.shell = S.role; app.dataset.top = ''; }
+    return true;
+  }
+  function renderSide() {
+    const on = (r) => (S.route === r || (r === 'd/patients' && S.route === 'd/patient') || (r === 'm/overview' && S.route === 'm/list') ? ' on' : '');
+    $('#side').innerHTML = '<div class="brand"><span class="logo">V</span><span class="bt"><b>VNPreventStroke</b><span>(demo) · ' + (S.role === 'doctor' ? 'Cổng Bác sĩ' : 'Cổng Quản lý') + '</span></span></div><nav class="nav" aria-label="Menu chính">' +
+      NAVS[S.role]().map((n) => '<a href="#/' + n.r + '" class="' + on(n.r).trim() + '" title="' + esc(n.t) + '">' + ic(n.i) + '<span class="lb">' + esc(n.t) + '</span>' + (n.b ? '<span class="bd ' + n.bc + '">' + n.b + '</span>' : '') + '</a>').join('') +
+      '<div class="sep"></div><button class="navb" data-a="collapse" title="Thu gọn / mở rộng menu">' + ic('panel') + '<span class="lb">Thu gọn menu</span></button><button class="navb" data-a="switchrole" title="Đổi vai trò">' + ic('logout') + '<span class="lb">Đổi vai trò</span></button></nav><div class="side-foot">Bản demo · dữ liệu minh họa<br>Không dùng để chẩn đoán hay điều trị</div>';
+  }
+  const bellList = () => D.patients.filter((p) => !W.muted(p)).map((p) => ({ p, r: S.cls[p.id].reasons.filter((x) => x.level === 'act' && W.alertState(p.id, x.code).status !== 'done' && T.hoursAgo(x.at.d, x.at.h) <= 48)[0] })).filter((x) => x.r).sort((a, b) => b.r.at.d * 24 + b.r.at.h - (a.r.at.d * 24 + a.r.at.h));
+  function renderTop() {
+    const t = $('#top'), bl = S.role === 'doctor' ? bellList() : [];
+    const keep = t.querySelector('#gs'); const had = keep && document.activeElement === keep ? keep.value : null;
+    t.innerHTML = (S.role === 'doctor' ? '<div class="tb-search">' + ic('search') + '<input id="gs" type="search" placeholder="Tìm tên, mã, SĐT hoặc: bỏ liều, HA cao…" autocomplete="off" aria-label="Tìm bệnh nhân" data-i="gs"><kbd>/</kbd><div class="sres" id="sres" hidden></div></div>' : '<span class="rolechip">' + ic('building') + ' ' + esc(D.doctor.unit) + '</span>') +
+      '<span class="tb-date">' + T.dow(0) + ', ' + T.fmtDMY(0) + ' · 07:30</span><span class="tb-sp"></span>' +
+      (S.role === 'doctor' ? '<button class="iconbtn" data-a="bell" aria-label="Cảnh báo mới">' + ic('bell') + (bl.length ? '<span class="bd">' + bl.length + '</span>' : '') + '</button>' : '') +
+      '<button class="iconbtn" data-a="theme" aria-label="Đổi giao diện sáng/tối" title="Chế độ tối [Đề xuất]">' + ic(S.theme === 'dark' ? 'sun' : 'moon') + '</button>' +
+      '<button class="userbtn" data-a="umenu"><span class="av">' + U.initials(D.doctor.name.replace('BS. ', '')) + '</span><span class="small"><b>' + D.doctor.short + '</b></span>' + ic('chevD') + '</button>';
+    if (S.menu === 'bell') t.insertAdjacentHTML('beforeend', '<div class="menu" style="min-width:340px"><div class="small muted" style="padding:6px 10px">Cảnh báo đỏ chưa xử lý trong 48 giờ qua</div>' + (bl.length ? bl.map((x) => '<button data-a="open" data-id="' + x.p.id + '"><span class="av ' + 'act' + '" style="width:26px;height:26px;font-size:11px">' + U.initials(x.p.name) + '</span><span style="flex:1"><b>' + esc(x.p.name) + '</b><br><span class="xs muted">' + esc(x.r.text) + '</span></span></button>').join('') : '<div class="empty">Không có cảnh báo mới.</div>') + '</div>');
+    if (S.menu === 'user') t.insertAdjacentHTML('beforeend', '<div class="menu"><div class="mi"><span><b>' + esc(D.doctor.name) + '</b><br><span class="xs muted">' + (S.role === 'doctor' ? 'Vai trò: Bác sĩ' : 'Vai trò: Quản lý') + '</span></span></div><hr><button data-a="switchrole">' + ic('logout') + 'Đổi vai trò</button><button data-a="theme">' + ic('moon') + 'Chế độ sáng / tối</button><button data-a="reset">' + ic('dash') + 'Đặt lại dữ liệu demo</button></div>');
+    if (had != null) { const n = t.querySelector('#gs'); n.value = had; n.focus(); }
+  }
+  function renderMain() {
+    const m = $('#main'), r = S.route, fx = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.i : null, pos = fx && document.activeElement.selectionStart;
+    const top = m.scrollTop, inner = Array.from(m.querySelectorAll('.dash .scroll')).map((x) => x.scrollTop);
+    m.className = r === 'd/home' ? 'nos' : '';
+    let h = '';
+    if (r === 'd/home') h = W.home();
+    else if (r === 'd/patients') h = W.patients();
+    else if (r === 'd/appts') h = W.appts();
+    else if (r === 'd/msgs') h = W.msgs();
+    else if (r === 'd/tools') h = W.tools();
+    else if (r === 'd/settings') h = W.settings();
+    else if (r === 'd/patient') h = '<div class="page">' + W.patientView(V.byId[S.page.id], S.page.tab, 'page') + '</div>';
+    else if (r === 'm/overview') h = W.overview();
+    else if (r === 'm/list') h = W.mlist();
+    else if (r === 'm/thresholds') h = W.thresholds();
+    m.innerHTML = h; m.scrollTop = top;
+    m.querySelectorAll('.dash .scroll').forEach((x, i) => { if (inner[i]) x.scrollTop = inner[i]; });
+    if (S.qmove) {
+      S.qmove = false;
+      const it = m.querySelector('.qitem.open'), box = it && it.closest('.scroll');
+      if (box) { const a = it.getBoundingClientRect(), b = box.getBoundingClientRect(); if (a.top < b.top) box.scrollTop -= b.top - a.top; else if (a.bottom > b.bottom) box.scrollTop += Math.min(a.top - b.top, a.bottom - b.bottom); }
+    }
+    if (fx) { const n = m.querySelector('[data-i="' + fx + '"]'); if (n && fx !== 'gs') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* number/select */ } } }
+    const th = $('#thread'); if (th) th.scrollTop = th.scrollHeight;
+  }
+  function renderDrawer() {
+    const ov = $('#ov'), old = ov.querySelector('.pd-body'), top = old ? old.scrollTop : 0;
+    if (!S.drawer) { ov.innerHTML = ''; return; }
+    const p = V.byId[S.drawer.id];
+    ov.innerHTML = '<div id="scrim" data-a="close"></div><aside id="drawer" role="dialog" aria-label="Hồ sơ ' + esc(p.name) + '">' + W.patientView(p, S.drawer.tab, 'drawer') + '</aside>';
+    const b = ov.querySelector('.pd-body'); if (b) b.scrollTop = top;
+    const th = ov.querySelector('#thread'); if (th) th.scrollTop = th.scrollHeight;
+  }
+  function render() {
+    document.documentElement.dataset.theme = S.theme;
+    if (!shell()) { $('#ov').innerHTML = ''; return; }
+    renderSide(); renderTop(); renderMain(); renderDrawer();
+  }
+  const refresh = () => { derive(); render(); };
+
+  /* ---------- mở hồ sơ ---------- */
+  const openP = (id, tab) => {
+    if (S.route === 'd/patient') { S.page = { id, tab: tab || 'sum' }; location.hash = '#/d/patient/' + id; render(); return; }
+    S.drawer = { id, tab: tab || (S.drawer && S.drawer.id === id ? S.drawer.tab : 'sum') }; S.menu = null; render();
+  };
+  const curP = () => V.byId[(S.route === 'd/patient' ? S.page : S.drawer).id];
+  const syncAppt = (pid) => {
+    const p = V.byId[pid]; const L = S.appts.filter((a) => a.pid === pid && a.status !== 'canceled' && a.status !== 'done' && a.by === 'doctor' || (a.pid === pid && a.status === 'confirmed')).filter((a) => a.d >= 0).sort((a, b) => a.d - b.d || a.time.localeCompare(b.time));
+    if (L.length) p.appt = Object.assign({}, p.appt, { d: L[0].d, time: L[0].time, status: 'scheduled' });
+  };
+  const setPatientField = () => { /* chỗ giữ chỗ để mở rộng */ };
+  const nextInQueue = (msg) => {
+    const n = W.queueList(S.qtab, S.qgroup).find((p) => !W.muted(p));
+    S.qx = n ? n.id : null; S.qc = null; S.qmove = true; render();
+    U.toast(msg + (n ? ' Chuyển sang ' + n.name + '.' : ' Đã hết bệnh nhân chưa xử lý trong tab này.'));
+  };
+
+  /* ---------- hành động ---------- */
+  const H = {
+    role: (el) => go(el.dataset.v === 'doctor' ? 'd/home' : 'm/overview'),
+    switchrole: () => { S.menu = null; S.drawer = null; location.hash = '#/'; },
+    nav: (el) => { S.drawer = null; go(el.dataset.r); },
+    collapse: () => { S.collapsed = !S.collapsed; render(); },
+    theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; S.menu = null; render(); },
+    umenu: () => { S.menu = S.menu === 'user' ? null : 'user'; renderTop(); },
+    bell: () => { S.menu = S.menu === 'bell' ? null : 'bell'; renderTop(); },
+    reset: () => location.reload(),
+    legal: () => U.toast('Nội dung chính sách riêng tư và điều khoản đang chờ pháp chế xác nhận (chỗ giữ chỗ).'),
+    demo: () => U.demoMsg(),
+    open: (el) => openP(el.dataset.id, el.dataset.tab),
+    msgto: (el) => { if (S.route === 'd/msgs') { S.mg.sel = el.dataset.id; render(); } else openP(el.dataset.id, 'msg'); },
+    close: () => { S.drawer = null; S.pv.metric = 'bp'; render(); },
+    fullpage: (el) => { const id = el.dataset.id, tab = S.drawer ? S.drawer.tab : 'sum'; S.drawer = null; S.page = { id, tab }; location.hash = '#/d/patient/' + id; },
+    back: () => { if (history.length > 1) history.back(); else go('d/patients'); },
+    ptab: (el) => { const t = el.dataset.t; if (S.route === 'd/patient') S.page.tab = t; else S.drawer.tab = t; if (S.route === 'd/patient') render(); else renderDrawer(); },
+    call: (el) => { const p = V.byId[el.dataset.id]; U.toast('Gọi ' + p.name + ': ' + p.phone + ' (số giả). Tính năng minh họa, demo không thực hiện cuộc gọi.'); },
+    qtab: (el) => { S.qtab = el.dataset.v; S.qx = null; S.qc = null; if (S.route !== 'd/home') go('d/home'); else render(); },
+    /* xử lý nhanh tại hàng đợi */
+    qx: (el) => { const id = el.dataset.id; S.qx = S.qx === id ? null : id; S.qc = null; S.qmove = true; render(); },
+    qdo: (el) => {
+      const id = el.dataset.id, p = V.byId[id], k = el.dataset.k;
+      if (k === 'appt') { S.qx = id; S.qc = null; render(); W.apNewModal(id, false); return; }
+      if (k === 'lab') { S.pv.metric = 'lab'; openP(id, 'vit'); return; }
+      if (k === 'open') { openP(id, 'sum'); return; }
+      S.qx = id; S.qmove = true;
+      if (k === 'call') { S.qc = null; if (!S.qnotes[id]) S.qnotes[id] = 'Đã gọi BN'; render(); U.toast('Gọi ' + p.name + ': ' + p.phone + ' (số giả). Tính năng minh họa, demo không thực hiện cuộc gọi.'); return; }
+      S.qc = id; render();
+    },
+    qcancel: () => { S.qc = null; render(); },
+    qchip: (el) => { const id = el.dataset.id; S.qnotes[id] = el.dataset.v; const n = document.getElementById('qnote'); if (n) { n.value = el.dataset.v; n.focus(); } say('q_msg', ''); },
+    qdone: (el) => {
+      const id = el.dataset.id, p = V.byId[id], n = document.getElementById('qnote'), note = (n ? n.value : S.qnotes[id] || '').trim();
+      if (!note) { say('q_msg', box('errbox', 'Cần ghi chú ngắn: bấm một nút ghi chú hoặc tự nhập.')); if (n) n.focus(); return; }
+      W.levelReasons(p).forEach((r) => { const k = id + ':' + r.code; if (W.alertState(id, r.code).status !== 'done') S.al[k] = { status: 'done', note, sig: W.sigOf(r), by: D.doctor.short, at: { d: 0, h: NOWH } }; });
+      delete S.sn[id]; delete S.qnotes[id];
+      nextInQueue('Đã ghi nhận xử lý ' + p.name + '. Mức theo dõi giữ nguyên vì tính từ dữ liệu.');
+    },
+    qsnooze: (el) => {
+      const id = el.dataset.id, p = V.byId[id], n = +el.dataset.n, inp = document.getElementById('qnote'), note = (inp ? inp.value : '').trim(), until = S.day + n;
+      const rec = { d: 0, h: NOWH, by: D.doctor.short, text: 'Hẹn xem lại sau ' + n + ' ngày (' + T.fmtDMY(until) + ')' + (note ? ': ' + note : '') + '.' };
+      (S.notes[id] = S.notes[id] || []).push(rec);
+      S.sn[id] = { until, n, note, rec, sigs: S.cls[id].reasons.map(W.sigOf) };
+      delete S.qnotes[id];
+      nextInQueue(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới. Mức theo dõi giữ nguyên.');
+    },
+    qundo: (el) => {
+      const id = el.dataset.id, n = S.sn[id];
+      if (n) { S.notes[id] = (S.notes[id] || []).filter((x) => x !== n.rec); delete S.sn[id]; } else W.levelReasons(V.byId[id]).forEach((r) => { delete S.al[id + ':' + r.code]; });
+      S.qx = id; S.qmove = true; render(); U.toast('Đã hoàn tác.');
+    },
+    qtua: () => { S.day += 3; render(); U.toast('Demo đã tua thêm 3 ngày, chỉ để thử hẹn xem lại. Số liệu và ngày trên trang không đổi.'); },
+    need: (el) => { const sr = $('#sres'), gs = $('#gs'); if (sr) sr.hidden = true; if (gs) gs.value = ''; S.pf = Object.assign({}, S.pf, { q: '', need: el.dataset.k, group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' }); S.drawer = null; go('d/patients'); },
+    print: () => U.toast('Tính năng minh họa: in/xuất tóm tắt. Bản chính thức sẽ cảnh báo quyền riêng tư và ghi nhật ký truy cập.'),
+    /* bệnh nhân */
+    pgroup: (el) => { S.pf.group = el.dataset.v; render(); },
+    pclear: (el) => { const v = el.dataset.v; if (v === 'all') S.pf = Object.assign({}, S.pf, { q: '', need: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all' }); else S.pf[v === 'q' ? 'q' : v] = v === 'q' ? '' : 'all'; render(); },
+    export: () => { const L = W.filterPatients(); U.modal(W.modalHead('Xuất danh sách bệnh nhân') + '<div class="mbox-b"><div class="warnbox">Tệp CSV chứa thông tin bệnh nhân trong phạm vi đang lọc (' + L.length + ' bệnh nhân). Chỉ xuất khi cần cho công việc chuyên môn. Việc xuất được ghi nhật ký truy cập (minh họa).</div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="exportgo">' + ic('download') + 'Xuất CSV</button></div>'); },
+    exportgo: () => {
+      const L = W.filterPatients(), rows = [['Mã', 'Họ tên', 'Tuổi', 'Giới', 'Cơ sở', 'Chẩn đoán', 'Mức theo dõi', 'Vấn đề cần chú ý', 'HA TB 7 ngày (mmHg)', 'Tuân thủ 30 ngày (%)', 'Cập nhật gần nhất']].concat(L.map((p) => { const I = R.ind(p); return [p.id, p.name, p.age, U.sexName(p), U.site(p), U.dx(p), U.lvl[S.cls[p.id].level].t, W.issues(p).join('; '), I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '', I.adh.v ? I.adh.v.pct : '', U.dt(p.lastData.d, p.lastData.h)]; }));
+      const csv = '﻿' + rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'benh-nhan-demo.csv'; document.body.appendChild(a); a.click(); a.remove();
+      U.closeModal(); U.toast('Đã xuất ' + L.length + ' bệnh nhân (CSV, UTF-8). Ghi nhật ký truy cập: minh họa.');
+    },
+    addpt: () => W.addPtModal(),
+    addptsave: () => {
+      const name = val('p_name').trim(), age = parseInt(val('p_age'), 10);
+      if (!name) return say('p_msg', box('errbox', 'Nhập họ và tên.'));
+      if (!(age >= 0 && age <= 120)) return say('p_msg', box('errbox', 'Tuổi phải từ 0 đến 120.'));
+      const id = 'P' + String(D.patients.length + 1).padStart(3, '0'), n = D.patients.length + 1;
+      const nul = { htn: null, dm: null, smoke: null, af: null, mi: null, pad: null, hf: null, ocvd: null, prior: null };
+      const p = { id, name, age, sex: val('p_sex'), site: val('p_site'), phone: '0900 000 ' + String(n).padStart(3, '0'), family: null, doctor: D.doctor.name, coDoctor: null, consent: true, consentAdh: true, dx: { type: val('p_dx'), onset: null, nihss: null, mrs: null, reg: 0 }, rf: nul, ht: 165, meds: [], targets: {}, fsrp: null, life: { cig: 0, alc: 0, ex: 0, diet: 'Chưa ghi nhận', sleep: 7 }, events: [], lastRecD: 0, bp: [], glu: [], weight: [], labs: { ldl: [], tc: [], a1c: [] }, lastData: { d: 0, h: T.NOW_H }, noData: true, appt: { d: 14, time: '08:30', status: 'scheduled', kind: 'Khám lần đầu', iv: 1 }, visits: [], req: null, thread: [], notes: [], history: [] };
+      D.patients.push(p); V.byId[id] = p; S.appts.push({ id: 'A' + aid++, pid: id, d: 14, time: '08:30', dur: 30, reason: 'Khám lần đầu', status: 'confirmed', by: 'doctor' });
+      U.closeModal(); refresh(); U.toast('Đã tạo hồ sơ ' + name + ' (' + id + '). Chưa có số đo nên vào "Cần theo dõi".');
+    },
+    entry: (el) => { S.ew = false; W.entryModal(V.byId[el.dataset.id]); },
+    entrysave: (el) => {
+      const p = V.byId[el.dataset.id], f = { sys: val('e_sys'), dia: val('e_dia'), glu: val('e_glu'), kg: val('e_kg'), alc: val('e_alc') };
+      if (!Object.values(f).some((x) => x !== '')) return say('e_msg', box('errbox', 'Nhập ít nhất một số đo.'));
+      const v = R.validate(f);
+      if (v.err.length) return say('e_msg', v.err.map((x) => box('errbox', esc(x))).join(''));
+      if (v.warn.length && !S.ew) { S.ew = true; el.textContent = 'Vẫn lưu'; return say('e_msg', v.warn.map((x) => box('warnbox', esc(x))).join('') + '<div class="xs muted">Bấm "Vẫn lưu" nếu số đo đã được xác nhận.</div>'); }
+      const h = T.NOW_H;
+      if (f.sys !== '') { p.bp.push({ d: 0, slot: 'am', h, s: +f.sys, dia: +f.dia, src: 'NVYT nhập' }); p.bp.sort((a, b) => a.d - b.d || a.h - b.h); }
+      if (f.glu !== '') { p.glu.push({ d: 0, h, v: +f.glu, src: 'NVYT nhập' }); p.glu.sort((a, b) => a.d - b.d || a.h - b.h); }
+      if (f.kg !== '') p.weight.push({ d: 0, kg: +f.kg, src: 'NVYT nhập' });
+      if (f.alc !== '') p.life.alc = +f.alc;
+      p.lastData = { d: 0, h }; p.noData = false;
+      const before = S.cls[p.id].level; derive(); const after = S.cls[p.id].level;
+      U.closeModal(); render(); U.toast('Đã lưu (nguồn: NVYT nhập).' + (before !== after ? ' Mức theo dõi: ' + U.lvl[before].t + ' → ' + U.lvl[after].t + '.' : ''));
+    },
+    advnew: (el) => W.advModal(V.byId[el.dataset.id], el.dataset.k),
+    advsave: (el) => {
+      const p = V.byId[el.dataset.id], txt = val('a_txt').trim();
+      if (!txt) return say('a_msg', box('errbox', 'Nhập nội dung lời khuyên.'));
+      const tpl = val('a_tpl'), edu = D.education.find((e) => e.id === tpl), mod = R.modifiable(p).find((m) => m.k === tpl);
+      (S.adv[p.id] = S.adv[p.id] || []).push({ d: 0, h: NOWH, by: D.doctor.short, title: edu ? edu.t : mod ? mod.t : 'Lời khuyên', text: txt });
+      U.closeModal(); render(); U.toast('Đã gửi lời khuyên cho ' + p.name + ' (hiển thị trên app: minh họa).');
+    },
+    adoing: (el) => { S.al[el.dataset.k] = { status: 'doing' }; render(); },
+    adone: (el) => W.alertDoneModal(el.dataset.k),
+    adonesave: (el) => { const note = val('d_note').trim(); if (!note) return say('d_msg', box('errbox', 'Cần ghi chú hoặc lý do xử lý.')); const [mp, mc] = el.dataset.k.split(':'), mr = S.cls[mp].reasons.find((x) => x.code === mc); S.al[el.dataset.k] = { status: 'done', note, sig: mr ? W.sigOf(mr) : null, by: D.doctor.short, at: { d: 0, h: NOWH } }; U.closeModal(); render(); U.toast('Đã ghi nhận xử lý. Mức theo dõi giữ nguyên vì tính từ dữ liệu; bệnh nhân chuyển xuống cuối hàng đợi.'); },
+    addnote: (el) => { const t = val('notebox').trim(); if (!t) return U.toast('Nhập nội dung ghi chú.'); (S.notes[el.dataset.id] = S.notes[el.dataset.id] || []).push({ d: 0, h: NOWH, by: D.doctor.short, text: t }); render(); U.toast('Đã lưu ghi chú.'); },
+    pvm: (el) => { S.pv.metric = el.dataset.v; render(); },
+    pvr: (el) => { S.pv.range = +el.dataset.v; render(); },
+    /* tin nhắn */
+    msel: (el) => { S.mg.sel = el.dataset.id; render(); },
+    tpl: (el) => { const p = V.byId[el.dataset.id], b = document.querySelector('#drawer #msgbox') || document.getElementById('msgbox'); if (b) { b.value = W.fillTpl(W.TPL[+el.dataset.i].x, p); S.drafts[p.id] = b.value; b.focus(); } },
+    send: (el) => {
+      const p = V.byId[el.dataset.id], b = el.dataset.box ? document.getElementById(el.dataset.box) : (el.closest('#drawer, #main') || document).querySelector('#msgbox'), t = b ? b.value.trim() : '';
+      if (!t) return U.toast('Nhập nội dung tin nhắn.');
+      p.thread.push({ d: 0, h: NOWH, from: 'bs', text: t }); S.drafts[p.id] = '';
+      if (el.dataset.box) { S.qc = null; if (!S.qnotes[p.id]) S.qnotes[p.id] = 'Đã nhắn BN'; }
+      refresh(); U.toast('Đã gửi (minh họa: demo không gửi tin thật).');
+    },
+    /* lịch */
+    apmode: (el) => { S.ap.mode = el.dataset.v; render(); },
+    apstep: (el) => { const v = +el.dataset.v; S.ap.anchor = v === 0 ? 0 : S.ap.mode === 'month' ? T.addMonths(S.ap.anchor, v > 0 ? 1 : -1) : S.ap.anchor + v; render(); },
+    apday: (el) => { S.ap.anchor = +el.dataset.d; S.ap.mode = 'day'; render(); },
+    apnew: (el) => W.apNewModal(el.dataset.id, el.dataset.edit === '1'),
+    apnewsave: (el) => {
+      const pid = val('n_pid'), p = V.byId[pid], d = parseDMY(val('n_date')), time = val('n_time'), reason = val('n_reason').trim(), edit = el.dataset.edit === '1';
+      if (d == null) return say('n_msg', box('errbox', 'Ngày không hợp lệ. Nhập theo dd/mm/yyyy.'));
+      if (d < 0 || (d === 0 && time <= '07:30')) return say('n_msg', box('errbox', 'Không tạo được lịch trong quá khứ.'));
+      if (!reason) return say('n_msg', box('errbox', 'Cần nhập lý do khám.'));
+      const dur = +val('n_dur');
+      const ex = edit ? S.appts.find((a) => a.pid === pid && a.d === p.appt.d && (a.status === 'confirmed' || a.status === 'pending')) : null;
+      if (ex) Object.assign(ex, { d, time, dur, reason, status: 'confirmed', by: 'doctor' }); else S.appts.push({ id: 'A' + aid++, pid, d, time, dur, reason, status: 'confirmed', by: 'doctor' });
+      p.appt = Object.assign({}, p.appt, { d, time, status: 'scheduled' }); S.ap.anchor = d;
+      U.closeModal(); refresh(); U.toast('Đã tạo lịch cho ' + p.name + ' (trạng thái: Đã xác nhận).');
+    },
+    apconfirm: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (a && a.status === 'pending') { a.status = 'confirmed'; refresh(); U.toast('Đã xác nhận lịch của ' + V.byId[a.pid].name + '. Đã gửi thông báo cho bệnh nhân (minh họa).'); } },
+    apcancel: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (a && (a.status === 'pending' || a.status === 'confirmed')) { a.status = 'canceled'; refresh(); U.toast('Đã hủy lịch. Trạng thái cuối, không đổi lại được.'); } },
+    apdone: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (!a || a.status !== 'confirmed') return; U.modal(W.modalHead('Hoàn tất lịch khám') + '<div class="mbox-b"><div><b>' + esc(V.byId[a.pid].name) + '</b> · ' + T.fmtDMY(a.d) + ' ' + a.time + '</div><label class="f">Kết luận khám (bắt buộc)<textarea id="c_txt" rows="3"></textarea></label><div id="c_msg"></div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="apdonesave" data-id="' + a.id + '">Hoàn tất</button></div>'); },
+    apdonesave: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id), t = val('c_txt').trim(); if (!t) return say('c_msg', box('errbox', 'Cần nhập kết luận khám.')); a.status = 'done'; a.conclusion = t; const p = V.byId[a.pid]; if (p.appt.d === a.d) p.appt.status = 'done'; U.closeModal(); refresh(); U.toast('Đã hoàn tất lịch khám. Trạng thái cuối, kết luận đã lưu.'); },
+    /* công cụ tính */
+    tool: (el) => { S.tool = el.dataset.v; render(); },
+    tireset: () => { S.ti = {}; render(); },
+    ti: (el) => { const k = el.dataset.k, v = el.dataset.v === 'u' ? null : Number(el.dataset.v); if (k === 'cvd') ['mi', 'pad', 'hf', 'ocvd'].forEach((x) => { S.ti[x] = v; }); S.ti[k] = v; render(); },
+    /* cài đặt */
+    setsuggest: () => { S.set.days.forEach((d, i) => { d.on = i < 5; d.from = '08:00'; d.to = '11:30'; }); render(); },
+    setsave: () => { const bad = S.set.days.findIndex((d) => d.on && d.from >= d.to); if (bad >= 0) return U.toast('Giờ kết thúc phải sau giờ bắt đầu (' + ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'][bad] + ').'); S.set.saved = '07:31 ' + T.fmtDMY(0); render(); U.toast('Đã lưu lịch cố định.'); },
+    busyadd: () => { const d = parseDMY(val('bdate')), f = val('bfrom'), t = val('bto'); if (d == null) return say('berr', box('errbox', 'Ngày không hợp lệ. Nhập theo dd/mm/yyyy.')); if (d < 0) return say('berr', box('errbox', 'Không thêm lịch bận trong quá khứ.')); if (f >= t) return say('berr', box('errbox', 'Giờ kết thúc phải sau giờ bắt đầu.')); S.set.busy.push({ d, from: f, to: t, note: val('bnote') }); S.set.busy.sort((a, b) => a.d - b.d); render(); U.toast('Đã lưu lịch bận.'); },
+    busydel: (el) => { S.set.busy.splice(+el.dataset.i, 1); render(); },
+    /* quản lý */
+    mgroup: (el) => { S.mgr.group = el.dataset.v; render(); },
+    mperiod: (el) => { S.mgr.period = +el.dataset.v; render(); },
+    mq: (el) => { S.mq = el.dataset.q; go('m/list'); },
+    mback: () => go('m/overview'),
+    cfgreset: () => { R.cfg = Object.assign({}, R.DEFAULT_CFG); refresh(); U.toast('Đã khôi phục ngưỡng mặc định.'); },
+    mclose: () => U.closeModal(),
+  };
+  R.cfgSet = (k, v) => { R.cfg[k] = v; };
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-a]');
+    if (!el) { if (S.menu && !e.target.closest('.menu')) { S.menu = null; renderTop(); } const sr = $('#sres'); if (sr && !e.target.closest('.tb-search')) sr.hidden = true; return; }
+    const a = el.dataset.a; if (el.tagName === 'A') e.preventDefault();
+    if (S.menu && a !== 'umenu' && a !== 'bell') S.menu = null;
+    if (H[a]) { e.stopPropagation(); H[a](el, e); if (S.menu === null && $('#top') && $('#top').querySelector('.menu')) renderTop(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target, typing = /INPUT|TEXTAREA|SELECT/.test(t.tagName);
+    if (e.key === 'Enter' && t.dataset && t.dataset.a === 'open' && !typing) { H.open(t); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && t.dataset && t.dataset.a === 'qx' && !typing) { e.preventDefault(); H.qx(t); return; }
+    if (e.key === 'Escape') { if (!$('#modal').hidden) U.closeModal(); else if (S.drawer) H.close(); else if (S.qx) { S.qx = null; S.qc = null; render(); } const sr = $('#sres'); if (sr) sr.hidden = true; return; }
+    if (typing || e.ctrlKey || e.metaKey) { if (t.id === 'gs' && e.key === 'Enter') { const sr = $('#sres'), nk = V.ins.needOf(t.value); if (nk) { H.need({ dataset: { k: nk } }); return; } if (S.sres.length) { sr.hidden = true; t.value = ''; openP(S.sres[0].id); } } return; }
+    if (e.key === '/' && S.role === 'doctor') { e.preventDefault(); const gs = $('#gs'); if (gs) gs.focus(); }
+    if ((e.key === 'j' || e.key === 'k') && S.role === 'doctor' && S.drawer) {
+      const L = S.route === 'd/home' ? W.queueList(S.qtab, S.qgroup) : S.route === 'd/patients' ? W.filterPatients() : D.patients; const i = L.findIndex((p) => p.id === S.drawer.id);
+      const n = L[i + (e.key === 'j' ? 1 : -1)]; if (n) { S.drawer.id = n.id; render(); }
+    }
+  });
+  document.addEventListener('input', (e) => {
+    const t = e.target, i = t.dataset && t.dataset.i;
+    if (i === 'gs') {
+      const q = V.ins.norm(t.value), sr = $('#sres'), nk = V.ins.needOf(t.value), need = nk && V.ins.NEEDS[nk];
+      const hit = need ? D.patients.filter((p) => need.f(p, S.cls[p.id])).sort((a, b) => ({ act: 0, watch: 1, ok: 2 })[S.cls[a.id].level] - ({ act: 0, watch: 1, ok: 2 })[S.cls[b.id].level]) : [];
+      const names = q ? D.patients.filter((p) => V.ins.norm(p.name + ' ' + p.id + ' ' + p.phone).includes(q) && !hit.includes(p)) : [];
+      S.sres = hit.concat(names).slice(0, 7); sr.hidden = !q;
+      const row = (p) => { const why = need && hit.includes(p) ? V.ins.needWhy(nk, p, S.cls[p.id]) : ''; return '<button data-a="open" data-id="' + p.id + '">' + U.av(p, S.cls[p.id].level) + '<span><b>' + esc(p.name) + '</b> <span class="xs muted">' + p.id + ' · ' + p.age + ' · ' + U.dxShort(p) + (why ? '<br>' + esc(why) : '') + '</span></span></button>'; };
+      sr.innerHTML = (need ? '<button class="sneed" data-a="need" data-k="' + nk + '">' + ic('list') + '<span><b>' + esc(need.t) + '</b> · ' + hit.length + ' bệnh nhân của bạn<br><span class="xs muted">Bấm hoặc Enter để xem cả danh sách</span></span></button>' : '') + (S.sres.length ? S.sres.map(row).join('') : need ? '' : '<div class="empty">Không tìm thấy bệnh nhân.</div>');
+    }
+    else if (i === 'pq') { S.pf.q = t.value; renderMain(); }
+    else if (i === 'qnote') { S.qnotes[t.dataset.id] = t.value; }
+    else if (i === 'draft') { S.drafts[t.dataset.id] = t.value; }
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target, i = t.dataset && t.dataset.i, v = t.type === 'checkbox' ? t.checked : t.value;
+    const map = { qtpl: () => { if (v === '') return; const p = V.byId[t.dataset.id]; S.drafts[p.id] = W.fillTpl(W.TPL[+v].x, p); render(); }, qgroup: () => { S.qgroup = v; S.qx = null; S.qc = null; render(); }, plevel: () => { S.pf.level = v; render(); }, pdx: () => { S.pf.dx = v; render(); }, prf: () => { S.pf.rf = v; render(); }, psite: () => { S.pf.site = v; render(); }, psort: () => { S.pf.sort = v; render(); }, apfilter: () => { S.ap.filter = v; render(); },
+      tiage: () => { S.ti.age = v; render(); }, tisex: () => { S.ti.sex = v || undefined; render(); }, tievent: () => { S.ti.event = v || undefined; render(); }, ticlin: () => { S.ti.clin = v || undefined; render(); }, tidur: () => { S.ti.dur = v || undefined; render(); },
+      tipick: () => { if (!v) return; const p = V.byId[v], a7 = R.avgBP(p, 7); S.ti = Object.assign({ age: p.age, sex: p.sex, event: p.dx.type }, p.rf, { cvd: undefined, bp140: a7 ? (a7.s >= 140 || a7.dia >= 90 ? 1 : 0) : undefined }); render(); },
+      setOn: () => { S.set.days[+t.dataset.d].on = v; render(); }, setT: () => { S.set.days[+t.dataset.d][t.dataset.k] = v; },
+      cfg: () => { const n = parseFloat(v); if (!isNaN(n)) { R.cfg[t.dataset.k] = n; refresh(); } }, demo: () => U.demoMsg() };
+    if (map[i]) map[i]();
+  });
+  const tipEl = document.createElement('div'); tipEl.className = 'ctip'; tipEl.hidden = true; document.body.appendChild(tipEl);
+  document.addEventListener('mousemove', (e) => {
+    const h = e.target.closest && e.target.closest('[data-tip]');
+    if (!h) { tipEl.hidden = true; return; }
+    tipEl.textContent = h.dataset.tip; tipEl.hidden = false;
+    tipEl.style.left = Math.min(innerWidth - tipEl.offsetWidth - 8, e.clientX + 12) + 'px'; tipEl.style.top = (e.clientY - 34) + 'px';
+  });
+  window.addEventListener('hashchange', () => { parseHash(); S.drawer = null; S.menu = null; render(); });
+
+  parseHash(); render();
+  V.debug = { S, H, refresh };
+})(typeof globalThis !== 'undefined' ? globalThis : window);
