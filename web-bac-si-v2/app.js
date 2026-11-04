@@ -13,7 +13,7 @@
     qx: null, qc: null, qmove: false, qnotes: {}, sn: {}, day: 0, drafts: {}, pdmenu: false, sheetAnim: false,
     pv: { metric: 'bp', range: 30 }, mg: { sel: null }, ap: { mode: 'week', anchor: 0, filter: 'all' }, appts: [],
     tool: 'esrs', ti: {}, set: { days: [0, 1, 2, 3, 4, 5, 6].map(() => ({ on: false, from: '08:00', to: '11:30' })), busy: [], saved: null },
-    mq: null, mdoc: null, nudged: {}, mrsPick: null, cls: {}, sres: [], ew: false,
+    mq: null, mdoc: null, nudged: {}, cfgDraft: null, mrsPick: null, cls: {}, sres: [], ew: false,
   });
   let aid = 1;
   D.patients.forEach((p) => S.appts.push({ id: 'A' + aid++, pid: p.id, d: p.appt.d, time: p.appt.time, dur: 30, reason: p.appt.kind, status: 'confirmed', by: 'doctor' }));
@@ -56,17 +56,14 @@
       NAVS[S.role]().map((n) => '<a href="#/' + n.r + '" class="' + on(n.r).trim() + '" title="' + esc(n.t) + '">' + ic(n.i) + '<span class="lb">' + esc(n.t) + '</span>' + (n.b ? '<span class="bd ' + n.bc + '">' + n.b + '</span>' : '') + '</a>').join('') +
       '<div class="sep"></div><button class="navb" data-a="collapse" title="Thu gọn / mở rộng menu">' + ic('panel') + '<span class="lb">Thu gọn menu</span></button><button class="navb" data-a="switchrole" title="Đổi vai trò">' + ic('logout') + '<span class="lb">Đổi vai trò</span></button></nav>';
   }
-  const bellList = () => D.patients.filter((p) => !W.muted(p)).map((p) => ({ p, r: S.cls[p.id].reasons.filter((x) => x.level === 'act' && W.alertState(p.id, x.code).status !== 'done' && T.hoursAgo(x.at.d, x.at.h) <= 48)[0] })).filter((x) => x.r).sort((a, b) => b.r.at.d * 24 + b.r.at.h - (a.r.at.d * 24 + a.r.at.h));
   function renderTop() {
-    const t = $('#top'), bl = S.role === 'doctor' ? bellList() : [];
+    const t = $('#top'), me = S.role === 'manager' ? { name: 'Quản lý khoa', short: 'Quản lý', ini: 'QL' } : { name: D.doctor.name, short: D.doctor.short, ini: U.initials(D.doctor.name.replace('BS. ', '')) };
     const keep = t.querySelector('#gs'); const had = keep && document.activeElement === keep ? keep.value : null;
-    t.innerHTML = (S.role === 'doctor' ? '<div class="tb-search">' + ic('search') + '<input id="gs" type="search" placeholder="Tìm tên, mã, SĐT hoặc: bỏ liều, HA cao…" autocomplete="off" aria-label="Tìm bệnh nhân" data-i="gs"><kbd>/</kbd><div class="sres" id="sres" hidden></div></div>' : '') +
+    t.innerHTML = (S.role === 'doctor' ? '<div class="tb-search">' + ic('search') + '<input id="gs" type="search" placeholder="Tìm tên, mã, SĐT hoặc: bỏ liều, HA cao…" autocomplete="off" aria-label="Tìm bệnh nhân" data-i="gs" value="' + esc(S.route === 'd/patients' ? S.pf.q : '') + '"><kbd>/</kbd><div class="sres" id="sres" hidden></div></div>' : '') +
       '<span class="tb-date">' + T.dow(0) + ', ' + T.fmtDMY(0) + ' · 07:30</span><span class="tb-sp"></span>' +
-      (S.role === 'doctor' ? '<button class="iconbtn" data-a="bell" aria-label="Cảnh báo mới">' + ic('bell') + (bl.length ? '<span class="bd">' + bl.length + '</span>' : '') + '</button>' : '') +
       '<button class="iconbtn" data-a="theme" aria-label="Đổi giao diện sáng/tối" title="Chế độ tối">' + ic(S.theme === 'dark' ? 'sun' : 'moon') + '</button>' +
-      '<button class="userbtn" data-a="umenu"><span class="av">' + U.initials(D.doctor.name.replace('BS. ', '')) + '</span><span class="small"><b>' + D.doctor.short + '</b></span>' + ic('chevD') + '</button>';
-    if (S.menu === 'bell') t.insertAdjacentHTML('beforeend', '<div class="menu" style="min-width:340px"><div class="small muted" style="padding:6px 10px">Cảnh báo đỏ 48 giờ qua</div>' + (bl.length ? bl.map((x) => '<button data-a="open" data-id="' + x.p.id + '"><span class="av ' + 'act' + '" style="width:26px;height:26px;font-size:11px">' + U.initials(x.p.name) + '</span><span style="flex:1"><b>' + esc(x.p.name) + '</b><br><span class="xs muted">' + esc(x.r.text) + '</span></span></button>').join('') : '<div class="empty">Không có cảnh báo mới.</div>') + '</div>');
-    if (S.menu === 'user') t.insertAdjacentHTML('beforeend', '<div class="menu"><div class="mi"><span><b>' + esc(D.doctor.name) + '</b><br><span class="xs muted">' + (S.role === 'doctor' ? 'Vai trò: Bác sĩ' : 'Vai trò: Quản lý') + '</span></span></div><hr><button data-a="switchrole">' + ic('logout') + 'Đổi vai trò</button><button data-a="theme">' + ic('moon') + 'Chế độ sáng / tối</button><button data-a="reset">' + ic('dash') + 'Đặt lại dữ liệu demo</button></div>');
+      '<button class="userbtn" data-a="umenu"><span class="av">' + me.ini + '</span><span class="small"><b>' + me.short + '</b></span>' + ic('chevD') + '</button>';
+    if (S.menu === 'user') t.insertAdjacentHTML('beforeend', '<div class="menu"><div class="mi"><b>' + esc(me.name) + '</b></div><hr><button data-a="reset">' + ic('dash') + 'Đặt lại dữ liệu demo</button></div>');
     if (had != null) { const n = t.querySelector('#gs'); n.value = had; n.focus(); }
   }
   function renderMain() {
@@ -138,9 +135,7 @@
     collapse: () => { S.collapsed = !S.collapsed; render(); },
     theme: () => { S.theme = S.theme === 'dark' ? 'light' : 'dark'; S.menu = null; render(); },
     umenu: () => { S.menu = S.menu === 'user' ? null : 'user'; renderTop(); },
-    bell: () => { S.menu = S.menu === 'bell' ? null : 'bell'; renderTop(); },
     reset: () => location.reload(),
-    legal: () => U.toast('Nội dung chính sách riêng tư và điều khoản đang chờ pháp chế xác nhận (chỗ giữ chỗ).'),
     open: (el) => openP(el.dataset.id, el.dataset.tab),
     msgto: (el) => { if (S.route === 'd/msgs') { S.mg.sel = el.dataset.id; render(); } else openP(el.dataset.id, 'msg'); },
     close: () => { S.drawer = null; S.pdmenu = false; S.pv.metric = 'bp'; render(); },
@@ -170,8 +165,8 @@
       if (!note) { const mb = noteBox(el).querySelector('.qmsgbox'); if (mb) mb.innerHTML = box('errbox', 'Cần ghi chú ngắn: bấm một nút ghi chú hoặc tự nhập.'); if (n) n.focus(); return; }
       W.levelReasons(p).forEach((r) => { const k = id + ':' + r.code; if (W.alertState(id, r.code).status !== 'done') S.al[k] = { status: 'done', note, sig: W.sigOf(r), by: D.doctor.short, at: { d: 0, h: NOWH } }; });
       delete S.sn[id]; delete S.qnotes[id];
-      if (inModal) { U.closeModal(); render(); U.toast('Đã ghi nhận xử lý ' + p.name + '. Mức theo dõi giữ nguyên vì tính từ dữ liệu.'); return; }
-      nextInQueue('Đã ghi nhận xử lý ' + p.name + '. Mức theo dõi giữ nguyên vì tính từ dữ liệu.');
+      if (inModal) { U.closeModal(); render(); U.toast('Đã xử lý ' + p.name + '. Mức không đổi.'); return; }
+      nextInQueue('Đã xử lý ' + p.name + '. Mức không đổi.');
     },
     qsnooze: (el) => {
       const id = el.dataset.id, p = V.byId[id], n = +el.dataset.n, inp = noteInput(el), inModal = !!el.closest('#modal'), note = (inp ? inp.value : '').trim(), until = S.day + n;
@@ -179,8 +174,8 @@
       (S.notes[id] = S.notes[id] || []).push(rec);
       S.sn[id] = { until, n, note, rec, sigs: S.cls[id].reasons.map(W.sigOf) };
       delete S.qnotes[id];
-      if (inModal) { U.closeModal(); render(); U.toast(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới. Mức theo dõi giữ nguyên.'); return; }
-      nextInQueue(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay về hàng đợi khi đến hạn hoặc có dữ liệu mới. Mức theo dõi giữ nguyên.');
+      if (inModal) { U.closeModal(); render(); U.toast(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay lại khi có dữ liệu mới.'); return; }
+      nextInQueue(p.name + ': xem lại ' + T.fmtDM(until) + '. Tự quay lại khi có dữ liệu mới.');
     },
     qundo: (el) => {
       const id = el.dataset.id, n = S.sn[id];
@@ -191,7 +186,8 @@
     need: (el) => { const sr = $('#sres'), gs = $('#gs'); if (sr) sr.hidden = true; if (gs) gs.value = ''; S.pf = Object.assign({}, S.pf, { q: '', need: el.dataset.k, level: 'all', dx: 'all', rf: 'all', sort: 'risk' }); S.drawer = null; go('d/patients'); },
     print: () => U.toast('Tính năng minh họa: in/xuất tóm tắt. Bản chính thức sẽ cảnh báo quyền riêng tư và ghi nhật ký truy cập.'),
     /* bệnh nhân */
-    plv: (el) => { S.pf.level = el.dataset.v; render(); },
+    plv: (el) => { const v = el.dataset.v; S.pf.level = v === 'severe' && S.pf.level === 'severe' ? 'all' : v; render(); },
+    psort: (el) => { S.pf.sort = el.dataset.v; render(); },
     pclear: (el) => { const v = el.dataset.v; if (v === 'all') S.pf = Object.assign({}, S.pf, { q: '', need: 'all', level: 'all', dx: 'all', rf: 'all' }); else S.pf[v === 'q' ? 'q' : v] = v === 'q' ? '' : 'all'; render(); },
     export: () => { const L = W.filterPatients(); U.modal(W.modalHead('Xuất danh sách bệnh nhân') + '<div class="mbox-b"><div class="warnbox">Tệp CSV chứa thông tin bệnh nhân trong phạm vi đang lọc (' + L.length + ' bệnh nhân). Chỉ xuất khi cần cho công việc chuyên môn. Việc xuất được ghi nhật ký truy cập (minh họa).</div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="exportgo">' + ic('download') + 'Xuất CSV</button></div>'); },
     exportgo: () => {
@@ -207,7 +203,7 @@
       if (!(age >= 0 && age <= 120)) return say('p_msg', box('errbox', 'Tuổi phải từ 0 đến 120.'));
       const n = D.unit.length + 1, id = 'P' + String(n).padStart(3, '0');
       const nul = { htn: null, dm: null, smoke: null, af: null, mi: null, pad: null, hf: null, ocvd: null, prior: null };
-      const p = { id, doc: 'nam', name, age, sex: val('p_sex'), site: val('p_site'), phone: '0900 000 ' + String(n).padStart(3, '0'), family: null, doctor: D.doctor.name, coDoctor: null, consent: true, consentAdh: true, dx: { type: val('p_dx'), onset: null, nihss: null, mrs: null, reg: 0 }, rf: nul, ht: 165, meds: [], targets: {}, fsrp: null, life: { cig: 0, alc: 0, ex: 0, diet: 'Chưa ghi nhận', sleep: 7 }, events: [], lastRecD: 0, bp: [], glu: [], weight: [], labs: { ldl: [], tc: [], a1c: [] }, lastData: { d: 0, h: T.NOW_H }, noData: true, appt: { d: 14, time: '08:30', status: 'scheduled', kind: 'Khám lần đầu', iv: 1 }, visits: [], req: null, thread: [], notes: [], history: [] };
+      const p = { id, doc: 'nam', name, age, sex: val('p_sex'), site: val('p_site'), phone: '0900 000 ' + String(n).padStart(3, '0'), family: null, doctor: D.doctor.name, coDoctor: null, consent: true, consentAdh: true, dx: { type: val('p_dx'), onset: null, nihss: null, mrs: null, reg: 0 }, rf: nul, ht: 165, meds: [], targets: {}, fsrp: null, life: { cig: null, alc: null, ex: null, diet: 'Chưa ghi nhận', sleep: null }, events: [], lastRecD: 0, bp: [], glu: [], weight: [], labs: { ldl: [], tc: [], a1c: [] }, lastData: { d: 0, h: T.NOW_H }, noData: true, appt: { d: 14, time: '08:30', status: 'scheduled', kind: 'Khám lần đầu', iv: 1 }, visits: [], req: null, thread: [], notes: [], history: [] };
       D.patients.push(p); D.unit.push(p); V.byId[id] = p; S.appts.push({ id: 'A' + aid++, pid: id, d: 14, time: '08:30', dur: 30, reason: 'Khám lần đầu', status: 'confirmed', by: 'doctor' });
       U.closeModal(); refresh(); U.toast('Đã tạo hồ sơ ' + name + ' (' + id + '). Chưa có số đo nên vào "Cần theo dõi".');
     },
@@ -295,7 +291,9 @@
     nudge: (el) => { const p = V.byId[el.dataset.id]; S.nudged[p.id] = true; render(); U.toast('Đã nhắc ' + p.doctor + ' trả lời ' + p.name + ' (minh họa).'); },
     mq: (el) => { S.mq = el.dataset.q; go('m/list'); },
     mback: () => go('m/overview'),
-    cfgreset: () => { R.cfg = Object.assign({}, R.DEFAULT_CFG); refresh(); U.toast('Đã khôi phục ngưỡng mặc định.'); },
+    cfgreset: () => { S.cfgDraft = Object.assign({}, R.DEFAULT_CFG); render(); },
+    cfgcancel: () => { S.cfgDraft = null; render(); },
+    cfgsave: () => { const n = W.cfgShift(S.cfgDraft); R.cfg = S.cfgDraft; S.cfgDraft = null; refresh(); U.toast('Đã lưu ngưỡng cho cả khoa. ' + n + ' bệnh nhân đổi mức.'); },
     mclose: () => U.closeModal(),
   };
   R.cfgSet = (k, v) => { R.cfg[k] = v; };
@@ -306,7 +304,7 @@
     if (S.pdmenu && !(el && el.dataset.a === 'pdmenu')) { S.pdmenu = false; if (S.route === 'd/patient') render(); else if (S.drawer) renderDrawer(); }
     if (!el) { if (S.menu && !e.target.closest('.menu')) { S.menu = null; renderTop(); } const sr = $('#sres'); if (sr && !e.target.closest('.tb-search')) sr.hidden = true; return; }
     const a = el.dataset.a; if (el.tagName === 'A') e.preventDefault();
-    if (S.menu && a !== 'umenu' && a !== 'bell') S.menu = null;
+    if (S.menu && a !== 'umenu') S.menu = null;
     if (H[a]) { e.stopPropagation(); H[a](el, e); if (S.menu === null && $('#top') && $('#top').querySelector('.menu')) renderTop(); }
   });
   document.addEventListener('keydown', (e) => {
@@ -325,23 +323,25 @@
     const t = e.target, i = t.dataset && t.dataset.i;
     if (i === 'gs') {
       const q = V.ins.norm(t.value), sr = $('#sres'), nk = V.ins.needOf(t.value), need = nk && V.ins.NEEDS[nk];
+      if (S.route === 'd/patients' && !need) { sr.hidden = true; S.pf.q = t.value; renderMain(); return; }
       const hit = need ? D.patients.filter((p) => need.f(p, S.cls[p.id])).sort((a, b) => ({ act: 0, watch: 1, ok: 2 })[S.cls[a.id].level] - ({ act: 0, watch: 1, ok: 2 })[S.cls[b.id].level]) : [];
       const names = q ? D.patients.filter((p) => V.ins.norm(p.name + ' ' + p.id + ' ' + p.phone).includes(q) && !hit.includes(p)) : [];
       S.sres = hit.concat(names).slice(0, 7); sr.hidden = !q;
       const row = (p) => { const why = need && hit.includes(p) ? V.ins.needWhy(nk, p, S.cls[p.id]) : ''; return '<button data-a="open" data-id="' + p.id + '">' + U.av(p, S.cls[p.id].level) + '<span><b>' + esc(p.name) + '</b> <span class="xs muted">' + p.id + ' · ' + p.age + ' · ' + U.dxShort(p) + (why ? '<br>' + esc(why) : '') + '</span></span></button>'; };
       sr.innerHTML = (need ? '<button class="sneed" data-a="need" data-k="' + nk + '">' + ic('list') + '<span><b>' + esc(need.t) + '</b> · ' + hit.length + ' bệnh nhân của bạn<br><span class="xs muted">Bấm hoặc Enter để xem cả danh sách</span></span></button>' : '') + (S.sres.length ? S.sres.map(row).join('') : need ? '' : '<div class="empty">Không tìm thấy bệnh nhân.</div>');
     }
-    else if (i === 'pq') { S.pf.q = t.value; renderMain(); }
     else if (i === 'qnote') { S.qnotes[t.dataset.id] = t.value; }
     else if (i === 'draft') { S.drafts[t.dataset.id] = t.value; }
   });
   document.addEventListener('change', (e) => {
     const t = e.target, i = t.dataset && t.dataset.i, v = t.type === 'checkbox' ? t.checked : t.value;
-    const map = { tplsel: () => { if (v === '') return; const p = V.byId[t.dataset.id], txt = W.fillTpl(W.TPL[+v].x, p), b = (t.closest('.composer, .qcomp') || document).querySelector('textarea'); S.drafts[p.id] = txt; if (b) { b.value = txt; b.focus(); } t.value = ''; }, pdx: () => { S.pf.dx = v; render(); }, prf: () => { S.pf.rf = v; render(); }, psort: () => { S.pf.sort = v; render(); }, apfilter: () => { S.ap.filter = v; render(); },
+    const map = { tplsel: () => { if (v === '') return; const p = V.byId[t.dataset.id], txt = W.fillTpl(W.TPL[+v].x, p), b = (t.closest('.composer, .qcomp') || document).querySelector('textarea'); S.drafts[p.id] = txt; if (b) { b.value = txt; b.focus(); } t.value = ''; }, pdx: () => { S.pf.dx = v; render(); }, prf: () => { S.pf.rf = v; render(); }, apfilter: () => { S.ap.filter = v; render(); },
       tiage: () => { S.ti.age = v; render(); }, tisex: () => { S.ti.sex = v || undefined; render(); }, tievent: () => { S.ti.event = v || undefined; render(); }, ticlin: () => { S.ti.clin = v || undefined; render(); }, tidur: () => { S.ti.dur = v || undefined; render(); },
       tipick: () => { if (!v) return; const p = V.byId[v], a7 = R.avgBP(p, 7); S.ti = Object.assign({ age: p.age, sex: p.sex, event: p.dx.type }, p.rf, { cvd: undefined, bp140: a7 ? (a7.s >= 140 || a7.dia >= 90 ? 1 : 0) : undefined }); render(); },
       setOn: () => { S.set.days[+t.dataset.d].on = v; render(); }, setT: () => { S.set.days[+t.dataset.d][t.dataset.k] = v; },
-      cfg: () => { const n = parseFloat(v); if (!isNaN(n)) { R.cfg[t.dataset.k] = n; refresh(); } } };
+      qsn: () => { if (!v) return; t.dataset.n = v; H.qsnooze(t); },
+      // Ngưỡng: sửa vào bản nháp, chỉ áp dụng khi bấm Lưu.
+      cfg: () => { const n = parseFloat(v), k = t.dataset.k; if (!(n >= 0)) { t.value = (S.cfgDraft || R.cfg)[k]; U.toast('Nhập số từ 0 trở lên.'); return; } S.cfgDraft = Object.assign({}, S.cfgDraft || R.cfg, { [k]: n }); render(); } };
     if (map[i]) map[i]();
   });
   const tipEl = document.createElement('div'); tipEl.className = 'ctip'; tipEl.hidden = true; document.body.appendChild(tipEl);

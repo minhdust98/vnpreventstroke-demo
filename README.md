@@ -30,7 +30,7 @@ Bản demo bấm thử của ứng dụng phòng ngừa đột quỵ. Toàn bộ
 
 1. Mức độ của bệnh nhân chỉ tính từ dữ liệu qua `rules.js`. Gợi ý, "đã xử lý" hay "hẹn xem lại" không đổi mức.
 2. Không tự đặt ngưỡng lâm sàng hay hệ số mới. Quy ước tự đặt ghi `[Đề xuất]` trong code (ví dụ ca nặng = mRS ≥3 ở ít nhất một lần khám).
-3. Màu mức độ dùng chung: đỏ tam giác = cần can thiệp, cam thoi = cần theo dõi, xanh tròn = ổn định. Luôn có hình hoặc chữ đi kèm màu.
+3. Màu mức độ dùng chung: đỏ tam giác = cần can thiệp, cam thoi = cần theo dõi, xanh tròn = ổn định. Luôn có hình hoặc chữ đi kèm màu, và chỉ tô màu khi `rules.js` có lý do; số chưa đạt mục tiêu mà không có lý do thì in đậm, không tô màu.
 4. Dashboard bác sĩ và hồ sơ một trang không cuộn ở 1440×900 và 1366×768.
 5. Bác sĩ chỉ thấy bệnh nhân của mình; số liệu toàn khoa chỉ nằm ở cổng Quản lý.
 6. Không thêm dòng giải thích hay nhãn phụ; nếu màn hình cần chúng mới hiểu được thì sửa bố cục.
@@ -40,6 +40,9 @@ Bản demo bấm thử của ứng dụng phòng ngừa đột quỵ. Toàn bộ
 ```bash
 node test/logic.js
 node test/ui.js
+node test/worst.js
 ```
 
-`logic.js` kiểm tra phân loại 6 / 14 / 28 của BS. Nam, 5 bệnh nhân nòng cốt, dữ liệu khoa, mRS. `ui.js` mở web từ `file://` trên Edge hoặc Chrome chạy ngầm và bấm bằng chuột thật: không cuộn, hồ sơ cả 48 bệnh nhân, xử lý tại hàng đợi, ghi mRS, cổng Quản lý. Cần Node 22 trở lên; đặt `BROWSER` nếu trình duyệt nằm chỗ khác.
+`logic.js` kiểm tra phân loại 6 / 14 / 28 của BS. Nam, 5 bệnh nhân nòng cốt, dữ liệu khoa, mRS. `ui.js` mở web từ `file://` trên Edge hoặc Chrome chạy ngầm và bấm bằng chuột thật: không cuộn, hồ sơ cả 48 bệnh nhân, xử lý tại hàng đợi, ghi mRS, cổng Quản lý. `worst.js` thử từng trang với dữ liệu xấu nhất (tên rất dài, bệnh nhân chưa có số đo, danh sách trống, khoa 1.284 bệnh nhân) ở hai cỡ màn hình và báo chữ tràn hay chữ lỗi; ảnh chụp lưu ở thư mục tạm. Hai file giao diện dùng chung `test/browser.js`. Cần Node 22 trở lên; đặt `BROWSER` nếu trình duyệt nằm chỗ khác.
+
+`PRODUCT.md` ghi người dùng và ràng buộc sản phẩm, `DESIGN.md` ghi hệ thiết kế (token, thành phần, chuyển động).

@@ -34,7 +34,7 @@
   W.todayAppts = () => S().appts.filter((a) => a.d === 0 && a.status !== 'canceled').sort((a, b) => a.time.localeCompare(b.time));
   W.updTxt = (p) => R.stamp(p.lastData.d, p.lastData.h);
   const ST = { pending: ['Chờ xác nhận', 'watch'], confirmed: ['Đã xác nhận', 'check'], done: ['Đã hoàn tất', 'check'], canceled: ['Đã hủy', 'x'] };
-  W.apStatus = (s) => '<span class="chip ' + (s === 'pending' ? 'watch' : s === 'confirmed' ? 'ok' : 'neutral') + '">' + ic(s === 'pending' ? 'watch' : s === 'canceled' ? 'x' : 'check') + ST[s][0] + '</span>';
+  W.apStatus = (s) => '<span class="chip neutral">' + ic(s === 'pending' ? 'calendar' : s === 'canceled' ? 'x' : 'check') + ST[s][0] + '</span>';
 
   const reopenedOf = (p) => W.levelReasons(p).some((x) => W.alertState(p.id, x.code).reopened);
   const lvlName = { act: 'Cần can thiệp', watch: 'Cần theo dõi', ok: 'Ổn định' };
@@ -43,52 +43,50 @@
     const tip = 'So với 07:30 hôm qua, cùng quy tắc phân loại. ' + (ch.up ? 'Chuyển mức: ' + lvlName[ch.from] + ' → ' + lvlName[ch.to] + '. ' : '') + (ch.reasons.length ? 'Lý do mới: ' + ch.reasons.map((r) => r.text).join('; ') + '.' : '');
     return '<span class="newtag" title="' + esc(tip) + '">Mới</span>';
   };
-  // Một dòng: tối đa 2 lý do cùng mức nếu vừa chỗ. Lý do đỏ không hiện trên dòng được đếm riêng, không gộp lẫn với lý do mức thấp hơn.
+  // Một dòng: tối đa 2 lý do cùng mức nếu vừa chỗ, "+n" là số lý do cùng mức còn lại (đủ cả trong tooltip và khi mở dòng).
   W.whyParts = (p) => {
     const c = S().cls[p.id];
     if (!c.reasons.length) return { txt: 'Tái khám ' + T.fmtDM(p.appt.d) + ' lúc ' + p.appt.time, more: '', all: '' };
     const main = c.reasons.filter((x) => x.level === c.level), list = main.length ? main : c.reasons;
-    const two = list.length > 1 && list[0].text.length + list[1].text.length <= 44, shown = list.slice(0, two ? 2 : 1);
-    const hid = list.length - shown.length, low = c.reasons.length - list.length;
-    const more = [hid ? '+' + hid + (c.level === 'act' ? ' đỏ' : '') : '', low ? '+' + low : ''].filter(Boolean).join(' ');
+    const two = list.length > 1 && list[0].text.length + list[1].text.length <= 44, shown = list.slice(0, two ? 2 : 1), hid = list.length - shown.length;
     const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    return { txt: cap(shown.map((x) => x.text).join(' · ')), more, all: c.reasons.map((x) => x.text).join('; ') };
+    return { txt: cap(shown.map((x) => x.text).join(' · ')), more: hid ? '+' + hid : '', all: c.reasons.map((x) => x.text).join('; ') };
   };
   W.shortTime = (p) => { const d = p.lastData.d; return d === 0 ? T.fmtH(p.lastData.h) : d === -1 ? 'Hôm qua' : T.fmtDM(d); };
   W.qrow = (p, sel) => {
     const s = S(), c = s.cls[p.id], lv = c.level, done = W.handled(p), sn = W.snoozeOf(p), muted = W.muted(p), open = s.qx === p.id && lv !== 'ok';
     const a = lv !== 'ok' && !muted ? W.actionOf(p) : null, reo = reopenedOf(p), w = W.whyParts(p);
     const tags = W.newTag(p) + (sn && sn.fresh ? '<span class="newtag">Có dữ liệu mới</span>' : sn && sn.due ? '<span class="newtag">Đến hạn xem lại</span>' : reo && !sn ? '<span class="newtag">Có dữ liệu mới</span>' : '');
-    const state = sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + ' · ' : done && !sn ? '✓ Đã xử lý · ' : '';
-    return '<div class="qitem ' + lv + (open ? ' open' : '') + '" data-q="' + p.id + '"><div class="qrow' + (muted ? ' done' : '') + (sel === p.id ? ' sel' : '') + '" data-a="' + (lv === 'ok' ? 'open' : 'qx') + '" data-id="' + p.id + '" tabindex="0"' + (lv === 'ok' ? '' : ' aria-expanded="' + open + '"') + '>' +
-      '<div class="qn"><a href="#" class="nmlink" data-a="open" data-id="' + p.id + '" title="Mở hồ sơ: ' + esc(p.name + ', ' + p.age + ' tuổi, ' + U.sexName(p) + ', ' + U.dxShort(p)) + '">' + esc(p.name) + '</a>' + tags + '</div>' +
+    const state = sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + ' · ' : done && !sn ? 'Đã xử lý · ' : '';
+    return '<div class="qitem' + (open ? ' open' : '') + '" data-q="' + p.id + '"><div class="qrow' + (muted ? ' done' : '') + (sel === p.id ? ' sel' : '') + '" data-a="' + (lv === 'ok' ? 'open' : 'qx') + '" data-id="' + p.id + '" tabindex="0"' + (lv === 'ok' ? '' : ' aria-expanded="' + open + '"') + ' title="' + esc('Dữ liệu mới nhất: ' + W.updTxt(p)) + '">' +
+      '<div class="qn"><a href="#" class="nmlink" data-a="open" data-id="' + p.id + '" title="' + esc('Mở hồ sơ: ' + p.name + ', ' + p.age + ' tuổi, ' + U.sexName(p) + ', ' + U.dxShort(p)) + '">' + esc(p.name) + '</a>' + tags + '</div>' +
       '<div class="why" title="' + esc(w.all) + '"><span class="whyt">' + esc(state + w.txt) + '</span>' + (w.more ? '<span class="whym">' + esc(w.more) + '</span>' : '') + '</div>' +
-      '<span class="qt" title="' + esc('Dữ liệu mới nhất: ' + W.updTxt(p)) + '">' + esc(W.shortTime(p)) + '</span>' +
       (a ? '<button class="btn sm sug ' + lv + '" data-a="qdo" data-k="' + a.kind + '" data-id="' + p.id + '" title="' + esc('Gợi ý theo quy tắc, bác sĩ quyết định. Từ: ' + a.reason.text) + '">' + ic('spark') + esc(a.label) + '</button>' : '<span></span>') +
       (lv === 'ok' ? '<span></span>' : '<span class="qchev" aria-hidden="true">' + ic(open ? 'chevU' : 'chevD') + '</span>') + '</div>' +
       (open ? W.qpanel(p) : '') + '</div>';
   };
-  /* Bảng xử lý nhanh ngay trong hàng đợi */
+  /* Bảng xử lý nhanh ngay trong hàng đợi: lý do, số liệu, gợi ý, rồi một ghi chú và một nút. */
   W.qpanel = (p) => {
     const s = S(), c = s.cls[p.id], I = R.ind(p), sn = W.snoozeOf(p), muted = W.muted(p), a = W.actionOf(p), pats = Ins.patterns(p);
     const sys = p.bp.filter((x) => x.d >= -29).map((x) => ({ x: x.d + x.h / 24, y: x.s, bad: x.s >= R.cfg.critSys }));
-    const more = c.reasons.filter((r) => r.level !== c.level);
-    const reasons = W.levelReasons(p).map((r) => { const st = W.alertState(p.id, r.code); return '<li class="' + r.level + (st.status === 'done' ? ' isdone' : '') + '">' + ic(r.level === 'act' ? 'alert' : 'watch') + '<div><b>' + esc(r.text) + '</b>' + (st.status === 'done' ? ' <span class="xs muted">· đã xử lý</span>' : '') + ' <span class="xs muted">' + esc(r.raw[0] || '') + '</span></div></li>'; }).join('') +
-      (more.length ? '<li class="watch">' + ic('watch') + '<div class="small muted"><b>Cũng cần theo dõi:</b> ' + more.map((r) => esc(r.text)).join('; ') + '</div></li>' : '');
-    const stats = '<div class="qstat"><span>HA TB 7 ngày</span><b class="' + (I.bp.state === 'bad' ? 'sm-bad' : I.bp.state === 'ok' ? 'sm-ok' : '') + '">' + (I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '—') + '</b></div><div class="qstat"><span>Tuân thủ 30 ngày</span><b class="' + (I.adh.state === 'bad' ? 'sm-bad' : I.adh.state === 'ok' ? 'sm-ok' : '') + '">' + (I.adh.v ? I.adh.v.pct + '%' : p.consentAdh ? '—' : 'BN chưa chia sẻ') + '</b></div>' + U.spark(sys, { ref: R.cfg.bpTargetS, w: 240, h: 44, label: 'Huyết áp tâm thu 30 ngày' }) + '';
-    const sug = a ? '<div class="qsug">' + ic('spark') + '<div><b>Gợi ý:</b> ' + esc(W.TODO[a.reason.code](p)) + ' <span class="xs muted">Lấy từ: ' + esc(a.reason.raw[0] || a.reason.text) + '</span></div></div>' : '';
-    const pat = pats.length ? '<div class="qsug">' + ic('chart') + '<div><b>Quy luật trong dữ liệu:</b> ' + esc(pats.join(' ')) + '</div></div>' : '';
+    const own = W.levelReasons(p), rest = c.reasons.filter((r) => r.level !== c.level);
+    const reasons = own.map((r) => { const st = W.alertState(p.id, r.code); return '<li class="' + (st.status === 'done' ? 'isdone' : '') + '">' + U.mark(r.level) + '<div><b>' + esc(r.text) + '</b>' + (st.status === 'done' ? ' <span class="xs muted">· đã xử lý</span>' : '') + ' <span class="xs muted">' + esc(r.raw[0] || '') + '</span></div></li>'; }).join('') +
+      rest.map((r) => '<li>' + U.mark(r.level) + '<div class="small">' + esc(r.text) + '</div></li>').join('');
+    const val = (st, t) => '<b class="' + (st === 'bad' ? 'sm-bad' : '') + '">' + t + '</b>';
+    const stats = '<div class="qstat"><span>HA TB 7 ngày</span>' + val(I.bp.state, I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '—') + '</div><div class="qstat"><span>Tuân thủ thuốc</span>' + val(I.adh.state, I.adh.v ? I.adh.v.pct + '%' : p.consentAdh ? '—' : 'BN chưa chia sẻ') + '</div>' + U.spark(sys, { ref: R.cfg.bpTargetS, w: 240, h: 44, label: 'Huyết áp tâm thu 30 ngày' });
+    const sug = a ? '<div class="qsug">' + ic('spark') + '<div><b>Gợi ý:</b> ' + esc(W.TODO[a.reason.code](p)) + '</div></div>' : '';
+    const pat = pats.length ? '<div class="qsug">' + ic('chart') + '<div>' + esc(pats.join(' ')) + '</div></div>' : '';
     const comp = s.qc === p.id ? '<div class="qcomp"><textarea id="qmsg" rows="3" data-i="draft" data-id="' + p.id + '" aria-label="Nội dung tin nhắn">' + esc(W.draftOf(p)) + '</textarea><div style="display:flex;gap:8px;align-items:center">' + W.tplSelect(p) + '<button class="btn sm ghost" data-a="msgto" data-id="' + p.id + '">Cả hội thoại</button><span style="flex:1"></span><button class="btn sm" data-a="qcancel">Hủy</button><button class="btn sm primary" data-a="send" data-box="qmsg" data-id="' + p.id + '">' + ic('send') + 'Gửi</button></div></div>' : '';
-    const quick = '<button class="btn sm" data-a="qdo" data-k="call" data-id="' + p.id + '" title="Gọi (minh họa)">' + ic('phone') + 'Gọi</button><button class="btn sm" data-a="qdo" data-k="msg" data-id="' + p.id + '">' + ic('msg') + 'Nhắn</button><button class="btn sm" data-a="open" data-id="' + p.id + '">Mở hồ sơ</button>';
+    const quick = '<button class="iconbtn sm" data-a="qdo" data-k="call" data-id="' + p.id + '" title="Gọi (minh họa)" aria-label="Gọi">' + ic('phone') + '</button><button class="iconbtn sm" data-a="qdo" data-k="msg" data-id="' + p.id + '" title="Nhắn" aria-label="Nhắn">' + ic('msg') + '</button>';
     const ch = muted ? null : Ins.changes(p, c);
     const up = ch && ch.up ? '<div class="small" style="color:var(--accent-ink)">Mới: chuyển từ ' + lvlName[ch.from] + ' sang ' + lvlName[ch.to] + ' so với 07:30 hôm qua.</div>' : '';
     let foot;
     if (muted) {
       const lastDone = W.levelReasons(p).map((r) => W.alertState(p.id, r.code)).filter((x) => x.status === 'done').pop();
-      foot = '<div class="qact"><div class="qfoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span>' + quick + '<button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div></div>';
+      foot = '<div class="qact"><div class="qfoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div></div>';
     } else {
-      foot = '<div class="qact"><div class="qnote"><span class="small muted">Ghi chú</span>' + ['Đã gọi BN', 'Đã nhắn BN', 'Đã hẹn khám'].map((t) => '<button class="btn sm" data-a="qchip" data-v="' + t + '" data-id="' + p.id + '">' + t + '</button>').join('') + '<input type="text" id="qnote" data-i="qnote" data-id="' + p.id + '" value="' + esc(s.qnotes[p.id] || '') + '" placeholder="Ghi chú" aria-label="Ghi chú xử lý"></div><div id="q_msg"></div>' +
-        '<div class="qfoot"><button class="btn sm primary" data-a="qdone" data-id="' + p.id + '">' + ic('check') + 'Đã xử lý, sang người kế</button><span class="small muted" style="margin-left:6px">Xem lại sau</span>' + [1, 3, 7].map((n) => '<button class="btn sm" data-a="qsnooze" data-n="' + n + '" data-id="' + p.id + '">' + n + ' ngày</button>').join('') + '<span style="flex:1"></span>' + quick + '</div></div>';
+      foot = '<div class="qact"><div class="qnote">' + ['Đã gọi BN', 'Đã nhắn BN', 'Đã hẹn khám'].map((t) => '<button class="btn sm" data-a="qchip" data-v="' + t + '" data-id="' + p.id + '">' + t + '</button>').join('') + '<input type="text" id="qnote" data-i="qnote" data-id="' + p.id + '" value="' + esc(s.qnotes[p.id] || '') + '" placeholder="Ghi chú" aria-label="Ghi chú xử lý"></div><div id="q_msg" class="qmsgbox"></div>' +
+        '<div class="qfoot"><button class="btn sm primary" data-a="qdone" data-id="' + p.id + '">' + ic('check') + 'Đã xử lý</button><select class="btn sm" data-i="qsn" data-id="' + p.id + '" aria-label="Xem lại sau"><option value="">Xem lại sau</option>' + [1, 3, 7].map((n) => '<option value="' + n + '">' + n + ' ngày</option>').join('') + '</select><span style="flex:1"></span>' + quick + '</div></div>';
     }
     return '<div class="qx">' + comp + up + '<div class="qx-grid"><ul class="qreasons">' + reasons + '</ul><div>' + stats + '</div></div>' + (muted ? '' : sug) + pat + (comp ? '' : foot) + '</div>';
   };
@@ -100,33 +98,19 @@
     });
   };
 
-  /* ---------- Tổng quan (không chart, không cuộn trang) ---------- */
+  /* ---------- Tổng quan: ba ô mức độ là tab của hàng đợi; không chart, không cuộn trang ---------- */
   W.home = () => {
-    const s = S(), c = R.counts(D.patients, s.cls), ta = W.todayAppts(), pp = W.pendingPatients();
-    const long = pp.filter((p) => R.pending(p).hours > R.cfg.msgHours).length, pendA = s.appts.filter((a) => a.status === 'pending').length;
-    const actOpen = W.openCount('act'), watchOpen = W.openCount('watch'), actSn = W.snoozedCount('act'), watchSn = W.snoozedCount('watch');
+    const s = S(), c = R.counts(D.patients, s.cls), ta = W.todayAppts(), pp = W.pendingPatients(), list = W.queueList(s.qtab);
     const anySn = D.patients.some((p) => (W.snoozeOf(p) || {}).active);
-    const list = W.queueList(s.qtab);
-    const tab = (k, t, n) => '<button class="' + (s.qtab === k ? 'on' : '') + '" data-a="qtab" data-v="' + k + '">' + U.mark(k) + t + ' ' + n + '</button>';
-    const sub = (open, total, sn) => (open !== total ? open + ' chưa xử lý' + (sn ? ' · ' + sn + ' hẹn xem lại' : '') : '');
-    const kpi = (cls, attrs, label, value, foot) => '<button class="kpi ' + cls + '" ' + attrs + '><div class="kl">' + label + '</div><div class="kv">' + value + '</div><div class="ks">' + foot + '</div></button>';
+    const tab = (k, t) => { const n = c[k], open = k === 'ok' ? n : W.openCount(k); return '<button class="lvtab ' + k + (s.qtab === k ? ' on' : '') + '" role="tab" aria-selected="' + (s.qtab === k) + '" data-a="qtab" data-v="' + k + '"><span class="kl">' + U.mark(k) + t + '</span><span class="kv">' + n + '</span>' + (open !== n ? '<span class="ks">' + open + ' chưa xử lý</span>' : '') + '</button>'; };
+    const side = (r, t, n, rows, none) => '<section class="card cardf"><div class="card-h"><h2><a class="hl" href="#/' + r + '">' + t + ic('chevR') + '</a></h2><span class="count">' + n + '</span></div><div class="scroll">' + (n ? rows : '<div class="empty">' + none + '</div>') + '</div></section>';
     return '<div class="dash">' +
-      '<div class="dash-hi"><h1>Chào buổi sáng, ' + D.doctor.short + '</h1>' + (s.day ? '<span class="tag dem">demo đã tua +' + s.day + ' ngày</span>' : '') + '</div>' +
-      '<div class="kpis">' +
-      kpi('', 'data-a="nav" data-r="d/patients"', 'Đang quản lý', c.total, '<span class="tri" role="img" aria-label="' + c.act + ' cần can thiệp, ' + c.watch + ' cần theo dõi, ' + c.ok + ' ổn định"><i style="flex:' + c.act + ';background:var(--act)"></i><i style="flex:' + c.watch + ';background:var(--watch)"></i><i style="flex:' + c.ok + ';background:var(--ok)"></i></span>') +
-      kpi('act', 'data-a="qtab" data-v="act"', U.mark('act') + 'Cần can thiệp', c.act, sub(actOpen, c.act, actSn)) +
-      kpi('watch', 'data-a="qtab" data-v="watch"', U.mark('watch') + 'Cần theo dõi', c.watch, sub(watchOpen, c.watch, watchSn)) +
-      kpi('', 'data-a="nav" data-r="d/appts"', 'Lịch hôm nay', ta.length, pendA ? pendA + ' chờ xác nhận' : '') +
-      kpi('', 'data-a="nav" data-r="d/msgs"', 'Tin chờ trả lời', pp.length, long ? long + ' quá ' + R.cfg.msgHours + ' giờ' : '') +
-      '</div>' +
-      '<div class="dash-body">' +
-      '<section class="card cardf" aria-label="Hàng đợi ưu tiên"><div class="card-h"><div class="seg">' + tab('act', 'Can thiệp', c.act) + tab('watch', 'Theo dõi', c.watch) + tab('ok', 'Ổn định', c.ok) + '</div><span style="flex:1"></span>' + (anySn ? '<button class="btn sm ghost" data-a="qtua" title="Chỉ để thử trong demo">Tua demo +3 ngày</button>' : '') + '</div>' +
-      '<div class="scroll">' + (list.length ? list.map((p) => W.qrow(p, s.drawer && s.drawer.id)).join('') : '<div class="empty">Không có bệnh nhân trong nhóm này.</div>') + '</div></section>' +
+      '<div class="page-h"><h1>Tổng quan</h1><span class="count">' + c.total + ' bệnh nhân</span>' + (s.day ? '<span class="tag dem">demo đã tua +' + s.day + ' ngày</span>' : '') + '<span class="sp"></span>' + (anySn ? '<button class="btn sm ghost" data-a="qtua" title="Chỉ để thử trong demo">Tua demo +3 ngày</button>' : '') + '</div>' +
+      '<div class="dash-body"><section class="qcol" aria-label="Hàng đợi ưu tiên"><div class="lvtabs" role="tablist">' + tab('act', 'Cần can thiệp') + tab('watch', 'Cần theo dõi') + tab('ok', 'Ổn định') + '</div>' +
+      '<div class="card cardf"><div class="scroll">' + (list.length ? list.map((p) => W.qrow(p, s.drawer && s.drawer.id)).join('') : '<div class="empty">Không có bệnh nhân trong nhóm này.</div>') + '</div></div></section>' +
       '<div class="col-r">' +
-      '<section class="card cardf"><div class="card-h"><h3>Lịch hôm nay</h3><span style="flex:1"></span><button class="lnk" data-a="nav" data-r="d/appts">Xem lịch</button></div><div class="scroll">' +
-      (ta.length ? ta.map((a) => { const p = P(a.pid), lv = s.cls[p.id].level; return '<div class="mini-row" data-a="open" data-tab="sum" data-id="' + p.id + '" title="' + esc(a.reason + ' · ' + lvlName[lv]) + '"><span class="tm">' + a.time + '</span><span class="mn">' + esc(p.name) + '</span>' + (a.status !== 'confirmed' ? W.apStatus(a.status) : '') + U.mark(lv) + '</div>'; }).join('') : '<div class="empty">Hôm nay không có lịch khám.</div>') + '</div></section>' +
-      '<section class="card cardf"><div class="card-h"><h3>Tin chờ trả lời</h3><span style="flex:1"></span><button class="lnk" data-a="nav" data-r="d/msgs">Hộp thư</button></div><div class="scroll">' +
-      (pp.length ? pp.map((p) => { const m = R.pending(p), over = m.hours > R.cfg.msgHours; return '<div class="mini-row" data-a="msgto" data-id="' + p.id + '" title="' + esc(m.text) + '">' + U.mark(over ? 'watch' : 'ok') + '<span class="mn">' + esc(p.name) + '</span><span class="mt">' + Math.max(1, over ? Math.floor(m.hours) : Math.round(m.hours)) + ' giờ</span></div>'; }).join('') : '<div class="empty">Không có tin nhắn chờ trả lời.</div>') + '</div></section>' +
+      side('d/appts', 'Lịch hôm nay', ta.length, ta.map((a) => { const p = P(a.pid), lv = s.cls[p.id].level; return '<div class="mini-row" data-a="open" data-tab="sum" data-id="' + p.id + '" title="' + esc(a.reason + ' · ' + lvlName[lv]) + '"><span class="tm">' + a.time + '</span><span class="mn">' + esc(p.name) + '</span>' + (a.status !== 'confirmed' ? W.apStatus(a.status) : '') + U.mark(lv) + '</div>'; }).join(''), 'Hôm nay không có lịch khám.') +
+      side('d/msgs', 'Tin chờ trả lời', pp.length, pp.map((p) => { const m = R.pending(p), over = m.hours > R.cfg.msgHours; return '<div class="mini-row" data-a="msgto" data-id="' + p.id + '" title="' + esc(m.text) + '"><span class="mn">' + esc(p.name) + '</span><span class="mt' + (over ? ' lv-watch' : '') + '">' + (over ? U.mark('watch') : '') + U.hrs(m.hours) + '</span></div>'; }).join(''), 'Không có tin nhắn chờ trả lời.') +
       '</div></div></div>';
   };
 
@@ -149,28 +133,31 @@
   };
   W.mrsCell = (p) => {
     const r = Ins.recovery(p); if (!r) return '<span class="muted">—</span>';
-    return '<span class="lv-' + Ins.mrsLv(r.last.v) + '" title="' + esc(Ins.MRS[r.last.v]) + '">' + (r.delta ? r.first.v + ' → ' + r.last.v : r.last.v) + '</span>';
+    return '<span title="' + esc(Ins.MRS[r.last.v]) + '">' + (r.delta ? r.first.v + ' → ' + r.last.v : r.last.v) + '</span>';
   };
   W.patients = () => {
     const f = S().pf, L = W.filterPatients(), cls = S().cls;
     const opt = (v, cur, t) => '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>';
     const seg = (k, t) => '<button class="' + (f.level === k ? 'on' : '') + '" data-a="plv" data-v="' + k + '">' + (k === 'all' || k === 'severe' ? '' : U.mark(k)) + t + ' <span class="muted">' + D.patients.filter(LEVEL_F[k]).length + '</span></button>';
+    // Sắp xếp bằng tiêu đề cột: "Bệnh nhân" đổi giữa mức khẩn trước và tên A–Z.
+    const th = (k, t, r) => { const on = f.sort === k || (k === 'risk' && f.sort === 'name'); return '<th class="' + (r ? 'r' : '') + '" aria-sort="' + (on ? (f.sort === 'name' ? 'ascending' : 'descending') : 'none') + '"><button class="thb' + (on ? ' on' : '') + '" data-a="psort" data-v="' + (k === 'risk' && f.sort === 'risk' ? 'name' : k) + '" title="' + (k === 'risk' ? (f.sort === 'risk' ? 'Đang xếp mức khẩn trước. Bấm để xếp theo tên.' : 'Xếp mức khẩn trước') : 'Sắp xếp') + '">' + t + (on ? ic('chevD') : '') + '</button></th>'; };
+    const val = (st, t) => '<span class="' + (st === 'bad' ? 'sm-bad' : '') + '">' + t + '</span>';
     const row = (p) => {
       const I = R.ind(p), w = W.whyParts(p), lv = cls[p.id].level, has = cls[p.id].reasons.length;
-      return '<tr data-a="open" data-id="' + p.id + '" tabindex="0"><td><span class="who">' + U.mark(lv) + '<b>' + esc(p.name) + '</b></span></td><td class="muted">' + p.age + ' · ' + U.sexName(p) + '</td><td class="muted">' + esc(U.dxShort(p)) + '</td>' +
+      return '<tr data-a="open" data-id="' + p.id + '" tabindex="0"><td><span class="who">' + U.mark(lv) + '<b class="nm">' + esc(p.name) + '</b></span></td><td class="muted">' + p.age + ' · ' + U.sexName(p) + '</td><td class="muted">' + esc(U.dxShort(p)) + '</td>' +
         '<td class="clip" title="' + esc(w.all) + '">' + (has ? esc(w.txt) + (w.more ? ' <span class="muted">' + esc(w.more) + '</span>' : '') : '') + '</td>' +
-        '<td class="r">' + (I.bp.avg7 ? '<span class="' + (I.bp.state === 'ok' ? 'sm-ok' : 'sm-bad') + '">' + I.bp.avg7.s + '/' + I.bp.avg7.dia + '</span>' : '<span class="muted">—</span>') + '</td>' +
-        '<td class="r">' + (I.adh.v ? '<span class="' + (I.adh.state === 'ok' ? 'sm-ok' : 'sm-bad') + '">' + I.adh.v.pct + '%</span>' : '<span class="muted">—</span>') + '</td>' +
+        '<td class="r">' + (I.bp.avg7 ? val(I.bp.state, I.bp.avg7.s + '/' + I.bp.avg7.dia) : '<span class="muted">—</span>') + '</td>' +
+        '<td class="r">' + (I.adh.v ? val(I.adh.state, I.adh.v.pct + '%') : '<span class="muted">—</span>') + '</td>' +
         '<td class="r">' + W.mrsCell(p) + '</td><td class="r muted">' + esc(W.shortTime(p)) + '</td></tr>';
     };
-    return '<div class="page fullh"><div class="page-h"><h1>Bệnh nhân</h1><span class="sp"></span><input type="search" class="find" placeholder="Tìm tên, mã, SĐT" value="' + esc(f.q) + '" data-i="pq" aria-label="Tìm bệnh nhân"><button class="iconbtn" data-a="export" title="Xuất CSV" aria-label="Xuất CSV">' + ic('download') + '</button><button class="btn primary" data-a="addpt">' + ic('plus') + 'Thêm</button></div>' +
-      '<div class="toolbar"><div class="seg">' + seg('all', 'Tất cả') + seg('act', 'Can thiệp') + seg('watch', 'Theo dõi') + seg('ok', 'Ổn định') + seg('severe', 'Ca nặng') + '</div>' +
+    return '<div class="page fullh"><div class="page-h"><h1>Bệnh nhân</h1><span class="sp"></span><button class="iconbtn" data-a="export" title="Xuất CSV" aria-label="Xuất CSV">' + ic('download') + '</button><button class="btn primary" data-a="addpt">' + ic('plus') + 'Thêm</button></div>' +
+      '<div class="toolbar"><div class="seg">' + seg('all', 'Tất cả') + seg('act', 'Can thiệp') + seg('watch', 'Theo dõi') + seg('ok', 'Ổn định') + '</div><div class="seg">' + seg('severe', 'Ca nặng') + '</div>' +
       '<select data-i="pdx" aria-label="Chẩn đoán">' + opt('all', f.dx, 'Mọi chẩn đoán') + opt('NMN', f.dx, 'Nhồi máu não') + opt('CMN', f.dx, 'Chảy máu não') + opt('TIA', f.dx, 'TIA') + opt('NONE', f.dx, 'Chưa từng đột quỵ') + '</select>' +
       '<select data-i="prf" aria-label="Yếu tố nguy cơ">' + Object.keys(W.RFN).map((k) => opt(k, f.rf, W.RFN[k])).join('') + '</select>' +
-      '<select data-i="psort" aria-label="Sắp xếp">' + opt('risk', f.sort, 'Mức khẩn trước') + opt('upd', f.sort, 'Cập nhật gần nhất') + opt('name', f.sort, 'Tên A–Z') + opt('age', f.sort, 'Tuổi cao trước') + '</select>' +
-      (f.need !== 'all' ? '<span class="fchip">' + esc(Ins.NEEDS[f.need].t) + '<button data-a="pclear" data-v="need" aria-label="Bỏ lọc">✕</button></span>' : '') + '</div>' +
-      '<div class="tw fill"><table class="tbl list"><thead><tr><th>Bệnh nhân</th><th>Tuổi</th><th>Chẩn đoán</th><th>Lý do</th><th class="r">HA 7 ngày</th><th class="r">Tuân thủ</th><th class="r">mRS</th><th class="r">Cập nhật</th></tr></thead><tbody>' +
-      (L.length ? L.map(row).join('') : '<tr><td colspan="8" class="empty">Không có bệnh nhân phù hợp.</td></tr>') + '</tbody></table></div></div>';
+      (f.q ? '<span class="fchip">"' + esc(f.q) + '"<button data-a="pclear" data-v="q" aria-label="Bỏ tìm">' + ic('x') + '</button></span>' : '') +
+      (f.need !== 'all' ? '<span class="fchip">' + esc(Ins.NEEDS[f.need].t) + '<button data-a="pclear" data-v="need" aria-label="Bỏ lọc">' + ic('x') + '</button></span>' : '') + '</div>' +
+      '<div class="tw fill"><table class="tbl list"><thead><tr>' + th('risk', 'Bệnh nhân') + th('age', 'Tuổi') + '<th>Chẩn đoán</th><th>Lý do</th><th class="r">HA TB 7 ngày</th><th class="r">Tuân thủ thuốc</th><th class="r">mRS</th>' + th('upd', 'Cập nhật', true) + '</tr></thead><tbody>' +
+      (L.length ? L.map(row).join('') : '<tr><td colspan="8" class="empty">Không có bệnh nhân phù hợp.' + (f.q || f.need !== 'all' || f.level !== 'all' || f.dx !== 'all' || f.rf !== 'all' ? ' <button class="lnk" data-a="pclear" data-v="all">Bỏ mọi bộ lọc</button>' : '') + '</td></tr>') + '</tbody></table></div></div>';
   };
 
   /* ---------- Lịch khám ---------- */
@@ -200,7 +187,7 @@
       cols += '</div>';
       for (let i = 0; i < 7; i++) {
         const d = m0 + i; hd += '<div class="wh' + (d === 0 ? ' today' : '') + '"><a href="#" data-a="apday" data-d="' + d + '" style="color:inherit;text-decoration:none">' + ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][i] + ' ' + T.fmtDM(d) + '</a><div class="xs muted">' + cnt(d) + ' lịch</div></div>';
-        cols += '<div class="wcol">' + W.apptsOn(d).filter((a) => a.time >= '07:00').map((a) => { const mm = (parseInt(a.time, 10) - 7) * 60 + parseInt(a.time.slice(3), 10); return '<div class="ev ' + a.status + '" style="top:' + (mm / 60 * 56) + 'px;height:' + Math.max(24, a.dur / 60 * 56 - 2) + 'px" data-a="apday" data-d="' + d + '" title="' + esc(P(a.pid).name + ' · ' + a.reason + ' · ' + ST[a.status][0]) + '"><b>' + a.time + '</b> ' + esc(P(a.pid).name) + '</div>'; }).join('') + '</div>';
+        cols += '<div class="wcol">' + '<i></i>'.repeat(11) + W.apptsOn(d).filter((a) => a.time >= '07:00').map((a) => { const mm = (parseInt(a.time, 10) - 7) * 60 + parseInt(a.time.slice(3), 10); return '<div class="ev ' + a.status + '" style="top:' + (mm / 60 * 56) + 'px;height:' + Math.max(24, a.dur / 60 * 56 - 2) + 'px" data-a="apday" data-d="' + d + '" title="' + esc(P(a.pid).name + ' · ' + a.reason + ' · ' + ST[a.status][0]) + '"><b>' + a.time + '</b> ' + esc(P(a.pid).name) + '</div>'; }).join('') + '</div>';
       }
       body = '<div class="week">' + hd + cols + '</div>';
     } else {
@@ -218,10 +205,10 @@
     return '<div class="page fullh"><div class="page-h"><h1>Lịch khám</h1><span class="sp"></span>' +
       '<select data-i="apfilter" aria-label="Trạng thái"><option value="all"' + (ap.filter === 'all' ? ' selected' : '') + '>Mọi trạng thái</option><option value="pending"' + (ap.filter === 'pending' ? ' selected' : '') + '>Chờ xác nhận</option><option value="confirmed"' + (ap.filter === 'confirmed' ? ' selected' : '') + '>Đã xác nhận</option><option value="done"' + (ap.filter === 'done' ? ' selected' : '') + '>Đã hoàn tất</option><option value="canceled"' + (ap.filter === 'canceled' ? ' selected' : '') + '>Đã hủy</option></select>' +
       '<div class="seg">' + seg('day', 'Ngày') + seg('week', 'Tuần') + seg('month', 'Tháng') + '</div><button class="btn primary" data-a="apnew">' + ic('plus') + 'Tạo lịch</button></div>' +
-      '<div class="cal"><section class="card cal-main"><div class="card-h"><button class="btn sm" data-a="apstep" data-v="-' + step + '" aria-label="Trước">' + ic('chevL') + '</button><button class="btn sm" data-a="apstep" data-v="0">Hôm nay</button><button class="btn sm" data-a="apstep" data-v="' + step + '" aria-label="Sau">' + ic('chevR') + '</button><h3 style="margin-left:6px">' + esc(title) + '</h3></div>' + body +
+      '<div class="cal"><section class="card cal-main"><div class="card-h"><button class="btn sm" data-a="apstep" data-v="-' + step + '" aria-label="Trước">' + ic('chevL') + '</button><button class="btn sm" data-a="apstep" data-v="0">Hôm nay</button><button class="btn sm" data-a="apstep" data-v="' + step + '" aria-label="Sau">' + ic('chevR') + '</button><h2 style="margin-left:6px">' + esc(title) + '</h2></div>' + body +
       '</section>' +
-      '<div style="display:flex;flex-direction:column;gap:12px;min-height:0"><section class="card cardf" style="flex:1"><div class="card-h"><h3>Chờ xác nhận</h3><span class="tag">' + pend.length + '</span></div><div class="scroll">' + (pend.length ? pend.map((a) => '<div style="padding:9px 14px;border-bottom:1px solid var(--rule)"><b>' + esc(P(a.pid).name) + '</b> <span class="xs muted">' + T.fmtDMY(a.d) + ' ' + a.time + '</span><div class="small muted">' + esc(a.reason) + '</div><div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm primary" data-a="apconfirm" data-id="' + a.id + '">Xác nhận</button><button class="btn sm danger" data-a="apcancel" data-id="' + a.id + '">Từ chối</button></div></div>').join('') : '<div class="empty">Không có lịch chờ xác nhận.</div>') + '</div></section>' +
-      '<section class="card"><div class="card-h"><h3>Cần đặt lại lịch</h3><span class="tag">' + overdue.length + '</span></div><div class="card-b small">' + (overdue.length ? overdue.map((p) => '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><span><b>' + esc(p.name) + '</b><br><span class="xs muted">' + esc(s.cls[p.id].reasons.find((r) => r.code === 'overdue').text) + '</span></span><button class="btn sm" data-a="apnew" data-id="' + p.id + '">Đặt lịch</button></div>').join('') : '<span class="muted">Không có bệnh nhân quá hẹn.</span>') + '</div></section></div></div></div>';
+      '<div style="display:flex;flex-direction:column;gap:12px;min-height:0"><section class="card cardf" style="flex:1"><div class="card-h"><h2>Chờ xác nhận</h2><span class="tag">' + pend.length + '</span></div><div class="scroll">' + (pend.length ? pend.map((a) => '<div style="padding:9px 14px;border-bottom:1px solid var(--rule)"><b>' + esc(P(a.pid).name) + '</b> <span class="xs muted">' + T.fmtDMY(a.d) + ' ' + a.time + '</span><div class="small muted">' + esc(a.reason) + '</div><div style="display:flex;gap:6px;margin-top:6px"><button class="btn sm primary" data-a="apconfirm" data-id="' + a.id + '">Xác nhận</button><button class="btn sm danger" data-a="apcancel" data-id="' + a.id + '">Từ chối</button></div></div>').join('') : '<div class="empty">Không có lịch chờ xác nhận.</div>') + '</div></section>' +
+      '<section class="card"><div class="card-h"><h2>Cần đặt lại lịch</h2><span class="tag">' + overdue.length + '</span></div><div class="card-b small">' + (overdue.length ? overdue.map((p) => '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between"><span><b>' + esc(p.name) + '</b><br><span class="xs muted">' + esc(s.cls[p.id].reasons.find((r) => r.code === 'overdue').text) + '</span></span><button class="btn sm" data-a="apnew" data-id="' + p.id + '">Đặt lịch</button></div>').join('') : '<span class="muted">Không có bệnh nhân quá hẹn.</span>') + '</div></section></div></div></div>';
   };
 
   /* ---------- Tin nhắn ---------- */
@@ -306,7 +293,7 @@
     if (!t.event && s.tool !== 'abcd2') inp.event = undefined;
     let res;
     const ageOk = !isNaN(inp.age);
-    if (!ageOk || (s.tool !== 'abcd2' && !t.event)) res = '<div class="scale"><div class="scale-h"><h4>' + cur.n + '</h4><span class="chip neutral">' + ic('dash') + 'Chưa đủ dữ liệu</span></div></div>';
+    if (!ageOk || (s.tool !== 'abcd2' && !t.event)) res = '<div class="scale"><div class="scale-h"><h3>' + cur.n + '</h3><span class="chip neutral">' + ic('dash') + 'Chưa đủ dữ liệu</span></div></div>';
     else {
       const r = s.tool === 'fsrp' ? R.scales.fsrp(inp, null) : R.scales[s.tool](inp);
       res = W.scaleCard(r, { calc: true });
@@ -321,8 +308,8 @@
   /* thẻ kết quả của một thang (dùng ở hồ sơ và công cụ) */
   W.scaleCard = (r, o) => {
     o = o || {};
-    if (!r.applicable) return '<div class="scale na"><div class="scale-h"><h4>' + esc(r.scale) + '</h4><span class="chip neutral">' + ic('dash') + 'Không áp dụng</span></div><div class="scale-b small">' + esc(r.naReason) + '<div class="meta"><span>Phiên bản: ' + esc(r.version) + '</span></div></div></div>';
-    let h = '<div class="scale"><div class="scale-h"><h4>' + esc(r.scale) + '</h4>';
+    if (!r.applicable) return '<div class="scale na"><div class="scale-h"><h3>' + esc(r.scale) + '</h3><span class="chip neutral">' + ic('dash') + 'Không áp dụng</span></div><div class="scale-b small">' + esc(r.naReason) + '<div class="meta"><span>Phiên bản: ' + esc(r.version) + '</span></div></div></div>';
+    let h = '<div class="scale"><div class="scale-h"><h3>' + esc(r.scale) + '</h3>';
     if (r.insufficient) h += '<span class="chip neutral">' + ic('dash') + 'Chưa đủ dữ liệu</span>';
     else if (r.pct != null) h += '<span class="sc">' + r.pct + '%</span><span class="tag dem">minh họa</span>';
     else if (r.score != null) h += '<span class="sc num">' + r.score + '</span><span class="muted small">điểm' + (r.partial ? ' tạm tính' : '') + '</span>' + U.tierChip(r.tier);
@@ -341,10 +328,10 @@
     const st = S().set; const names = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
     const sel = (k, i, v) => '<select data-i="setT" data-k="' + k + '" data-d="' + i + '" ' + (st.days[i].on ? '' : 'disabled') + ' aria-label="' + k + '">' + HOURS.map((h) => '<option' + (h === v ? ' selected' : '') + '>' + h + '</option>').join('') + '</select>';
     return '<div class="page narrow"><div class="page-h"><h1>Cài đặt</h1></div>' +
-      '<section class="card"><div class="card-h"><h3>Lịch khám cố định</h3><span style="flex:1"></span><button class="btn sm" data-a="setsuggest">Gợi ý T2–T6, 08:00–11:30</button></div><div class="card-b">' +
+      '<section class="card"><div class="card-h"><h2>Lịch khám cố định</h2><span style="flex:1"></span><button class="btn sm" data-a="setsuggest">Gợi ý T2–T6, 08:00–11:30</button></div><div class="card-b">' +
       names.map((n, i) => '<div style="display:grid;grid-template-columns:150px 110px 110px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rule)"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" style="width:18px;height:18px" data-i="setOn" data-d="' + i + '"' + (st.days[i].on ? ' checked' : '') + '> ' + n + '</label>' + (st.days[i].on ? sel('from', i, st.days[i].from) + sel('to', i, st.days[i].to) : '<span class="muted small" style="grid-column:2/4">Không nhận lịch</span>') + '</div>').join('') +
       '<div style="margin-top:10px"><button class="btn primary" data-a="setsave">Lưu lịch cố định</button> ' + (st.saved ? '<span class="xs muted">Đã lưu ' + st.saved + '</span>' : '') + '</div></div></section>' +
-      '<section class="card"><div class="card-h"><h3>Thêm lịch bận</h3></div><div class="card-b"><div class="form-grid" style="grid-template-columns:1.2fr 1fr 1fr"><label class="f">Ngày (dd/mm/yyyy)<input type="text" id="bdate" placeholder="vd. ' + T.fmtDMY(3) + '" inputmode="numeric"></label><label class="f">Bắt đầu<select id="bfrom">' + HOURS.map((h) => '<option' + (h === '13:00' ? ' selected' : '') + '>' + h + '</option>').join('') + '</select></label><label class="f">Kết thúc<select id="bto">' + HOURS.map((h) => '<option' + (h === '17:00' ? ' selected' : '') + '>' + h + '</option>').join('') + '</select></label></div><label class="f" style="margin-top:8px">Ghi chú<input type="text" id="bnote"></label><div id="berr"></div><div style="margin-top:10px"><button class="btn primary" data-a="busyadd">Lưu lịch bận</button></div></div></section>' +
-      '<section class="card"><div class="card-h"><h3>Lịch bận</h3></div><div class="card-b">' + (st.busy.length ? st.busy.map((b, i) => '<div class="mod-row"><div><b>' + T.fmtDMY(b.d) + '</b> · ' + b.from + '–' + b.to + '' + (b.note ? '<div class="xs muted">' + esc(b.note) + '</div>' : '') + '</div><button class="btn sm ghost" data-a="busydel" data-i="' + i + '">Xóa</button></div>').join('') : '<span class="muted">Chưa có lịch bận.</span>') + '</div></section></div>';
+      '<section class="card"><div class="card-h"><h2>Thêm lịch bận</h2></div><div class="card-b"><div class="form-grid" style="grid-template-columns:1.2fr 1fr 1fr"><label class="f">Ngày (dd/mm/yyyy)<input type="text" id="bdate" placeholder="vd. ' + T.fmtDMY(3) + '" inputmode="numeric"></label><label class="f">Bắt đầu<select id="bfrom">' + HOURS.map((h) => '<option' + (h === '13:00' ? ' selected' : '') + '>' + h + '</option>').join('') + '</select></label><label class="f">Kết thúc<select id="bto">' + HOURS.map((h) => '<option' + (h === '17:00' ? ' selected' : '') + '>' + h + '</option>').join('') + '</select></label></div><label class="f" style="margin-top:8px">Ghi chú<input type="text" id="bnote"></label><div id="berr"></div><div style="margin-top:10px"><button class="btn primary" data-a="busyadd">Lưu lịch bận</button></div></div></section>' +
+      '<section class="card"><div class="card-h"><h2>Lịch bận</h2></div><div class="card-b">' + (st.busy.length ? st.busy.map((b, i) => '<div class="mod-row"><div><b>' + T.fmtDMY(b.d) + '</b> · ' + b.from + '–' + b.to + '' + (b.note ? '<div class="xs muted">' + esc(b.note) + '</div>' : '') + '</div><button class="btn sm ghost" data-a="busydel" data-i="' + i + '">Xóa</button></div>').join('') : '<span class="muted">Chưa có lịch bận.</span>') + '</div></section></div>';
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

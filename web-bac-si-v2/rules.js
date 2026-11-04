@@ -277,9 +277,10 @@
     const a1 = R.lab(p, 'a1c'); out.a1c = { last: a1, target: tg.a1c, state: a1 ? (R.a1cExceeds(p, a1.v, cfg) ? 'bad' : 'ok') : 'none' };
     const b = R.bmi(p); out.bmi = { v: b, state: b == null ? 'none' : b >= 18.5 && b < 23 ? 'ok' : 'bad', label: b == null ? '' : b < 18.5 ? 'thấp' : b < 23 ? 'bình thường' : b < 25 ? 'thừa cân' : 'béo phì' };
     const ad = R.adherence(p); out.adh = { v: ad, state: !p.consentAdh ? 'private' : ad ? (ad.pct >= cfg.adhOk ? 'ok' : 'bad') : 'none' };
-    out.smoke = { cig: p.life.cig, state: p.life.cig === 0 ? 'ok' : 'bad' };
-    const lim = p.sex === 'F' ? 1 : 2; out.alc = { v: p.life.alc, limit: lim, state: p.life.alc <= lim ? 'ok' : 'bad' };
-    out.ex = { v: p.life.ex, state: p.life.ex >= 150 ? 'ok' : 'bad' };
+    // null = chưa ghi nhận: không tính là đạt hay không đạt.
+    out.smoke = { cig: p.life.cig, state: p.life.cig == null ? 'none' : p.life.cig === 0 ? 'ok' : 'bad' };
+    const lim = p.sex === 'F' ? 1 : 2; out.alc = { v: p.life.alc, limit: lim, state: p.life.alc == null ? 'none' : p.life.alc <= lim ? 'ok' : 'bad' };
+    out.ex = { v: p.life.ex, state: p.life.ex == null ? 'none' : p.life.ex >= 150 ? 'ok' : 'bad' };
     return out;
   };
 

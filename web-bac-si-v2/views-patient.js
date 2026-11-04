@@ -13,8 +13,8 @@
   const lvlName = { act: 'Cần can thiệp', watch: 'Cần theo dõi', ok: 'Ổn định' };
   W.pdHead = (p, mode) => {
     const c = S().cls[p.id], sn = W.snoozeOf(p), s = S();
-    return '<div class="ph">' + U.av(p, c.level) + '<div class="ph-t"><h2>' + esc(p.name) + '</h2><div class="ph-s">' + p.age + ' tuổi · ' + U.sexName(p) + ' · ' + esc(U.dx(p)) + ' · <a href="#" data-a="pinfo" data-id="' + p.id + '">Thông tin liên hệ</a></div></div>' +
-      '<span class="pill ' + c.level + '">' + ic(U.lvl[c.level].ic) + lvlName[c.level] + '</span>' +
+    return '<div class="ph">' + U.av(p, c.level) + '<div class="ph-t"><h1>' + esc(p.name) + '</h1><div class="ph-s">' + p.age + ' tuổi · ' + U.sexName(p) + ' · ' + esc(U.dx(p)) + ' · <a href="#" data-a="pinfo" data-id="' + p.id + '">Thông tin liên hệ</a></div></div>' +
+      '<span class="pill ' + c.level + '">' + U.mark(c.level) + lvlName[c.level] + '</span>' +
       (W.handled(p) && !sn ? '<span class="chip ok">' + ic('check') + 'Đã xử lý</span>' : '') + (sn && sn.active ? '<span class="chip neutral">' + ic('calendar') + 'Xem lại ' + T.fmtDM(sn.until) + '</span>' : '') +
       '<span style="flex:1"></span><button class="btn primary" data-a="call" data-id="' + p.id + '">' + ic('phone') + 'Gọi</button><button class="btn" data-a="ptab" data-t="msg">' + ic('msg') + 'Nhắn</button><button class="btn" data-a="apnew" data-id="' + p.id + '">' + ic('calendar') + 'Đặt lịch</button><button class="btn" data-a="entry" data-id="' + p.id + '">' + ic('plus') + 'Nhập hộ</button>' +
       '<span class="pdmenu"><button class="btn" data-a="pdmenu" aria-label="Thêm thao tác" aria-expanded="' + !!s.pdmenu + '">···</button>' + (s.pdmenu ? '<div class="menu"><button data-a="advnew" data-id="' + p.id + '">' + ic('star') + 'Gửi lời khuyên</button><button data-a="ptab" data-t="note">' + ic('list') + 'Ghi chú, cảnh báo</button><button data-a="print" data-id="' + p.id + '">' + ic('print') + 'In, xuất tóm tắt</button></div>' : '') + '</span>' +
@@ -25,53 +25,54 @@
     U.modal(W.modalHead('Thông tin liên hệ: ' + p.name) + '<div class="mbox-b"><table class="tbl plain"><tbody>' + row('Mã', '<b>' + p.id + '</b>') + row('Điện thoại', p.phone + ' <span class="tag">giả</span>') + row('Người thân', p.family ? '<b>' + esc(p.family.name) + '</b> (' + esc(p.family.rel) + ') ' + p.family.phone : 'Chưa kết nối') + row('Cơ sở', U.site(p)) + row('BS phụ trách', esc(p.doctor) + (p.coDoctor ? ' · phối hợp ' + esc(p.coDoctor) : '')) + row('Chẩn đoán', esc(U.dx(p)) + (p.dx.type === 'NONE' && p.dx.reg != null ? ' · đăng ký ' + T.fmtDMY(p.dx.reg) : '')) + (p.dx.nihss != null ? row('NIHSS lúc vào', p.dx.nihss) : '') + (p.dx.mrs != null ? row('mRS gần nhất', p.dx.mrs) : '') + row('Chia sẻ dữ liệu', 'Đồng ý' + (p.consentAdh ? '' : ' · <span class="chip watch xs">Chưa cho phép chia sẻ tuân thủ thuốc</span>')) + '</tbody></table></div>');
   };
   W.pdoneModal = (p) => {
-    U.modal(W.modalHead('Xử lý: ' + p.name) + '<div class="mbox-b"><div class="qnote">' + ['Đã gọi BN', 'Đã nhắn BN', 'Đã hẹn khám'].map((t) => '<button class="btn sm" data-a="qchip" data-v="' + t + '" data-id="' + p.id + '">' + t + '</button>').join('') + '</div><label class="f">Ghi chú (bắt buộc khi đánh dấu đã xử lý)<input type="text" data-i="qnote" data-id="' + p.id + '" value="' + esc(S().qnotes[p.id] || '') + '"></label><div class="qmsgbox"></div><div class="xs muted">Mức theo dõi không đổi vì tính từ dữ liệu.</div></div><div class="mbox-f"><span class="small muted" style="margin-right:auto;align-self:center">Xem lại sau</span>' + [1, 3, 7].map((n) => '<button class="btn" data-a="qsnooze" data-n="' + n + '" data-id="' + p.id + '">' + n + ' ngày</button>').join('') + '<button class="btn primary" data-a="qdone" data-id="' + p.id + '">Đã xử lý</button></div>');
+    U.modal(W.modalHead('Xử lý: ' + p.name) + '<div class="mbox-b"><div class="qnote">' + ['Đã gọi BN', 'Đã nhắn BN', 'Đã hẹn khám'].map((t) => '<button class="btn sm" data-a="qchip" data-v="' + t + '" data-id="' + p.id + '">' + t + '</button>').join('') + '</div><label class="f">Ghi chú<input type="text" data-i="qnote" data-id="' + p.id + '" value="' + esc(S().qnotes[p.id] || '') + '"></label><div class="qmsgbox"></div><div class="xs muted">Mức theo dõi không đổi vì tính từ dữ liệu.</div></div><div class="mbox-f"><span class="small muted" style="margin-right:auto;align-self:center">Xem lại sau</span>' + [1, 3, 7].map((n) => '<button class="btn" data-a="qsnooze" data-n="' + n + '" data-id="' + p.id + '">' + n + ' ngày</button>').join('') + '<button class="btn primary" data-a="qdone" data-id="' + p.id + '">Đã xử lý</button></div>');
   };
 
   /* ---------- hồ sơ một trang: ô chỉ số tô màu theo đúng mức của rules.js, không thêm ngưỡng ---------- */
   const lvOf = (p, codes, state) => {
     const rs = S().cls[p.id].reasons.filter((r) => codes.includes(r.code));
     if (rs.some((r) => r.level === 'act')) return 'act';
-    if (rs.length || state === 'bad') return 'watch';
+    if (rs.length) return 'watch';
     return state === 'ok' ? 'ok' : 'none';
   };
   const reasonOf = (p, codes) => S().cls[p.id].reasons.find((r) => codes.includes(r.code));
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-  const otile = (lv, t, m, label, value, unit, note) => '<button class="otile ' + lv + '" data-a="ptab" data-t="' + t + '"' + (m ? ' data-m="' + m + '"' : '') + '><span class="l">' + label + '</span><span class="v">' + value + (unit ? ' <small>' + unit + '</small>' : '') + '</span><span class="n">' + (lv === 'none' ? '' : U.mark(lv)) + '<span>' + note + '</span></span></button>';
+  // Ô chỉ số: màu và dấu chỉ khi rules.js có lý do; giá trị đạt mục tiêu thì im lặng (không thêm dòng chú thích).
+  const otile = (lv, t, m, label, value, unit, note) => '<button class="otile ' + lv + '" data-a="ptab" data-t="' + t + '"' + (m ? ' data-m="' + m + '"' : '') + '><span class="l">' + label + '</span><span class="v">' + value + (unit ? ' <small>' + unit + '</small>' : '') + '</span><span class="n">' + (note && lv !== 'none' && lv !== 'ok' ? U.mark(lv) : '') + '<span>' + note + '</span></span></button>';
   W.ovTiles = (p) => {
     const I = R.ind(p), c = R.cfg, lb = I.bp.last, out = [];
-    const bpCodes = ['bp-crit', 'bp-avg3', 'bp-avg7'], bpLv = lvOf(p, bpCodes, I.bp.state);
-    out.push(otile(bpLv, 'vit', 'bp', 'Huyết áp TB 7 ngày', I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '—', I.bp.avg7 ? 'mmHg' : '', lb ? 'Gần nhất ' + lb.s + '/' + lb.dia + (I.bp.avg7 ? '' : ', ' + T.fmtDM(lb.d)) : 'Chưa có số đo'));
-    const adCodes = ['miss-ac', 'hr-adh', 'adh'], adLv = p.consentAdh ? lvOf(p, adCodes, I.adh.state) : 'none', adR = reasonOf(p, ['miss-ac']);
-    out.push(otile(adLv, 'med', '', 'Tuân thủ thuốc', I.adh.v ? I.adh.v.pct + '%' : '—', '', !p.consentAdh ? 'BN chưa chia sẻ' : !I.adh.v ? 'Chưa có dữ liệu' : adR ? cap(adR.text) : I.adh.state === 'ok' ? 'Đạt mục tiêu ≥' + c.adhOk + '%' : 'Dưới mục tiêu ≥' + c.adhOk + '%'));
+    const bpLv = lvOf(p, ['bp-crit', 'bp-avg3', 'bp-avg7'], I.bp.state);
+    out.push(otile(bpLv, 'vit', 'bp', 'HA TB 7 ngày', I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '—', I.bp.avg7 ? 'mmHg' : '', lb && (!I.bp.avg7 || reasonOf(p, ['bp-crit'])) ? 'Gần nhất ' + lb.s + '/' + lb.dia + (I.bp.avg7 ? '' : ', ' + T.fmtDM(lb.d)) : ''));
+    const adLv = p.consentAdh ? lvOf(p, ['miss-ac', 'hr-adh', 'adh'], I.adh.state) : 'none', adR = reasonOf(p, ['miss-ac']);
+    out.push(otile(adLv, 'med', '', 'Tuân thủ thuốc', I.adh.v ? I.adh.v.pct + '%' : '—', '', !p.consentAdh ? 'BN chưa chia sẻ' : !I.adh.v ? '' : adR ? cap(adR.text) : I.adh.state === 'bad' ? 'Dưới mục tiêu ≥' + c.adhOk + '%' : ''));
     const gluLv = lvOf(p, ['glu'], I.glu.state);
-    out.push(otile(gluLv, 'vit', 'glu', 'Đường huyết đói', I.glu.last ? R.num(I.glu.last.v, 1) : '—', I.glu.last ? 'mmol/L' : '', !I.glu.last ? 'Chưa có số đo' : gluLv === 'act' ? 'Ngoài ngưỡng an toàn' : gluLv === 'ok' ? 'Đạt mục tiêu ≤5,6' : 'Trên mục tiêu ≤5,6'));
-    const a1cT = (p.rf.dm === 1 ? '≤' : '<') + R.num(I.a1c.target, 1), a1cLv = lvOf(p, ['a1c'], I.a1c.state);
-    out.push(otile(a1cLv, 'vit', 'lab', 'HbA1c', I.a1c.last ? R.num(I.a1c.last.v, 1) : '—', I.a1c.last ? '%' : '', !I.a1c.last ? 'Chưa có xét nghiệm' : a1cLv === 'ok' ? 'Đạt mục tiêu ' + a1cT : 'Trên mục tiêu ' + a1cT));
-    const ldlLv = lvOf(p, ['ldl'], I.ldl.state), ldlT = '<' + R.num(I.ldl.target, 1);
-    out.push(otile(ldlLv, 'vit', 'lab', 'LDL-C', I.ldl.last ? R.num(I.ldl.last.v, 1) : '—', I.ldl.last ? 'mmol/L' : '', !I.ldl.last ? 'Chưa có xét nghiệm' : ldlLv === 'ok' ? 'Đạt mục tiêu ' + ldlT : 'Trên mục tiêu ' + ldlT));
+    out.push(otile(gluLv, 'vit', 'glu', 'Đường huyết đói', I.glu.last ? R.num(I.glu.last.v, 1) : '—', I.glu.last ? 'mmol/L' : '', !I.glu.last ? '' : gluLv === 'act' ? 'Ngoài ngưỡng an toàn' : I.glu.state === 'bad' ? 'Trên mục tiêu ≤5,6' : ''));
+    const a1cT = (p.rf.dm === 1 ? '≤' : '<') + R.num(I.a1c.target, 1);
+    out.push(otile(lvOf(p, ['a1c'], I.a1c.state), 'vit', 'lab', 'HbA1c', I.a1c.last ? R.num(I.a1c.last.v, 1) : '—', I.a1c.last ? '%' : '', I.a1c.last && I.a1c.state === 'bad' ? 'Trên mục tiêu ' + a1cT : ''));
+    out.push(otile(lvOf(p, ['ldl'], I.ldl.state), 'vit', 'lab', 'LDL-C', I.ldl.last ? R.num(I.ldl.last.v, 1) : '—', I.ldl.last ? 'mmol/L' : '', I.ldl.last && I.ldl.state === 'bad' ? 'Trên mục tiêu <' + R.num(I.ldl.target, 1) : ''));
     const w = R.lastW(p);
-    out.push(otile(w ? lvOf(p, [], I.bmi.state) : 'none', 'vit', 'w', 'BMI', w ? R.num(I.bmi.v, 1) : '—', w ? 'kg/m²' : '', w ? cap(I.bmi.label) : 'Chưa có số đo'));
+    out.push(otile(w ? lvOf(p, [], I.bmi.state) : 'none', 'vit', 'w', 'BMI', w ? R.num(I.bmi.v, 1) : '—', w ? 'kg/m²' : '', w ? cap(I.bmi.label) : ''));
     return '<div class="otiles">' + out.join('') + '</div>';
   };
 
-  /* ---------- hồ sơ một trang: các thẻ ---------- */
-  const more = (t, label, m) => '<button class="lnk" data-a="ptab" data-t="' + t + '"' + (m ? ' data-m="' + m + '"' : '') + '>' + label + '</button>';
+  /* ---------- hồ sơ một trang: các thẻ. Tiêu đề thẻ là nút mở phần chi tiết tương ứng. ---------- */
+  const hd = (t, label, m, cls) => '<h2' + (cls ? ' class="' + cls + '"' : '') + '><button class="hl" data-a="ptab" data-t="' + t + '"' + (m ? ' data-m="' + m + '"' : '') + '>' + label + ic('chevR') + '</button></h2>';
   W.bpLane = (p, from) => {
     if (!p.consentAdh) return null;
     const byDay = {}; R.misses(p, from, false).forEach((m) => { (byDay[m.d] = byDay[m.d] || []).push(m); });
     return Object.keys(byDay).map(Number).map((d) => ({ d, crit: byDay[d].some((m) => D.isCrit(m.cls)), tip: T.fmtDM(d) + ' · bỏ ' + byDay[d].map((m) => m.med + ' ' + m.time).join(', ') }));
   };
+  // Chỉ vẽ đường mục tiêu và mốc tâm thu nguy hiểm; điểm chạm mốc nguy hiểm (kể cả tâm trương) đã có dấu đỏ và số.
   W.bpChart = (p, rg, w, h) => {
     const c = R.cfg, from = -(rg - 1), L = p.bp.filter((x) => x.d >= from);
     const mk = (k, crit) => L.map((x) => ({ x: x.d + x.h / 24, y: x[k], crit: x[k] >= crit, tip: U.dt(x.d, x.h) + ' · ' + x.s + '/' + x.dia + ' mmHg · ' + x.src }));
-    return U.lineChart({ w, h, rr: 132, series: [{ name: 'Tâm thu', color: 'var(--s1)', pts: mk('s', c.critSys) }, { name: 'Tâm trương', color: 'var(--s2)', shape: 'square', pts: mk('dia', c.critDia) }], ticks: [40, 80, 120, 160, 200], yUnit: 'mmHg', xFrom: from, xTo: 0, lane: W.bpLane(p, from), refs: [{ y: c.critSys, color: 'var(--act)', label: 'Tâm thu ≥' + c.critSys }, { y: c.bpTargetS, color: 'var(--ok)', label: 'Mục tiêu tâm thu <' + c.bpTargetS }, { y: c.critDia, color: 'var(--act)', label: 'Tâm trương ≥' + c.critDia }, { y: c.bpTargetD, color: 'var(--ok)', label: 'Mục tiêu tâm trương <' + c.bpTargetD }], label: 'Huyết áp ' + rg + ' ngày. ' + Ins.bpSentence(p, rg) });
+    return U.lineChart({ w, h, rr: 104, series: [{ name: 'Tâm thu', color: 'var(--s1)', pts: mk('s', c.critSys) }, { name: 'Tâm trương', color: 'var(--s2)', shape: 'square', pts: mk('dia', c.critDia) }], ticks: [40, 80, 120, 160, 200], yUnit: 'mmHg', xFrom: from, xTo: 0, lane: W.bpLane(p, from), refs: [{ y: c.critSys, color: 'var(--act)', label: 'Tâm thu ≥' + c.critSys }, { y: c.bpTargetS, color: 'var(--ok)', label: 'Mục tiêu <' + c.bpTargetS }, { y: c.bpTargetD, color: 'var(--ok)', label: 'Mục tiêu <' + c.bpTargetD }], label: 'Huyết áp ' + rg + ' ngày. ' + Ins.bpSentence(p, rg) });
   };
   const chartCard = (p) => {
     const rg = S().pv.range, L = p.bp.filter((x) => x.d >= -(rg - 1)), lb = R.lastBP(p);
     const rseg = (k) => '<button class="' + (rg === k ? 'on' : '') + '" data-a="pvr" data-v="' + k + '">' + k + ' ngày</button>';
-    return '<section class="card ocard ochart"><div class="och"><h3>Huyết áp</h3><div class="seg">' + rseg(7) + rseg(30) + '</div><span style="flex:1"></span>' + more('vit', 'Bảng số đo', 'bp') + '</div>' +
-      (L.length ? U.chartSay(Ins.bpSentence(p, rg)) + '<div class="ovc" id="ovchart" data-id="' + p.id + '"></div>' : '<div class="empty" style="margin:auto">Chưa có số đo trong ' + rg + ' ngày qua.' + (lb ? ' Lần gần nhất: ' + lb.s + '/' + lb.dia + ' mmHg, ' + esc(U.dt(lb.d, lb.h)) + '.' : '') + '</div>') + '</section>';
+    return '<section class="card ocard ochart"><div class="och">' + hd('vit', 'Huyết áp', 'bp') + '<span style="flex:1"></span><div class="seg">' + rseg(7) + rseg(30) + '</div></div>' +
+      (L.length ? '<div class="ovc" id="ovchart" data-id="' + p.id + '"></div>' : '<div class="empty" style="margin:auto">' + (lb ? 'Lần đo gần nhất ' + lb.s + '/' + lb.dia + ' mmHg, ' + esc(U.dt(lb.d, lb.h)) + '.' : 'Chưa có số đo.') + '<div style="margin-top:10px"><button class="btn sm" data-a="entry" data-id="' + p.id + '">' + ic('plus') + 'Nhập hộ</button></div></div>') + '</section>';
   };
   W.fitChart = () => {
     const b = document.getElementById('ovchart'); if (!b) return;
@@ -80,16 +81,16 @@
   };
   const lifeCard = (p) => {
     const L = p.life, I = R.ind(p), it = (st, v, u) => '<div>' + '<b>' + (st ? U.mark(st) : '') + v + '</b><span>' + u + '</span></div>', mp = (s) => (s === 'bad' ? 'watch' : s === 'ok' ? 'ok' : null);
-    return '<section class="card ocard"><div class="och"><h3>Lối sống</h3><span style="flex:1"></span>' + more('life', 'Chi tiết') + '</div><div class="olife">' + it(mp(I.smoke.state), L.cig === 0 ? 'Không' : L.cig, L.cig === 0 ? 'hút thuốc' : 'điếu/ngày') + it(mp(I.alc.state), R.num(L.alc, 1), 'đơn vị rượu/ngày') + it(mp(I.ex.state), L.ex, 'phút vận động/tuần') + it(L.sleep >= 7 ? 'ok' : 'watch', R.num(L.sleep, 1), 'giờ ngủ/đêm') + '<div class="diet" title="' + esc(L.diet) + '"><b>Ăn uống</b><span>' + esc(L.diet) + '</span></div></div></section>';
+    return '<section class="card ocard"><div class="och">' + hd('life', 'Lối sống') + '</div><div class="olife">' + it(mp(I.smoke.state), L.cig == null ? '—' : L.cig === 0 ? 'Không' : L.cig, L.cig ? 'điếu/ngày' : 'hút thuốc') + it(mp(I.alc.state), L.alc == null ? '—' : R.num(L.alc, 1), 'đơn vị rượu/ngày') + it(mp(I.ex.state), L.ex == null ? '—' : L.ex, 'phút vận động/tuần') + it(null, L.sleep == null ? '—' : R.num(L.sleep, 1), 'giờ ngủ/đêm') + '<div class="diet" title="' + esc(L.diet) + '"><b>Ăn uống</b><span>' + esc(L.diet) + '</span></div></div></section>';
   };
   const todoCard = (p) => {
     const c = S().cls[p.id], rs = W.levelReasons(p), a = W.actionOf(p), muted = W.muted(p), sn = W.snoozeOf(p), lv = c.level;
-    if (!c.reasons.length) return '<section class="card ocard"><div class="och"><h3 class="lv-ok">' + U.mark('ok') + 'Không có cảnh báo</h3><span style="flex:1"></span>' + more('sum', 'Tóm tắt') + '</div></section>';
+    if (!c.reasons.length) return '<section class="card ocard"><div class="och">' + hd('sum', U.mark('ok') + 'Không có cảnh báo', '', 'lv-ok') + '</div></section>';
     const lastDone = rs.map((r) => W.alertState(p.id, r.code)).filter((x) => x.status === 'done').pop();
-    return '<section class="card ocard"><div class="och"><h3 class="lv-' + lv + '">' + U.mark(lv) + 'Cần xử lý</h3><span style="flex:1"></span>' + more('note', 'Tất cả ' + c.reasons.length) + '</div><ul class="otodo">' +
+    return '<section class="card ocard"><div class="och">' + hd('note', U.mark(lv) + 'Cần xử lý', '', 'lv-' + lv) + '</div><ul class="otodo">' +
       rs.map((r) => { const d = W.alertState(p.id, r.code).status === 'done'; return '<li' + (d ? ' class="isdone"' : '') + '><b>' + esc(cap(r.text)) + '</b>' + (d ? ' <span class="xs muted">· đã xử lý</span>' : '') + (r.code === 'appt' ? '' : ' <span class="xs muted">' + esc(R.stamp(r.at.d, r.at.h)) + '</span>') + '</li>'; }).join('') + '</ul>' +
       (a && !muted ? '<div class="osug">' + ic('spark') + '<div><b>Gợi ý:</b> ' + esc(W.TODO[a.reason.code](p)) + '</div></div>' : '') +
-      (muted ? '<div class="ofoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div>' : '<div class="ofoot"><button class="btn sm primary" data-a="pdone" data-id="' + p.id + '">Đã xử lý</button><button class="btn sm" data-a="pdone" data-id="' + p.id + '">Xem lại sau</button></div>') + '</section>';
+      (muted ? '<div class="ofoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div>' : '<div class="ofoot"><button class="btn sm primary" data-a="pdone" data-id="' + p.id + '">Xử lý</button></div>') + '</section>';
   };
   const riskCard = (p) => {
     const s = R.patientScales(p), rows = [], mp = { high: 'act', mid: 'watch', low: 'ok' };
@@ -97,7 +98,7 @@
     add(s.esrs, 'ESRS'); add(s.spi, 'SPI-II'); add(s.cha, 'CHA₂DS₂-VASc');
     if (p.dx.type === 'CMN') rows.push([null, 'ESRS, SPI-II', 'Không áp dụng (chảy máu não)']);
     if (p.dx.type === 'NONE') rows.push([null, 'FSRP', !s.fsrp.applicable ? 'Chưa áp dụng (<55 tuổi)' : s.fsrp.insufficient ? 'Thiếu dữ liệu' : s.fsrp.pct + '% (minh họa)']);
-    return '<section class="card ocard"><div class="och"><h3>Mức nguy cơ</h3><span style="flex:1"></span>' + more('risk', 'Chi tiết') + '</div><div class="olist">' + (rows.length ? rows.map(([lv, n, v]) => '<div class="oln">' + (lv ? U.mark(lv) : '<span class="mk mk-none"></span>') + '<span>' + esc(n) + '</span><b class="' + (lv ? 'lv-' + lv : 'muted') + '">' + esc(v) + '</b></div>').join('') : '<div class="oln muted">Chưa có thang áp dụng</div>') + '</div></section>';
+    return '<section class="card ocard"><div class="och">' + hd('risk', 'Mức nguy cơ') + '</div><div class="olist">' + (rows.length ? rows.map(([lv, n, v]) => '<div class="oln">' + (lv ? U.mark(lv) : '<span class="mk mk-none"></span>') + '<span class="onm">' + esc(n) + '</span><b class="' + (lv ? 'lv-' + lv : 'muted') + '">' + esc(v) + '</b></div>').join('') : '<div class="oln muted">Chưa có thang áp dụng</div>') + '</div></section>';
   };
   const medCard = (p) => {
     const ms = R.misses(p, -7, true).filter((m) => m.d <= -1);
@@ -106,21 +107,23 @@
       const pc = p.consentAdh ? per(m) : null, miss = p.consentAdh ? ms.filter((x) => x.med === m.name).length : 0;
       const lv = miss ? 'act' : pc == null ? null : pc >= R.cfg.adhOk ? 'ok' : 'watch', notes = [];
       if (miss) notes.push('bỏ ' + miss + ' liều'); if (m.supply <= 7) notes.push('còn ' + m.supply + ' ngày');
-      return '<div class="oln" title="' + esc(m.name + ' ' + m.dose + ' · ' + m.sig) + '">' + (lv ? U.mark(lv) : '<span class="mk mk-none"></span>') + '<span>' + esc(m.name) + '</span>' + (notes.length ? '<span class="onote ' + (miss ? 'lv-act' : 'lv-watch') + '">' + notes.join(' · ') + '</span>' : '') + '<b class="' + (lv ? 'lv-' + lv : 'muted') + '">' + (pc == null ? '—' : pc + '%') + '</b></div>';
+      return '<div class="oln" title="' + esc(m.name + ' ' + m.dose + ' · ' + m.sig) + '">' + (lv ? U.mark(lv) : '<span class="mk mk-none"></span>') + '<span class="onm">' + esc(m.name) + '</span>' + (notes.length ? '<span class="onote ' + (miss ? 'lv-act' : 'lv-watch') + '">' + notes.join(' · ') + '</span>' : '') + '<b class="' + (lv ? 'lv-' + lv : 'muted') + '">' + (pc == null ? '—' : pc + '%') + '</b></div>';
     }).join('');
-    return '<section class="card ocard omed"><div class="och"><h3>Thuốc</h3><span style="flex:1"></span>' + more('med', 'Lịch 30 ngày') + '</div><div class="olist">' + (rows || '<div class="oln muted">Chưa ghi nhận thuốc</div>') + (!p.consentAdh && p.meds.length ? '<div class="oln xs muted">BN chưa cho phép chia sẻ tuân thủ</div>' : '') + '</div></section>';
+    return '<section class="card ocard omed"><div class="och">' + hd('med', 'Thuốc') + '</div><div class="olist">' + (rows || '<div class="oln muted">Chưa ghi nhận thuốc</div>') + (!p.consentAdh && p.meds.length ? '<div class="oln xs muted">BN chưa cho phép chia sẻ tuân thủ</div>' : '') + '</div></section>';
   };
   const visitCard = (p) => {
     const a = p.appt, pe = R.pending(p), over = a.d < 0 && a.status !== 'done', prep = W.prepDue(p);
     const today = S().appts.find((x) => x.pid === p.id && x.d === 0 && x.status === 'confirmed');
-    return '<section class="card ocard"><div class="oln oline">' + ic('calendar') + '<span>Tái khám <b>' + T.fmtDM(a.d) + '</b>, ' + a.time + '</span>' + (over ? '<span class="onote lv-act">quá hẹn ' + -a.d + ' ngày</span>' : a.d === 0 ? '<span class="onote lv-watch">hôm nay</span>' : '') + '<span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + today.id + '">Hoàn tất khám</button>' : '') + (prep ? more('sum', 'Chuẩn bị khám') : more('visit', 'Lịch sử')) + '</div>' +
-      (pe ? '<div class="oln oline" title="' + esc(pe.text) + '">' + ic('msg') + '<span class="onowrap">Tin chờ ' + Math.max(1, Math.floor(pe.hours)) + ' giờ: "' + esc(pe.text) + '"</span>' + more('msg', 'Trả lời') + '</div>' : '') + '</section>';
+    return '<section class="card ocard"><div class="oln oline">' + ic('calendar') + '<button class="hl" data-a="ptab" data-t="' + (prep ? 'sum' : 'visit') + '"><span>Tái khám <b>' + T.fmtDM(a.d) + '</b>, ' + a.time + '</span></button>' + (over ? '<span class="onote lv-act">quá hẹn ' + -a.d + ' ngày</span>' : a.d === 0 ? '<span class="onote lv-watch">hôm nay</span>' : '') + '<span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + today.id + '">Hoàn tất khám</button>' : '') + '</div>' +
+      (pe ? '<div class="oln oline" title="' + esc(pe.text) + '">' + ic('msg') + '<span class="onowrap">Tin chờ ' + U.hrs(pe.hours) + ': "' + esc(pe.text) + '"</span>' + more('msg', 'Trả lời') + '</div>' : '') + '</section>';
   };
-  W.mrsLine = (s) => '<ol class="mrsl">' + s.map((x) => '<li class="' + Ins.mrsLv(x.v) + '" title="' + esc(T.fmtDMY(x.d) + ' · mRS ' + x.v + ' · ' + Ins.MRS[x.v]) + '"><b>' + x.v + '</b><span>' + T.fmtDM(x.d) + '</span></li>').join('') + '</ol>';
+  const more = (t, label) => '<button class="lnk" data-a="ptab" data-t="' + t + '">' + label + '</button>';
+  // Chuỗi mRS qua các lần khám: chấm trung tính (màu mức độ dành cho bệnh nhân), lần gần nhất có viền.
+  W.mrsLine = (s) => '<ol class="mrsl">' + s.map((x) => '<li title="' + esc(T.fmtDMY(x.d) + ' · mRS ' + x.v + ' · ' + Ins.MRS[x.v]) + '"><b>' + x.v + '</b><span>' + T.fmtDM(x.d) + '</span></li>').join('') + '</ol>';
   const mrsCard = (p) => {
     if (!Ins.severe(p)) return '';
-    const r = Ins.recovery(p), d = r.delta, now = r.last.v;
-    return '<section class="card ocard omrs"><div class="och"><h3>Hồi phục</h3><span class="mrs-now">mRS <b>' + now + '</b> ' + esc(Ins.MRS[now]) + '</span><span class="' + (d < 0 ? 'lv-ok' : d > 0 ? 'lv-act' : 'muted') + '">' + (d ? (d < 0 ? '↓' : '↑') + Math.abs(d) : 'Không đổi') + ' từ ' + T.fmtDM(r.first.d) + '</span><span style="flex:1"></span>' + more('visit', 'Tái khám') + '</div>' + W.mrsLine(r.s) + '</section>';
+    const r = Ins.recovery(p), d = r.delta;
+    return '<section class="card ocard omrs"><div class="och">' + hd('visit', 'Hồi phục mRS') + '<span class="' + (d < 0 ? 'lv-ok' : d > 0 ? 'lv-act' : 'muted') + '" title="' + esc('mRS ' + r.first.v + ' (' + T.fmtDM(r.first.d) + ') → ' + r.last.v + ' (' + T.fmtDM(r.last.d) + '): ' + Ins.MRS[r.last.v]) + '">' + (d ? ic(d < 0 ? 'down' : 'up') + Math.abs(d) : 'Không đổi') + '</span></div>' + W.mrsLine(r.s) + '</section>';
   };
   W.pdOverview = (p) => W.ovTiles(p) + '<div class="opg"><div class="olc">' + chartCard(p) + mrsCard(p) + lifeCard(p) + '</div><div class="orc">' + todoCard(p) + riskCard(p) + medCard(p) + visitCard(p) + '</div></div>';
   W.pdSheet = (p, tab) => '<div class="sh-scrim" data-a="sheetclose"></div><aside class="sheet' + (S().sheetAnim ? ' enter' : '') + '" role="dialog" aria-label="Chi tiết hồ sơ"><div class="sheet-h">' + W.pdTabs(tab, p) + '<span style="flex:1"></span><button class="lnk" data-a="ptab" data-t="home">Toàn hồ sơ</button><button class="iconbtn" data-a="sheetclose" aria-label="Đóng chi tiết">' + ic('x') + '</button></div><div class="pd-body">' + W.pdBody(p, tab) + '</div></aside>';
@@ -131,7 +134,7 @@
   /* ---------- thẻ cảnh báo ---------- */
   W.alertCard = (p, r) => {
     const a = W.alertState(p.id, r.code), st = STAT[a.status], key = p.id + ':' + r.code;
-    return '<div class="alertcard ' + r.level + (a.status === 'done' ? ' done' : '') + '"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>' + esc(r.text) + '</b><span class="tag">' + esc(r.group) + '</span><span class="xs muted">' + esc(U.dt(r.at.d, r.at.h)) + '</span><span class="chip ' + st[1] + ' xs">' + st[0] + '</span></div>' +
+    return '<div class="alertcard' + (a.status === 'done' ? ' done' : '') + '"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + U.mark(r.level) + '<b>' + esc(r.text) + '</b><span class="tag">' + esc(r.group) + '</span><span class="xs muted">' + esc(U.dt(r.at.d, r.at.h)) + '</span><span class="chip ' + st[1] + ' xs">' + st[0] + '</span></div>' +
       '<ul class="raw">' + r.raw.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
       (a.status === 'done' ? '<div class="xs muted" style="margin-top:4px">Đã xử lý bởi ' + esc(a.by) + ' lúc ' + U.dt(a.at.d, a.at.h) + ' · ' + esc(a.note) + '</div>' : '<div style="display:flex;gap:6px;margin-top:7px">' + (a.status === 'new' ? '<button class="btn sm" data-a="adoing" data-k="' + key + '">Nhận xử lý</button>' : '') + '<button class="btn sm primary" data-a="adone" data-k="' + key + '">Đã xử lý…</button></div>') + '</div>';
   };
@@ -182,9 +185,10 @@
     S().appts.filter((a) => a.pid === p.id && a.status === 'pending').forEach((a) => todo.push('Yêu cầu chờ xác nhận: ' + esc(a.reason)));
     const pe = R.pending(p), lastQ = p.thread.filter((m) => m.from !== 'bs' && m.d > since).pop();
     const ask = pe ? '<b>"' + esc(pe.text) + '"</b><div class="xs muted">Đang chờ trả lời, gửi ' + esc(R.stamp(pe.d, pe.h)) + '</div>' : lastQ ? '"' + esc(lastQ.text) + '"<div class="xs muted">Đã trả lời, gửi ' + esc(R.stamp(lastQ.d, lastQ.h)) + '</div>' : '<span class="muted">Không có câu hỏi đang chờ.</span>';
-    const col = (h, L) => '<div><h5>' + h + '</h5>' + (L.length ? '<ul class="preplist">' + L.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '<span class="muted small">Không có.</span>') + '</div>';
-    return '<section class="card prep"><div class="card-h"><h3>Chuẩn bị khám</h3><span class="muted small">' + T.dow(p.appt.d) + ' ' + T.fmtDM(p.appt.d) + ' lúc ' + p.appt.time + ' · ' + esc(p.appt.kind) + '</span></div><div class="card-b prep-grid">' +
-      col(v ? 'Thay đổi từ lần khám ' + T.fmtDM(v.d) : 'Chưa có lần khám trước', chg) + col('Việc chưa xong', todo) + '<div><h5>Bệnh nhân muốn hỏi</h5>' + ask + '</div></div></section>';
+    const col = (h, L) => '<div><h3>' + h + '</h3>' + (L.length ? '<ul class="preplist">' + L.map((x) => '<li>' + x + '</li>').join('') + '</ul>' : '<span class="muted small">Không có.</span>') + '</div>';
+    const today = S().appts.find((x) => x.pid === p.id && x.d === 0 && x.status === 'confirmed');
+    return '<section class="card prep"><div class="card-h"><h2>Chuẩn bị khám</h2><span class="muted small">' + T.dow(p.appt.d) + ' ' + T.fmtDM(p.appt.d) + ' lúc ' + p.appt.time + ' · ' + esc(p.appt.kind) + '</span><span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + today.id + '">Hoàn tất khám</button>' : '') + '</div><div class="card-b prep-grid">' +
+      col(v ? 'Thay đổi từ lần khám ' + T.fmtDM(v.d) : 'Chưa có lần khám trước', chg) + col('Việc chưa xong', todo) + '<div><h3>Bệnh nhân muốn hỏi</h3>' + ask + '</div></div></section>';
   };
   W.bullets = (p) => {
     const c = S().cls[p.id], I = R.ind(p), out = [], t = trend(p), lv = p.visits[p.visits.length - 1], prep = W.prepDue(p);
@@ -221,7 +225,7 @@
     if (sc.cha.applicable && sc.cha.tier.key === 'high' && !(sc.esrs.applicable && sc.esrs.tier.key === 'high') && !(sc.spi.applicable && sc.spi.tier.key === 'high'))
       insight = '<div class="infobox">ESRS và SPI-II thấp nhưng CHA₂DS₂-VASc là <b>' + sc.cha.score + '</b>: thang tái phát chung không phản ánh nhu cầu chống đông.</div>';
     return insight + '<div style="display:flex;flex-direction:column;gap:12px">' + [sc.esrs, sc.spi, sc.cha, sc.fsrp].map((r) => W.scaleCard(r)).join('') + '</div>' +
-      '<section class="card"><div class="card-h"><h3>Yếu tố có thể thay đổi</h3></div><div class="card-b">' + (mod.length ? mod.map((m) => '<div class="mod-row"><div><span class="chip high">' + ic('alert') + esc(m.t) + ' · ' + esc(m.v) + '</span><div class="small" style="margin-top:4px">' + esc(m.rec) + '</div></div><button class="btn sm" data-a="advnew" data-id="' + p.id + '" data-k="' + m.k + '">Gửi lời khuyên</button></div>').join('') : '<span class="muted">Các yếu tố có thể thay đổi đều đạt mục tiêu.</span>') + '</div></section>';
+      '<section class="card"><div class="card-h"><h2>Yếu tố có thể thay đổi</h2></div><div class="card-b">' + (mod.length ? mod.map((m) => '<div class="mod-row"><div><span class="chip high">' + ic('alert') + esc(m.t) + ' · ' + esc(m.v) + '</span><div class="small" style="margin-top:4px">' + esc(m.rec) + '</div></div><button class="btn sm" data-a="advnew" data-id="' + p.id + '" data-k="' + m.k + '">Gửi lời khuyên</button></div>').join('') : '<span class="muted">Các yếu tố có thể thay đổi đều đạt mục tiêu.</span>') + '</div></section>';
   };
 
   /* ---------- tab: Chỉ số ---------- */
@@ -265,10 +269,10 @@
   W.pdLife = (p) => {
     const I = R.ind(p), L = p.life;
     return '<div class="small muted">' + T.fmtDMY(Math.min(-1, p.lastData.d)) + ' · BN tự nhập</div><div class="tiles">' +
-      W.tile('Hút thuốc lá', L.cig === 0 ? 'Không hút' : L.cig, L.cig === 0 ? '' : 'điếu/ngày', '', I.smoke.state) +
-      W.tile('Rượu bia', num(L.alc, 1), 'đơn vị/ngày', 'Giới hạn ' + (p.sex === 'F' ? '≤1' : '≤2') + (L.alcTxt ? ' · ' + esc(L.alcTxt) : ''), I.alc.state) +
-      W.tile('Vận động', L.ex, 'phút/tuần', 'Mục tiêu ≥150', I.ex.state) +
-      W.tile('Giấc ngủ', num(L.sleep, 1), 'giờ/đêm', '', L.sleep >= 7 ? 'ok' : 'bad') +
+      W.tile('Hút thuốc lá', L.cig == null ? '—' : L.cig === 0 ? 'Không hút' : L.cig, L.cig ? 'điếu/ngày' : '', '', I.smoke.state) +
+      W.tile('Rượu bia', L.alc == null ? '—' : num(L.alc, 1), L.alc == null ? '' : 'đơn vị/ngày', 'Giới hạn ' + (p.sex === 'F' ? '≤1' : '≤2') + (L.alcTxt ? ' · ' + esc(L.alcTxt) : ''), I.alc.state) +
+      W.tile('Vận động', L.ex == null ? '—' : L.ex, L.ex == null ? '' : 'phút/tuần', 'Mục tiêu ≥150', I.ex.state) +
+      W.tile('Giấc ngủ', L.sleep == null ? '—' : num(L.sleep, 1), L.sleep == null ? '' : 'giờ/đêm', '', 'none') +
       W.tile('Ăn uống', '<span style="font-size:15px">' + esc(L.diet) + '</span>', '', '', 'none') + '</div>';
   };
 
@@ -277,28 +281,28 @@
     const a = p.appt, c = S().cls[p.id], lv = p.visits[p.visits.length - 1], rec = Ins.recovery(p);
     const due = lv ? T.addMonths(lv.d, c.level === 'ok' ? 3 : 1) : null;
     const ap = S().appts.find((x) => x.pid === p.id && x.d === a.d && x.status !== 'canceled'), today = ap && a.d === 0 && ap.status === 'confirmed';
-    return '<section class="card"><div class="card-h"><h3>' + T.dow(a.d) + ' ' + T.fmtDMY(a.d) + ' · ' + a.time + '</h3>' + (ap ? W.apStatus(ap.status) : '') + (a.d < 0 && a.status !== 'done' ? '<span class="chip act">' + ic('alert') + 'Quá hẹn ' + -a.d + ' ngày</span>' : '') + '<span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + ap.id + '">Hoàn tất khám</button>' : '') + '<button class="btn sm" data-a="apnew" data-id="' + p.id + '" data-edit="1">Đổi lịch</button></div><div class="card-b small muted">' + esc(a.kind) + (due != null ? ' · gợi ý khám lại ' + T.fmtDMY(due) : '') + '</div></section>' +
-      (rec ? '<section class="card"><div class="card-h"><h3>mRS</h3><span class="muted small">' + esc(Ins.MRS[rec.last.v]) + '</span></div><div class="card-b">' + W.mrsLine(rec.s) + '</div></section>' : '') +
-      '<section class="card"><div class="card-h"><h3>Lịch sử</h3></div>' + (p.visits.length ? '<table class="tbl plain"><thead><tr><th>Ngày</th><th>Loại</th><th>HA (mmHg)</th><th class="r">mRS</th><th class="r">EQ-5D</th><th>Ghi chú</th></tr></thead><tbody>' + p.visits.slice().reverse().map((v) => '<tr><td><b>' + T.fmtDMY(v.d) + '</b></td><td>' + esc(v.kind) + '</td><td>' + v.bp[0] + '/' + v.bp[1] + '</td><td class="r">' + (v.mrs == null ? '—' : v.mrs) + '</td><td class="r">' + num(v.eq, 2) + '</td><td class="small">' + esc(v.note) + '</td></tr>').join('') + '</tbody></table>' : '<div class="empty">Chưa có lần tái khám nào.</div>') + '</section>';
+    return '<section class="card"><div class="card-h"><h2>' + T.dow(a.d) + ' ' + T.fmtDMY(a.d) + ' · ' + a.time + '</h2>' + (ap ? W.apStatus(ap.status) : '') + (a.d < 0 && a.status !== 'done' ? '<span class="chip act">' + ic('alert') + 'Quá hẹn ' + -a.d + ' ngày</span>' : '') + '<span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + ap.id + '">Hoàn tất khám</button>' : '') + '<button class="btn sm" data-a="apnew" data-id="' + p.id + '" data-edit="1">Đổi lịch</button></div><div class="card-b small muted">' + esc(a.kind) + (due != null ? ' · gợi ý khám lại ' + T.fmtDMY(due) : '') + '</div></section>' +
+      (rec ? '<section class="card"><div class="card-h"><h2>mRS</h2><span class="muted small">' + esc(Ins.MRS[rec.last.v]) + '</span></div><div class="card-b">' + W.mrsLine(rec.s) + '</div></section>' : '') +
+      '<section class="card"><div class="card-h"><h2>Lịch sử</h2></div>' + (p.visits.length ? '<table class="tbl plain"><thead><tr><th>Ngày</th><th>Loại</th><th>HA (mmHg)</th><th class="r">mRS</th><th class="r">EQ-5D</th><th>Ghi chú</th></tr></thead><tbody>' + p.visits.slice().reverse().map((v) => '<tr><td><b>' + T.fmtDMY(v.d) + '</b></td><td>' + esc(v.kind) + '</td><td>' + v.bp[0] + '/' + v.bp[1] + '</td><td class="r">' + (v.mrs == null ? '—' : v.mrs) + '</td><td class="r">' + num(v.eq, 2) + '</td><td class="small">' + esc(v.note) + '</td></tr>').join('') + '</tbody></table>' : '<div class="empty">Chưa có lần tái khám nào.</div>') + '</section>';
   };
 
   /* ---------- tab: Tin nhắn, Lời khuyên, Ghi chú ---------- */
   W.pdMsg = (p) => '<section class="card" style="display:flex;flex-direction:column"><div class="thread" id="thread" style="max-height:340px">' + W.threadHtml(p) + '</div>' + W.composer(p) + '</section>';
   W.pdAdv = (p) => {
     const L = S().adv[p.id] || [], mod = R.modifiable(p);
-    return '<section class="card"><div class="card-h"><h3>Lời khuyên đã gửi</h3><span style="flex:1"></span><button class="btn sm primary" data-a="advnew" data-id="' + p.id + '">' + ic('plus') + 'Gửi lời khuyên</button></div>' + (L.length ? L.slice().reverse().map((x) => '<div class="mod-row" style="padding:9px 14px"><div><b>' + esc(x.title) + '</b><div class="small">' + esc(x.text) + '</div><div class="xs muted">' + U.dt(x.d, x.h) + ' · ' + esc(x.by) + '</div></div><span class="chip ok xs">' + ic('check') + 'Đã gửi</span></div>').join('') : '<div class="empty">Chưa gửi lời khuyên nào cho bệnh nhân này.</div>') + '</section>' +
-      (mod.length ? '<section class="card"><div class="card-h"><h3>Gợi ý theo yếu tố có thể thay đổi</h3></div><div class="card-b">' + mod.map((m) => '<div class="mod-row"><div><b>' + esc(m.t) + '</b> <span class="muted">· ' + esc(m.v) + '</span><div class="small">' + esc(m.rec) + '</div></div><button class="btn sm" data-a="advnew" data-id="' + p.id + '" data-k="' + m.k + '">Gửi</button></div>').join('') + '</div></section>' : '');
+    return '<section class="card"><div class="card-h"><h2>Lời khuyên đã gửi</h2><span style="flex:1"></span><button class="btn sm primary" data-a="advnew" data-id="' + p.id + '">' + ic('plus') + 'Gửi lời khuyên</button></div>' + (L.length ? L.slice().reverse().map((x) => '<div class="mod-row" style="padding:9px 14px"><div><b>' + esc(x.title) + '</b><div class="small">' + esc(x.text) + '</div><div class="xs muted">' + U.dt(x.d, x.h) + ' · ' + esc(x.by) + '</div></div><span class="chip ok xs">' + ic('check') + 'Đã gửi</span></div>').join('') : '<div class="empty">Chưa gửi lời khuyên nào cho bệnh nhân này.</div>') + '</section>' +
+      (mod.length ? '<section class="card"><div class="card-h"><h2>Gợi ý theo yếu tố có thể thay đổi</h2></div><div class="card-b">' + mod.map((m) => '<div class="mod-row"><div><b>' + esc(m.t) + '</b> <span class="muted">· ' + esc(m.v) + '</span><div class="small">' + esc(m.rec) + '</div></div><button class="btn sm" data-a="advnew" data-id="' + p.id + '" data-k="' + m.k + '">Gửi</button></div>').join('') + '</div></section>' : '');
   };
   W.pdNote = (p) => {
     const c = S().cls[p.id], notes = p.notes.concat(S().notes[p.id] || []).sort((a, b) => b.d * 24 + b.h - (a.d * 24 + a.h));
     const hist = p.history.concat(Object.keys(S().al).filter((k) => k.indexOf(p.id + ':') === 0 && S().al[k].status === 'done').map((k) => { const r = c.reasons.find((x) => p.id + ':' + x.code === k); const a = S().al[k]; return { d: a.at.d, h: a.at.h, reason: r ? r.text : k, by: a.by, note: a.note, group: r ? r.group : '', doneAt: a.at }; }));
-    return '<section class="card"><div class="card-h"><h3>Cảnh báo đang mở</h3><span class="tag">' + c.reasons.filter((r) => W.alertState(p.id, r.code).status !== 'done').length + '</span></div><div class="card-b" style="display:flex;flex-direction:column;gap:8px">' + (c.reasons.length ? c.reasons.map((r) => W.alertCard(p, r)).join('') : '<span class="muted">Không có cảnh báo.</span>') + '</div></section>' +
-      '<section class="card"><div class="card-h"><h3>Ghi chú lâm sàng</h3></div><div class="card-b"><textarea id="notebox" rows="2" placeholder="Thêm ghi chú lâm sàng…" aria-label="Ghi chú"></textarea><div style="margin:6px 0 10px"><button class="btn sm primary" data-a="addnote" data-id="' + p.id + '">Lưu ghi chú</button></div>' + notes.map((n) => '<div class="mod-row"><div class="small">' + esc(n.text) + '<div class="xs muted">' + esc(n.by) + ' · ' + U.dt(n.d, n.h) + '</div></div></div>').join('') + '</div></section>' +
-      '<section class="card"><div class="card-h"><h3>Lịch sử cảnh báo đã xử lý</h3></div><div class="card-b">' + (hist.length ? hist.map((h) => '<div class="mod-row"><div class="small"><b>' + esc(h.reason) + '</b> <span class="tag">' + esc(h.group) + '</span><div class="xs muted">Xử lý bởi ' + esc(h.by) + ' lúc ' + U.dt(h.doneAt.d, h.doneAt.h) + ' · ' + esc(h.note) + '</div></div></div>').join('') : '<span class="muted">Chưa có lịch sử.</span>') + '</div></section>';
+    return '<section class="card"><div class="card-h"><h2>Cảnh báo đang mở</h2><span class="tag">' + c.reasons.filter((r) => W.alertState(p.id, r.code).status !== 'done').length + '</span></div><div class="card-b" style="display:flex;flex-direction:column;gap:8px">' + (c.reasons.length ? c.reasons.map((r) => W.alertCard(p, r)).join('') : '<span class="muted">Không có cảnh báo.</span>') + '</div></section>' +
+      '<section class="card"><div class="card-h"><h2>Ghi chú lâm sàng</h2></div><div class="card-b"><textarea id="notebox" rows="2" placeholder="Thêm ghi chú lâm sàng…" aria-label="Ghi chú"></textarea><div style="margin:6px 0 10px"><button class="btn sm primary" data-a="addnote" data-id="' + p.id + '">Lưu ghi chú</button></div>' + notes.map((n) => '<div class="mod-row"><div class="small">' + esc(n.text) + '<div class="xs muted">' + esc(n.by) + ' · ' + U.dt(n.d, n.h) + '</div></div></div>').join('') + '</div></section>' +
+      '<section class="card"><div class="card-h"><h2>Lịch sử cảnh báo đã xử lý</h2></div><div class="card-b">' + (hist.length ? hist.map((h) => '<div class="mod-row"><div class="small"><b>' + esc(h.reason) + '</b> <span class="tag">' + esc(h.group) + '</span><div class="xs muted">Xử lý bởi ' + esc(h.by) + ' lúc ' + U.dt(h.doneAt.d, h.doneAt.h) + ' · ' + esc(h.note) + '</div></div></div>').join('') : '<span class="muted">Chưa có lịch sử.</span>') + '</div></section>';
   };
 
   /* ---------- hộp thoại liên quan hồ sơ ---------- */
-  W.modalHead = (t) => '<div class="mbox-h"><h3>' + esc(t) + '</h3><button class="iconbtn" data-a="mclose" aria-label="Đóng">' + ic('x') + '</button></div>';
+  W.modalHead = (t) => '<div class="mbox-h"><h2>' + esc(t) + '</h2><button class="iconbtn" data-a="mclose" aria-label="Đóng">' + ic('x') + '</button></div>';
   W.entryModal = (p) => U.modal(W.modalHead('Nhập liệu hộ · ' + p.name) + '<div class="mbox-b"><div class="form-grid"><label class="f">Huyết áp tâm thu (mmHg)<input type="number" id="e_sys"></label><label class="f">Huyết áp tâm trương (mmHg)<input type="number" id="e_dia"></label><label class="f">Đường huyết đói (mmol/L)<input type="number" step="0.1" id="e_glu"></label><label class="f">Cân nặng (kg)<input type="number" step="0.1" id="e_kg"></label><label class="f">Rượu bia (đơn vị/ngày)<input type="number" step="0.5" id="e_alc"></label></div><div id="e_msg"></div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="entrysave" data-id="' + p.id + '">Lưu</button></div>');
   W.advModal = (p, key) => {
     const mod = R.modifiable(p), pre = mod.find((m) => m.k === key);

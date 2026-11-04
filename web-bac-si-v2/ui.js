@@ -16,7 +16,6 @@
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/>',
     phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
-    bell: '<path d="M6 17v-6a6 6 0 1112 0v6l2 2H4zM10 21h4"/>',
     chevL: '<path d="M15 5l-7 7 7 7"/>', chevR: '<path d="M9 5l7 7-7 7"/>', chevD: '<path d="M5 9l7 7 7-7"/>', chevU: '<path d="M5 15l7-7 7 7"/>',
     spark: '<path d="M12 3l1.9 6.6L20.5 12l-6.6 2.4L12 21l-1.9-6.6L3.5 12l6.6-2.4z"/>',
     panel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
@@ -55,7 +54,7 @@
   };
   U.state = (s, good, bad, none) => {
     if (s === 'ok') return '<span class="state sm-ok">' + ic('check') + (good || 'Tốt') + '</span>';
-    if (s === 'bad') return '<span class="state sm-bad">' + ic('alert') + (bad || 'Cần cải thiện') + '</span>';
+    if (s === 'bad') return '<span class="state sm-bad">' + (bad || 'Cần cải thiện') + '</span>';
     if (s === 'private') return '<span class="state sm-none">' + ic('dash') + 'BN chưa cho phép chia sẻ</span>';
     return '<span class="state sm-none">' + ic('dash') + (none || 'Chưa có số đo') + '</span>';
   };
@@ -98,7 +97,7 @@
   // Mỗi chuỗi giữ màu riêng: tô đặc = vượt mức của chính chuỗi đó, rỗng = chưa vượt; chỉ điểm chạm mốc nguy hiểm mới đổi sang dấu đỏ.
   // refs ghi nhãn ở lề phải để không đè đường dữ liệu; lane = dải ngày bỏ liều trên cùng trục thời gian.
   U.lineChart = (o) => {
-    const w = o.w || 640, h = o.h || 200, l = 52, r = o.rr || 12, t = 26, lane = o.lane, b = lane ? 56 : 36;
+    const w = o.w || 640, h = o.h || 200, l = 52, r = o.rr || 12, t = 26, lane = o.lane, b = lane ? 44 : 24;
     const xs = o.xFrom == null ? -29 : o.xFrom, xe = (o.xTo == null ? 0 : o.xTo) + 1;
     const all = o.series.flatMap((s) => s.pts.map((p) => p.y)).concat((o.refs || []).map((x) => x.y));
     if (!o.series.some((s) => s.pts.length)) return '<div class="empty">Chưa có số đo trong kỳ này.</div>';
@@ -135,13 +134,17 @@
       const f = se.pts[0];
       if (f && o.series.length > 1) s += '<text class="dl" x="' + (X(f.x) + 8) + '" y="' + (Y(f.y) - 8) + '">' + esc(se.name) + '</text>';
     });
-    crits.forEach((c) => { s += '<rect x="' + (c.cx - 5) + '" y="' + (c.cy - 5) + '" width="10" height="10" transform="rotate(45 ' + c.cx + ' ' + c.cy + ')" fill="var(--act)" stroke="var(--sheet)" stroke-width="2"/><text class="dl" x="' + (c.cx - 9) + '" y="' + (c.cy - 9) + '" text-anchor="end" style="font-weight:700;fill:var(--ink)">' + c.v + '</text>'; });
+    crits.forEach((c) => { s += '<path d="M' + c.cx + ' ' + (c.cy - 7) + 'L' + (c.cx + 6.5) + ' ' + (c.cy + 5) + 'L' + (c.cx - 6.5) + ' ' + (c.cy + 5) + 'Z" fill="var(--act)" stroke="var(--sheet)" stroke-width="1.5" stroke-linejoin="round"/><text class="dl" x="' + (c.cx - 9) + '" y="' + (c.cy - 9) + '" text-anchor="end" style="font-weight:700;fill:var(--ink)">' + c.v + '</text>'; });
     const seen = {}, colW = Math.max(6, ((w - l - r) / (xe - xs)) * 0.5);
     o.series.flatMap((se) => se.pts).forEach((p) => { if (seen[p.x]) return; seen[p.x] = 1; s += '<rect class="hit col" x="' + (X(p.x) - colW / 2) + '" y="' + t + '" width="' + colW + '" height="' + (pb - t) + '" data-tip="' + esc(p.tip) + '"/>'; });
     s += '<text class="ttl" x="' + (l - 6) + '" y="' + (t - 12) + '" text-anchor="end">' + esc(o.yUnit || '') + '</text>';
-    s += '<text class="ttl" x="' + ((l + w - r) / 2) + '" y="' + (h - 2) + '" text-anchor="middle">' + esc(o.xTitle || 'Ngày đo (dd/mm)') + '</text></svg>';
+    if (o.xTitle) s += '<text class="ttl" x="' + ((l + w - r) / 2) + '" y="' + (h - 2) + '" text-anchor="middle">' + esc(o.xTitle) + '</text>';
+    s += '</svg>';
     return s;
   };
+  // Một cách viết thời gian chờ cho mọi màn: dưới 48 giờ tính giờ, từ 48 giờ tính ngày.
+  U.hrs = (h) => (h == null ? '—' : h < 1 ? '<1 giờ' : h < 48 ? Math.floor(h) + ' giờ' : Math.floor(h / 24) + ' ngày');
+  U.int = (n) => Number(n).toLocaleString('vi-VN');
   U.chartSay = (t) => (t ? '<p class="chartsay">' + esc(t) + '</p>' : '');
 
   U.spark = (pts, o) => {
