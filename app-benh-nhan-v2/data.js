@@ -160,6 +160,33 @@ const SCENARIOS = {
       return { profiles: { binh: p }, active: 'binh', owner: 'binh' };
     },
   },
+  // Dữ liệu xấu nhất nhưng có thật được: tên dài, nhiều thuốc, chưa có số đo nào, xét nghiệm ngoài ngưỡng, địa chỉ dài
+  xau: {
+    label: 'Dữ liệu xấu nhất', who: 'Tôn Nữ Thị Hoàng Phương Thảo, 89 tuổi',
+    build() {
+      const p = emptyProfile('xau', 'Tôn Nữ Thị Hoàng Phương Thảo');
+      Object.assign(p, { birthYear: 1937, height: 148, weight: 41, stroke: true, strokeType: 'ischemic', strokeDate: '12/2025', hospitalLinked: true, mobility: 'bed' });
+      p.consents = { doctor: true, research: false, family: true };
+      p.meds = [
+        med('dab', 'Dabigatran etexilate', 'anticoag', '1 viên', '150 mg', ['sang', 'toi'], { end: '2026-11-01' }),
+        med('avh', 'Amlodipine + Valsartan + Hydrochlorothiazide', 'bp', '1 viên', '10/320/25 mg', ['sang']),
+        med('ros', 'Rosuvastatin', 'lipid', '1 viên', '20 mg', ['toi'], { note: 'Sau ăn' }),
+        med('mxr', 'Metformin XR', 'dm', '2 viên', '1000 mg', ['sang', 'toi'], { note: 'Sau ăn' }),
+        med('ins', 'Insulin glargine', 'dm', '1 mũi tiêm', '24 đơn vị', ['toi'], { route: 'Tiêm dưới da' }),
+        med('eso', 'Esomeprazole', 'other', '1 viên', '40 mg', ['trua'], { note: 'Trước ăn' }),
+        med('bis', 'Bisoprolol', 'bp', '½ viên', '2,5 mg', ['sang', 'trua', 'chieu', 'toi']),
+      ];
+      p.doses = genDoses(51, 3, p.meds);
+      p.labs = [lab('ldl', 4.9, date(2026, 10, 30)), lab('egfr', 28, date(2026, 10, 30)), lab('a1c', 9.8, date(2026, 10, 30)), lab('fpg', 12.4, date(2026, 10, 30)), lab('hdl', 0.7, date(2026, 10, 30))];
+      p.track = Object.assign(p.track, { bp: true, bpMoments: ['sang', 'chieu'], glucose: true, gluMoments: ['sang'], weeklyHabits: true });
+      p.facts = { htn: hosp('yes'), dm: hosp('yes'), af: hosp('yes'), chf: hosp('yes') };
+      p.careTeam = { doctor: 'BS. Nguyễn Hoàng Bảo Ngọc', hospital: 'Bệnh viện Đa khoa Trung ương mẫu', phone: '0900 000 001', pharmacy: '0900 000 009' };
+      p.contact = { name: 'Tôn Thất Minh Khôi Nguyên', rel: 'cháu nội', tel: '0900 000 000' };
+      p.appts = [appt(2026, 11, 2, 7, 30, { place: 'Bệnh viện Đa khoa Trung ương mẫu, Trung tâm Đột quỵ và Thần kinh can thiệp, tòa nhà B, tầng 12, phòng 1208', prep: 'Mang toàn bộ thuốc đang dùng, sổ theo dõi huyết áp, kết quả xét nghiệm máu và phim chụp não gần nhất.' })];
+      p.messages = [{ id: 'm1', from: 'BS. Nguyễn Hoàng Bảo Ngọc', t: DEMO_NOW - DAY, text: 'Kết quả xét nghiệm hôm 30/10 cho thấy LDL và HbA1c còn cao, chức năng thận giảm. Gia đình nhớ đo huyết áp sáng và chiều, ghi lại đầy đủ, và đưa bà đi tái khám đúng hẹn ngày 02/11 để bác sĩ điều chỉnh thuốc.', read: false }];
+      return { profiles: { xau: p }, active: 'xau', owner: 'xau' };
+    },
+  },
   moi: {
     label: 'Mở app lần đầu', who: 'Chưa có hồ sơ',
     build() { return { profiles: {}, active: null, owner: null, onboarding: true }; },

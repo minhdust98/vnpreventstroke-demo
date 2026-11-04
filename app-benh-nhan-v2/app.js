@@ -40,6 +40,9 @@ const ddmmyy = ms => `${ddmm(ms)}/${new Date(ms).getFullYear()}`;
 const WD = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 const WD_S = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const dec = v => String(v).replace('.', ',');
+// Tên thuốc kèm hàm lượng; số và đơn vị không tách dòng
+const medName = m => `${m.name} ${(m.strength || '').replace(/ /g, ' ')}`.trim();
+const momentsText = m => (m.moments.length > 2 ? `${m.moments.length} buổi` : m.moments.map(x => mo(x).label).join(', '));
 const fix1 = v => dec(Number(v).toFixed(1));
 const initials = name => { const w = String(name || '').trim().split(/\s+/), l = w[w.length - 1] || ''; return l.length <= 3 ? l : l[0].toUpperCase(); };
 const last = arr => arr.slice().sort((a, b) => b.t - a.t)[0];
@@ -62,7 +65,7 @@ const STATUS_UI = {
 };
 const on = (a, p) => `data-a="${a}"${Object.entries(p || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('')}`;
 const icon = (n, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
-const tile = (n, tone) => `<span class="tile ${tone || 'blue'}">${icon(n)}</span>`;
+const tile = (n, tone) => `<span class="tile ${tone || ''}">${icon(n)}</span>`;
 const sosBtn = () => `<button class="sos" ${on('open115')} aria-label="Gọi cấp cứu 115">${icon('phone')}115</button>`;
 function topBar(o) {
   const x = o || {};
@@ -76,8 +79,10 @@ const h1 = (text, cls) => `<h1 class="title ${cls || ''}">${esc(text)}</h1>`;
 function statusIcon(key) { const s = STATUS_UI[key]; return s && s.icon ? `<span class="st ${s.tone}" role="img" aria-label="${s.word}">${icon(s.icon)}</span>` : ''; }
 function pill(key, word) { const s = STATUS_UI[key]; return s && s.word ? `<span class="pill ${s.tone}">${icon(s.icon)}${esc(word || s.word)}</span>` : ''; }
 // Một dòng trong danh sách: tên bên trái, giá trị bên phải. Không có dòng phụ.
+// o.tone chỉ nhận 'red' cho mục cấp cứu. Giá trị chưa tốt lấy màu mức độ, luôn đi cùng hình trạng thái.
 function row(o) {
-  const inner = `${o.icon ? tile(o.icon, o.tone) : ''}<span class="row-title">${o.title}</span>${o.value != null || o.status ? `<span class="row-value ${o.tone2 || ''}">${o.status ? statusIcon(o.status) : ''}${o.value != null ? o.value : ''}</span>` : ''}${o.a ? icon('chev', 'chev') : ''}`;
+  const st = o.status && o.status !== 'good' && o.status !== 'none' ? STATUS_UI[o.status].tone : '';
+  const inner = `${o.icon ? tile(o.icon, o.tone) : ''}<span class="row-title">${o.title}</span>${o.value != null || o.status ? `<span class="row-value ${o.tone2 || st}">${o.status ? statusIcon(o.status) : ''}${o.value != null ? o.value : ''}</span>` : ''}${o.a ? icon('chev', 'chev') : ''}`;
   return o.a ? `<button class="row" ${on(o.a, o.p)}${o.aria ? ` aria-label="${esc(o.aria)}"` : ''}>${inner}</button>` : `<div class="row">${inner}</div>`;
 }
 function group(rows, head) {
@@ -103,7 +108,7 @@ const field = (label, text, focused, a, p) => `<button class="field${focused ? '
 // Ô ngày: chữ dd/mm/yyyy do app vẽ, ô date gốc trong suốt phủ lên trên để mở bộ chọn của máy.
 const dmy = key => key.split('-').reverse().join('/');
 const dateRow = (title, f, value) => `<label class="row date-row"><span class="row-title">${title}</span><span class="row-value">${dmy(value)}</span><input type="date" data-field="${f}" value="${esc(value)}" max="${dayKey(now())}" aria-label="${esc(title)}"></label>`;
-const sheetHead = title => `<div class="sheet-head"><h2>${esc(title)}</h2><button class="nav" ${on('closeSheet')}>Xong</button></div>`;
+const sheetHead = title => `<div class="sheet-head"><h2>${esc(title)}</h2><button class="nav" ${on('closeSheet')}>Đóng</button></div>`;
 
 // Biểu đồ đường, không dùng thư viện để mở được khi không có mạng
 function chart(o) {
@@ -123,6 +128,8 @@ function chart(o) {
 }
 
 // ---- Điều hướng ----
+const TABS = [['today', 'today', 'Hôm nay'], ['meds', 'pill', 'Thuốc'], ['metrics', 'wave', 'Chỉ số'], ['learn', 'book', 'Học']];
+const tabLabel = () => TABS.find(t => t[0] === S.tab)[2];
 const current = () => S.stack[S.stack.length - 1] || { v: S.tab, p: {} };
 function keepScroll() { const t = S.stack[S.stack.length - 1], y = document.getElementById('view').scrollTop; if (t) t.y = y; else S.rootY = y; }
 function go(v, p) { keepScroll(); S.stack.push({ v, p: p || {} }); S.scrollTo = 0; S.focus = true; }
@@ -166,25 +173,33 @@ function render() {
 
   const cur = current(), r = V[cur.v](cur.p || {}), view = document.getElementById('view'), keep = view.scrollTop;
   view.innerHTML = `<div class="scr${r.white ? ' white' : ''}" data-screen="${cur.v}">${r.html}</div>`;
+  // Thanh trạng thái và màu thanh trình duyệt theo nền của màn đang mở
+  document.getElementById('phone').classList.toggle('white', !!r.white);
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(root).getPropertyValue(r.white ? '--card' : '--bg').trim();
   view.scrollTop = S.scrollTo != null ? S.scrollTo : keep;
   S.scrollTo = null;
 
-  const tabs = document.getElementById('tabs');
-  tabs.innerHTML = r.chrome === 'modal' || r.chrome === 'bare' || !P() ? '' : [['today', 'today', 'Hôm nay'], ['meds', 'pill', 'Thuốc'], ['metrics', 'wave', 'Chỉ số'], ['learn', 'book', 'Học']]
-    .map(([k, i, l]) => `<button ${on('tab', { t: k })} ${S.tab === k ? 'aria-current="page"' : ''}>${icon(i)}<span>${l}</span></button>`).join('');
+  const tabs = document.getElementById('tabs'), inProfile = S.stack.length && S.stack[0].v === 'profile';
+  tabs.innerHTML = r.chrome === 'modal' || r.chrome === 'bare' || !P() ? '' : TABS
+    .map(([k, i, l]) => `<button ${on('tab', { t: k })} ${S.tab === k && !inProfile ? 'aria-current="page"' : ''}>${icon(i)}<span>${l}</span></button>`).join('');
 
   const sl = document.getElementById('sheetLayer');
-  if (S.sheet) { const s = V[S.sheet.v](S.sheet.p || {}); sl.innerHTML = `<div class="scrim" aria-hidden="true" ${on('closeSheet')}></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(s.title || '')}">${s.html}</div>`; } else sl.innerHTML = '';
+  if (S.sheet) { const s = V[S.sheet.v](S.sheet.p || {}); sl.innerHTML = `<div class="scrim" aria-hidden="true" ${on('closeSheet')}></div><div class="sheet" role="dialog" aria-modal="true" tabindex="-1" aria-label="${esc(s.title || '')}">${s.html}</div>`; } else sl.innerHTML = '';
   const dl = document.getElementById('dialogLayer'), o = S.dialog;
   dl.innerHTML = o ? `<div class="dialog" role="alertdialog" aria-modal="true" aria-label="${esc(o.title)}"><h2>${esc(o.title)}</h2>${o.body || ''}${(o.buttons || []).map(b => btn(esc(b.label), b.a, b.p, b.cls || '')).join('')}</div>` : '';
-  document.getElementById('lockLayer').innerHTML = S.lock ? V.lock(S.lock) : '';
+  const ll = document.getElementById('lockLayer');
+  ll.innerHTML = S.lock ? V.lock(S.lock) : '';
+  // Lớp trên cùng giữ tiêu điểm; các lớp bên dưới không bấm và không đọc được
+  const above = S.lock ? 3 : o ? 2 : S.sheet ? 1 : 0;
+  [view, tabs, document.getElementById('statusbar')].forEach(el => { el.inert = above > 0; });
+  sl.inert = above > 1; dl.inert = above > 2;
 
   if (typeof renderPanel === 'function') renderPanel();
   if (st.lang === 'en' && typeof translateTree === 'function') translateTree(document.getElementById('phone'));
   if (S.focus) {
     S.focus = false;
-    const t = (o && dl.querySelector('button')) || (S.sheet && sl.querySelector('.sheet button')) || (S.lock && document.querySelector('#lockLayer button')) || view.querySelector('h1') || view;
-    if (t.tagName === 'H1') t.setAttribute('tabindex', '-1');
+    const t = (S.lock && ll.querySelector('.notif')) || (o && dl.querySelector('button')) || (S.sheet && sl.querySelector('.sheet')) || view.querySelector('h1') || view;
+    if (!t.hasAttribute('tabindex') && !/^(BUTTON|INPUT)$/.test(t.tagName)) t.setAttribute('tabindex', '-1');
     try { t.focus({ preventScroll: true }); } catch (e) {}
   }
 }
@@ -196,7 +211,15 @@ function bind() {
     if (!el || el.disabled) return;
     const { a, ...p } = el.dataset;
     if (el.closest('#phone') && el.id !== 'statusbar' && S.meter.running) { S.meter.taps++; S.meter.sec = (Date.now() - S.meter.start) / 1000; }
-    if (A[a] && A[a](p, el) !== false) refresh();
+    // Vẽ lại cả màn sẽ làm mất tiêu điểm: trả tiêu điểm về đúng nút vừa bấm nếu nút đó vẫn còn
+    const sig = JSON.stringify(el.dataset);
+    if (A[a] && A[a](p, el) !== false) {
+      refresh();
+      if (!document.activeElement || document.activeElement === document.body) {
+        const same = [...document.querySelectorAll('#phone [data-a]')].find(x => JSON.stringify(x.dataset) === sig);
+        if (same) same.focus({ preventScroll: true });
+      }
+    }
   });
   const onField = e => {
     const el = e.target, f = el.dataset && el.dataset.field;
@@ -206,7 +229,14 @@ function bind() {
   };
   document.addEventListener('input', onField);
   document.addEventListener('change', onField);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && (S.dialog || S.sheet)) { S.dialog ? (S.dialog = null) : (S.sheet = null); render(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && (S.dialog || S.sheet)) { S.dialog ? (S.dialog = null) : (S.sheet = null); render(); return; }
+    // Bàn phím thật gõ vào bàn phím số trên màn, đi qua đúng nút như khi chạm
+    if (S.dialog || S.sheet || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    const k = /^\d$/.test(e.key) ? e.key : e.key === ',' || e.key === '.' ? ',' : e.key === 'Backspace' ? 'del' : null;
+    const b = k && document.querySelector(`#view [data-a="key"][data-k="${k}"]`);
+    if (b) { e.preventDefault(); b.click(); }
+  });
 }
 
 function boot() {

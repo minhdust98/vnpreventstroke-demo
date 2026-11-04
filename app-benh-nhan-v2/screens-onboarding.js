@@ -21,7 +21,7 @@ V.consent = () => {
   let h = onTop() + h1('Dữ liệu của bạn', 'sm');
   h += [['doctor', 'Cho bác sĩ điều trị xem số đo và thuốc?'], ['research', 'Cho dùng dữ liệu cho nghiên cứu về đột quỵ?']].map(([k, q]) => `<section class="card"><p class="lead">${q}</p>${chips([['1', 'Đồng ý'], ['0', 'Không']], o[k] == null ? null : o[k] ? '1' : '0', 'onConsent', { k }, 'grid')}</section>`).join('');
   h += group(row({ title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })) + `<p class="body">Thông tin trong app chỉ để tham khảo, không thay thế bác sĩ.</p><div class="spacer"></div>`;
-  return { chrome: 'modal', html: h + btn('Đồng ý và tiếp tục', 'onAsk', { step: 'year' }, '', ok ? '' : 'disabled') };
+  return { chrome: 'modal', html: h + btn('Tiếp tục', 'onAsk', { step: 'year' }, '', ok ? '' : 'disabled') };
 };
 A.onConsent = ({ k, v }) => { onb()[k] = v === '1'; };
 
@@ -57,8 +57,8 @@ A.onSaved = v => {
 V.onLink = () => {
   const o = onb();
   let h = onTop() + h1('Lấy thông tin từ bệnh viện?', 'q');
-  if (o.linked) h += group([row({ icon: 'pill', tone: 'teal', title: 'Thuốc', value: '3' }), row({ icon: 'cal', tone: 'orange', title: 'Tái khám', value: 'Sau 1 tháng' }), row({ icon: 'doc', tone: 'blue', title: 'Đột quỵ', value: 'Nhồi máu não' })]) + '<div class="spacer"></div>' + btn('Tiếp tục', 'go', { v: 'onTrack' });
-  else h += `<div class="spacer"></div>${btn(`${icon('qr')}Quét mã trên giấy ra viện`, 'onScan')}${btn('Để sau', 'go', { v: 'onType' }, 'soft')}`;
+  if (o.linked) h += group([row({ icon: 'pill', title: 'Thuốc', value: '3' }), row({ icon: 'cal', title: 'Tái khám', value: 'Sau 1 tháng' }), row({ icon: 'doc', title: 'Đột quỵ', value: 'Nhồi máu não' })]) + '<div class="spacer"></div>' + btn('Tiếp tục', 'go', { v: 'onTrack' });
+  else h += `<div class="spacer"></div>${btn(`${icon('qr')}Quét mã trên giấy ra viện`, 'onScan')}${btn('Nhập tay', 'go', { v: 'onType' }, 'soft')}`;
   return { chrome: 'modal', html: h };
 };
 A.onScan = () => { onb().linked = true; };

@@ -93,10 +93,10 @@ const MOBILITY = [['bed', 'Nằm'], ['sit', 'Ngồi'], ['stand', 'Đứng']];
 
 // Thói quen. Câu khích lệ theo BRD.
 const HABITS = {
-  activity: { icon: 'walk', tone: 'green', name: 'Vận động', opts: [['strong', 'Từ 1,5 giờ vận động mạnh mỗi tuần'], ['good', 'Từ 2,5 giờ vận động nhẹ mỗi tuần'], ['little', 'Không thường xuyên'], ['none', 'Không']], good: v => v === 'good' || v === 'strong', okText: BRD.activeGood, badText: BRD.activeImprove, words: ['Đủ', 'Ít'] },
-  smoke: { icon: 'smoke', tone: 'muted', name: 'Hút thuốc', opts: [['none', 'Không hút'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 1 gói mỗi ngày']], good: v => v === 'none', okText: BRD.smokeGood, badText: BRD.smokeImprove, words: ['Không', 'Có'] },
-  alcohol: { icon: 'glass', tone: 'orange', name: 'Rượu bia', opts: [['none', 'Không uống'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 4-5 ly mỗi dịp']], good: v => v === 'none' || v === 'little', okText: BRD.alcoholGood, badText: BRD.alcoholImprove, words: ['Ít', 'Nhiều'] },
-  diet: { icon: 'leaf', tone: 'green', name: 'Ăn uống', opts: [['yes', 'Lành mạnh'], ['no', 'Chưa lành mạnh'], ['unknown', 'Không rõ']], good: v => v === 'yes', okText: 'Bạn đang ăn uống rất tốt. Hãy tiếp tục nhé!', badText: 'Thử giảm dần món mặn, ngọt và nhiều dầu mỡ. Mỗi thay đổi nhỏ đều có ích.', words: ['Tốt', 'Chưa tốt'] },
+  activity: { icon: 'walk', name: 'Vận động', opts: [['strong', 'Từ 1,5 giờ vận động mạnh mỗi tuần'], ['good', 'Từ 2,5 giờ vận động nhẹ mỗi tuần'], ['little', 'Không thường xuyên'], ['none', 'Không']], good: v => v === 'good' || v === 'strong', okText: BRD.activeGood, badText: BRD.activeImprove, words: ['Đủ', 'Chưa đủ'] },
+  smoke: { icon: 'smoke', name: 'Hút thuốc', opts: [['none', 'Không hút'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 1 gói mỗi ngày']], good: v => v === 'none', okText: BRD.smokeGood, badText: BRD.smokeImprove, words: ['Không', 'Có'] },
+  alcohol: { icon: 'glass', name: 'Rượu bia', opts: [['none', 'Không uống'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 4-5 ly mỗi dịp']], good: v => v === 'none' || v === 'little', okText: BRD.alcoholGood, badText: BRD.alcoholImprove, words: ['Ít', 'Nhiều'] },
+  diet: { icon: 'leaf', name: 'Ăn uống', opts: [['yes', 'Lành mạnh'], ['no', 'Chưa lành mạnh'], ['unknown', 'Không rõ']], good: v => v === 'yes', okText: 'Bạn đang ăn uống rất tốt. Hãy tiếp tục nhé!', badText: 'Thử giảm dần món mặn, ngọt và nhiều dầu mỡ. Mỗi thay đổi nhỏ đều có ích.', words: ['Tốt', 'Chưa tốt'] },
 };
 const DIET_GOOD = ['Nhiều rau, trái cây, các loại hạt, đậu, ngũ cốc nguyên hạt', 'Dầu thực vật là nguồn chất béo chính', 'Ăn cá thường xuyên', 'Ít thịt đỏ, ít đồ chế biến sẵn', 'Sữa và sản phẩm từ sữa vừa phải'];
 const DIET_BAD = ['Ăn mặn', 'Ăn nhiều đồ ngọt', 'Ăn nhiều dầu mỡ'];
@@ -146,7 +146,7 @@ const EXERCISES = [
 // Bài học. Mỗi chủ đề là một danh sách bài ngắn.
 const HOWTO = ['Nghỉ 5 phút, không hút thuốc, uống cà phê, ăn hay tập thể dục trong 30 phút trước khi đo.', 'Ngồi thẳng, tay ngang tim, không bị gò bó, chân đặt trên sàn.', 'Đo 3 lần, mỗi lần cách nhau 1 phút.', 'Ghi lại trung bình 2 lần đo cuối. App tính giúp khi bạn chọn đo 3 lần.', 'Không nói chuyện khi đo.'];
 const TOPICS = [
-  { id: 'diet', title: 'Ăn uống phòng đột quỵ', icon: 'leaf', tone: 'green', items: [
+  { id: 'diet', title: 'Ăn uống phòng đột quỵ', icon: 'leaf', items: [
     { id: 'plate', title: 'Đĩa ăn mỗi bữa', body: ['Một nửa là rau.', 'Một phần tư là cơm, ưu tiên gạo lứt hoặc ngũ cốc nguyên hạt.', 'Một phần tư là cá, đậu phụ hoặc thịt nạc.'] },
     { id: 'salt', title: 'Ăn nhạt', body: ['Dưới 5 g muối mỗi ngày, khoảng một thìa cà phê, tính cả nước mắm, bột canh, mì chính.', 'Nêm nhạt khi nấu, chấm ít.', 'Hạn chế dưa cà muối, mắm, đồ hộp, mì gói.'] },
     { id: 'veg', title: 'Rau và trái cây', body: ['Ít nhất 400 g mỗi ngày.', 'Có rau trong mỗi bữa.', 'Ăn trái cây thay đồ ngọt.'] },
@@ -156,12 +156,12 @@ const TOPICS = [
     { id: 'swallow', title: 'Khó nuốt sau đột quỵ', body: ['Ngồi thẳng khi ăn và 30 phút sau khi ăn.', 'Thức ăn mềm, chia nhỏ, từng thìa nhỏ.', 'Không cho ăn khi người bệnh lơ mơ.', 'Ho sặc khi ăn uống: báo bác sĩ để được đánh giá nuốt.'] },
     { id: 'vka', title: 'Khi dùng Sintrom', body: ['Ăn rau xanh đều đặn mỗi ngày, không đột ngột ăn rất nhiều hay bỏ hẳn.', 'Hỏi bác sĩ trước khi dùng thực phẩm chức năng, thuốc nam.'] },
   ] },
-  { id: 'meds', title: 'Dùng thuốc an toàn', icon: 'pill', tone: 'teal', items: [
+  { id: 'meds', title: 'Dùng thuốc an toàn', icon: 'pill', items: [
     { id: 'stop', title: 'Không tự ngừng thuốc', body: ['Thuốc giúp phòng đột quỵ lần sau, kể cả khi bạn thấy khỏe.', 'Chỉ ngừng hoặc đổi liều khi bác sĩ dặn.', 'Sắp hết thuốc: hẹn khám sớm để không bị gián đoạn.'] },
     { id: 'missed', title: 'Quên liều', body: ['Đừng tự dùng bù hay gấp đôi liều.', 'Hỏi bác sĩ hoặc dược sĩ bạn nên làm gì.'], calls: true },
     { id: 'bleed', title: 'Thuốc chống đông', body: ['Báo bác sĩ ngay nếu chảy máu chân răng, chảy máu cam lâu cầm, nước tiểu đỏ, phân đen, bầm tím nhiều.', 'Gọi 115 nếu đau đầu dữ dội đột ngột hoặc nôn ra máu.', 'Báo cho nha sĩ và bác sĩ khác biết bạn đang dùng thuốc chống đông.', 'Không tự dùng thêm aspirin hay thuốc giảm đau chống viêm khi bác sĩ chưa dặn.'] },
   ] },
-  { id: 'bp', title: 'Huyết áp', icon: 'heart', tone: 'blue', items: [
+  { id: 'bp', title: 'Huyết áp', icon: 'heart', items: [
     { id: 'measure', title: 'Cách đo huyết áp', body: HOWTO },
     { id: 'control', title: 'Kiểm soát huyết áp', body: ['Dùng thuốc đúng giờ, không tự ngừng khi số đã đẹp.', 'Ăn nhạt, vận động đều, hạn chế rượu bia, không hút thuốc.', 'Đo đúng cách và đưa số cho bác sĩ xem.'] },
   ] },

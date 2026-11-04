@@ -26,7 +26,7 @@ const SCREENS = {
   bpDetail: ['an', "S.tab = 'metrics'; go('bpDetail')"],
   labDetail: ['an', "S.tab = 'metrics'; go('labDetail', { test: 'ldl' })"],
   labAdd: ['an', "S.tab = 'metrics'; A.labAdd({})"],
-  labEntry: ['an', "S.tab = 'metrics'; A.labManual({ test: 'ldl' })"],
+  labEntry: ['an', "S.tab = 'metrics'; A.labChoose({ test: 'ldl' })"],
   scanReview: ['an', "S.tab = 'metrics'; A.pScan()"],
   learn: ['an', "S.tab = 'learn'"],
   befast: ['an', "S.tab = 'learn'; go('befast')"],
@@ -38,6 +38,16 @@ const SCREENS = {
   sos: ['an', 'A.open115({})'],
   lock: ['an', "A.pNotif({ kind: 'meds', mk: 'sang' })"],
   empty: ['tu', ''],
+  // Dữ liệu xấu nhất: tên dài, bảy thuốc, chưa có số đo, xét nghiệm ngoài ngưỡng
+  xauToday: ['xau', ''],
+  xauMeds: ['xau', "S.tab = 'meds'"],
+  xauMetrics: ['xau', "S.tab = 'metrics'"],
+  xauBp: ['xau', "S.tab = 'metrics'; go('bpDetail')"],
+  xauLab: ['xau', "S.tab = 'metrics'; go('labDetail', { test: 'egfr' })"],
+  xauVisit: ['xau', "go('visit')"],
+  xauCard: ['xau', "go('card')"],
+  xauProfile: ['xau', "go('profile')"],
+  xauLock: ['xau', "A.pNotif({ kind: 'meds', mk: 'sang' })"],
 };
 const VARIANTS = [
   { id: '375', w: 375, h: 812, theme: 'light', size: 'l' },
@@ -49,7 +59,7 @@ const VARIANTS = [
 const TASKS = {
   'Dùng thuốc buổi sáng': ['an', "c('dosesAll', { mk: 'sang' })"],
   'Ghi huyết áp 126/78': ['an', "c('startBP'); k('126'); k('78'); c('bpSave')"],
-  'Nhập LDL 1,7 từ tab Chỉ số': ['an', "c('tab', { t: 'metrics' }); c('labAdd'); c('labManual'); c('labChoose', { test: 'ldl' }); k('1,7'); c('numSave')"],
+  'Nhập LDL 1,7 từ tab Chỉ số': ['an', "c('tab', { t: 'metrics' }); c('labAdd'); c('labChoose', { test: 'ldl' }); k('1,7'); c('numSave')"],
 };
 
 // Đặt lại dữ liệu, tắt chuyển động để ảnh không chụp giữa chừng

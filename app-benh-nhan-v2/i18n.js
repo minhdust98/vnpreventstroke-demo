@@ -7,6 +7,9 @@ const EN = {
   'Hôm nay': 'Today', 'Thuốc': 'Medicines', 'Chỉ số': 'Health', 'Học': 'Learn', 'BẢN DEMO': 'DEMO',
   'Đóng': 'Close', 'Xong': 'Done', 'Lưu': 'Save', 'Hủy': 'Cancel', 'Tiếp': 'Next', 'Quay lại': 'Back', 'Có': 'Yes', 'Không': 'No', 'Chưa rõ': 'Not sure', 'Để sau': 'Later', 'Đồng ý': 'Agree', 'Thêm': 'Add', 'Sửa': 'Edit', 'Sửa số': 'Edit', 'Xóa': 'Delete', 'Giữ lại': 'Keep', 'Chưa': 'Not yet', 'Rồi': 'Yes',
   'Tốt': 'Good', 'Cần cải thiện': 'Could improve', 'Rất cao': 'Very high', 'Thấp': 'Low', 'Sáng': 'Morning', 'Trưa': 'Noon', 'Chiều': 'Afternoon', 'Tối': 'Evening',
+  'Ghi số đo': 'Log a reading', 'Khi quên liều': 'If you miss a dose', 'Kế hoạch theo dõi': 'Care plan', 'Chưa đủ': 'Not enough', 'Minh họa': 'Illustration',
+  'Chưa có lần đo': 'No readings yet', 'Không có lần đo': 'No readings', 'Chưa có kết quả': 'No results yet', 'Hôm nay không có việc cần làm': 'Nothing to do today',
+  'Cholesterol toàn phần': 'Total cholesterol', 'Đường huyết lúc đói': 'Fasting blood sugar', 'Đường huyết sau ăn': 'Blood sugar after a meal',
   // Hôm nay
   'Sắp tới': 'Coming up', 'Đo và ghi': 'Measure', 'Đã dùng': 'Taken', 'Huyết áp': 'Blood pressure', 'Đường huyết': 'Blood sugar', 'Tái khám': 'Follow-up visit', 'Chưa ghi': 'Not logged', 'Đo lại huyết áp': 'Measure again', 'Đo lại': 'Measure again', 'Đã khám': 'I went', 'Trả lời': 'Answer', 'Đánh giá': 'Rate', 'Bạn thấy app thế nào?': 'How do you like the app?', 'Dấu hiệu đột quỵ': 'Stroke signs', 'Nhắc đo huyết áp': 'Blood pressure reminders', 'việc': 'tasks', 'buổi': 'times', 'Hôm nay không có việc gì cần làm.': 'Nothing to do today.', 'Xong hết hôm nay. Hẹn bạn ngày mai.': 'All done today. See you tomorrow.', 'Thêm thuốc': 'Add medicine',
   'Đã ghi': 'Logged', 'Đã ghi. Thẻ cấp cứu có giờ liều mới.': 'Logged. Your emergency card has the new dose time.', 'Dùng lúc nào?': 'When did you take it?', 'Muộn khoảng 1 giờ': 'About 1 hour late', 'Muộn hơn nữa': 'Later than that', 'Chưa dùng': 'Not taken', 'Đừng tự dùng bù hay gấp đôi liều.': 'Do not make up or double a dose on your own.', 'Gọi bác sĩ': 'Call doctor', 'Gọi dược sĩ': 'Call pharmacist', 'Tối qua bạn đã dùng thuốc chưa?': 'Did you take your medicines last night?',
@@ -41,19 +44,18 @@ const EN = {
 
 const MOMENT_EN = { 'sáng': 'morning', 'trưa': 'noon', 'chiều': 'afternoon', 'tối': 'evening', 'Sáng': 'Morning', 'Trưa': 'Noon', 'Chiều': 'Afternoon', 'Tối': 'Evening' };
 const WD_EN = { 'Chủ Nhật': 'Sunday', 'Thứ Hai': 'Monday', 'Thứ Ba': 'Tuesday', 'Thứ Tư': 'Wednesday', 'Thứ Năm': 'Thursday', 'Thứ Sáu': 'Friday', 'Thứ Bảy': 'Saturday' };
-const TASK_EN = s => s.replace('dùng thuốc', 'take medicines').replace('đo huyết áp', 'measure blood pressure').replace('đo đường huyết', 'measure blood sugar').replace(/ và /g, ' and ');
 const EN_PATTERNS = [
-  [/^(Sáng|Trưa|Chiều|Tối) nay: (.+?)( là xong)?\.$/, (m, a, b) => `This ${MOMENT_EN[a]}: ${TASK_EN(b)}.`],
-  [/^Xong buổi (\S+)\. Không cần làm gì đến (.+)\.$/, (m, a, b) => `${MOMENT_EN[a[0].toUpperCase() + a.slice(1)]} done. Nothing to do until ${b}.`],
-  [/^Việc đầu tiên hôm nay lúc (.+)\.$/, (m, a) => `First task today at ${a}.`],
   [/^Thuốc buổi (\S+)$/, (m, a) => `${MOMENT_EN[a[0].toUpperCase() + a.slice(1)]} medicines`],
   [/^Thuốc (\S+) qua$/, (m, a) => `Yesterday ${MOMENT_EN[a] || a} medicines`],
   [/^Huyết áp buổi (\S+)$/, (m, a) => `${MOMENT_EN[a[0].toUpperCase() + a.slice(1)]} blood pressure`],
   [/^(Thứ \S+|Chủ Nhật), (\d+\/\d+)$/, (m, a, b) => `${WD_EN[a]}, ${b}`],
   [/^Đang chăm: (.+)$/, (m, a) => `Caring for: ${a}`],
-  [/^(.+) sắp hết$/, (m, a) => `${a} running out`],
   [/^(\d+) ngày$/, (m, n) => `${n} days`],
   [/^Còn (\d+) ngày$/, (m, n) => `${n} days left`],
+  [/^(Sáng|Trưa|Chiều|Tối)(, (Sáng|Trưa|Chiều|Tối))+$/, m => m.split(', ').map(x => MOMENT_EN[x]).join(', ')],
+  [/^30 ngày qua: (\d+)\/(\d+) liều$/, (m, a, b) => `Last 30 days: ${a}/${b} doses`],
+  [/^Xem tất cả (\d+) lần đo$/, (m, n) => `See all ${n} readings`],
+  [/^Mục tiêu dưới (.+)$/, (m, a) => `Goal: below ${a}`],
   [/^Còn (\d+) câu hỏi cho bác sĩ$/, (m, n) => `${n} questions for your doctor`],
   [/^Còn (\d+)$/, (m, n) => `${n} left`],
   [/^Trả lời (\d+) câu còn lại$/, (m, n) => `Answer ${n} remaining`],

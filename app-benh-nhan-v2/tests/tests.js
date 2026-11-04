@@ -9,6 +9,8 @@ const load = k => { D = null; loadScenario(k); D.settings.theme = 'light'; rende
 const text = () => document.getElementById('phone').innerText;
 const panelText = () => { renderPanel(); return document.getElementById('panel').textContent; };
 const screen = () => current().v;
+// Thứ tự các nút trên màn, để kiểm tra việc còn lại đứng trước việc đã xong
+const order = (...as) => as.map(a => [...document.querySelectorAll('#view [data-a]')].findIndex(x => x.dataset.a === a));
 function findBtn(a, prm) {
   return [...document.querySelectorAll('#phone [data-a]')].filter(x => !x.disabled).find(x => x.dataset.a === a && Object.entries(prm || {}).every(([k, v]) => x.dataset[k] === String(v)));
 }
@@ -44,29 +46,29 @@ bind();
 
 test('Buổi sáng', () => {
   load('an');
-  ok('Hôm nay nói rõ việc cần làm', /Sáng nay: dùng thuốc và đo huyết áp\./.test(text()));
+  ok('Hôm nay: tiêu đề là ngày, thuốc rồi huyết áp', document.querySelector('#view h1').textContent === 'Thứ Bảy, 31/10' && (([a, b]) => a >= 0 && a < b)(order('dosesAll', 'startBP')));
   c('dosesAll', { mk: 'sang' });
   ok('Dùng thuốc 1 chạm', taps === 1, taps);
   ok('Thẻ cấp cứu có giờ liều hôm nay', Object.keys(P().doses).some(k => k.startsWith('2026-10-31|sang|apx')));
-  ok('Sau thuốc còn huyết áp', /đo huyết áp là xong/.test(text()));
+  ok('Sau thuốc còn huyết áp, thuốc thu thành một dòng', !findBtn('dosesAll') && (([a, b]) => a >= 0 && a < b)(order('startBP', 'openMoment')));
   const t0 = taps;
   c('startBP'); keys('126'); ok('Tự sang ô số dưới', S.draft.bp.focus === 'dia'); keys('78'); c('bpSave');
   ok('Ghi huyết áp 7 chạm', taps - t0 === 7, taps - t0);
   ok('Cả buổi sáng 8 chạm', taps === 8, taps);
   ok('Kết quả tốt, câu khích lệ BRD, xu hướng', text().includes(BRD.bpGood) && /Trung bình 7 ngày/.test(text()));
-  c('home');
-  ok('Xong buổi sáng', /Xong buổi sáng\. Không cần làm gì đến 17:00\./.test(text()));
+  c('back');
+  ok('Xong buổi sáng: chỉ còn dòng đã xong và việc sắp tới', !findBtn('dosesAll') && !findBtn('startBP') && !!findBtn('openMoment', { mk: 'sang' }) && /Sắp tới[\s\S]*17:00/.test(text()));
 });
 test('Đánh dấu từng thuốc', () => {
   load('an'); c('dose', { mk: 'sang', id: 'apx' });
-  ok('Một thuốc đã dùng, vẫn còn việc', P().doses[doseKey(now(), 'sang', 'apx')] && /dùng thuốc/.test(text()));
+  ok('Một thuốc đã dùng, vẫn còn việc', P().doses[doseKey(now(), 'sang', 'apx')] && !!findBtn('dosesAll', { mk: 'sang' }));
   c('dose', { mk: 'sang', id: 'apx' });
   ok('Chạm lại để bỏ đánh dấu', !P().doses[doseKey(now(), 'sang', 'apx')]);
 });
 test('Số đo bất thường', () => {
   load('an'); c('startBP'); keys('192'); keys('118'); c('bpSave');
   ok('192/118: cảnh báo, có 115, không khen', /Huyết áp đang rất cao/.test(text()) && /Gọi 115/.test(text()) && !text().includes(BRD.bpGood));
-  ok('Có nút sửa số', !!findBtn('startBP', { id: current().p.id }));
+  ok('Có nút sửa số, kết quả có 115', !!findBtn('bpEdit', { id: current().p.id }) && !!findBtn('open115'));
   load('an'); c('startBP'); keys('85'); keys('55'); c('bpSave');
   ok('85/55: cảnh báo thấp', /Huyết áp đang thấp/.test(text()) && !text().includes(BRD.bpGood));
   load('an'); c('startBP'); keys('300'); keys('80'); c('bpSave');
@@ -165,13 +167,18 @@ test('Theo dõi theo nhóm', () => {
   ok('Không nhớ loại đột quỵ', /Hỏi bác sĩ loại đột quỵ/.test(text()) && !/1,8/.test(text()));
   ['an', 'lan', 'ha', 'tu', 'binh', 'mai'].forEach(k => { load(k); ok(`Mục nào cũng có nguồn: ${k}`, planItems(P(), now()).every(i => i.src && A[i.a])); });
 });
+test('Bàn phím thật', () => {
+  load('an'); c('startBP');
+  ['1', '2', '6', '7', '8'].forEach(key => document.dispatchEvent(new KeyboardEvent('keydown', { key })));
+  ok('Gõ số bằng bàn phím thật vào ô huyết áp', S.draft.bp.sys === '126' && S.draft.bp.dia === '78');
+});
 test('Xét nghiệm', () => {
   load('an'); c('tab', { t: 'metrics' });
   ok('Chỉ số có LDL và đánh giá', /LDL/.test(text()) && /2,1\smmol\/L/.test(text()));
   c('go', { v: 'labDetail', test: 'ldl' });
   ok('Mục tiêu theo nhóm', /dưới 1,8/.test(text()) && !!document.querySelector('#view svg.chart'));
   const n0 = P().labs.length;
-  c('labAdd', { test: 'ldl' }); c('labManual', { test: 'ldl' }); keys('1'); c('key', { k: ',' }); keys('7'); c('numSave');
+  c('labChoose', { test: 'ldl' }); ok('Ô nhập xét nghiệm có nút chụp phiếu', !!findBtn('scan', { target: 'lab' })); keys('1'); c('key', { k: ',' }); keys('7'); c('numSave');
   const l = P().labs[P().labs.length - 1];
   ok('Nhập tay một kết quả', P().labs.length === n0 + 1 && l.test === 'ldl' && l.v === 1.7 && l.source === 'self' && dayKey(l.date) === dayKey(now()));
   ok('Kết quả mới hiện trên màn', screen() === 'labDetail' && /1,7/.test(text()));
@@ -179,7 +186,7 @@ test('Xét nghiệm', () => {
   ok('Chụp phiếu: màn kiểm tra 5 kết quả', screen() === 'scanReview' && /Lưu 5 kết quả/.test(text()));
   c('scanToggle', { test: 'tg' }); ok('Bỏ một kết quả', /Lưu 4 kết quả/.test(text()));
   c('scanEdit', { test: 'ldl' }); c('key', { k: 'del' }); c('key', { k: 'del' }); c('key', { k: 'del' }); keys('2'); c('key', { k: ',' }); keys('2'); c('numSave');
-  ok('Sửa số đọc được', screen() === 'scanReview' && /2,2 mmol\/L/.test(text()));
+  ok('Sửa số đọc được', screen() === 'scanReview' && /2,2\smmol\/L/.test(text()));
   const n1 = P().labs.length; c('scanSave');
   const saved = P().labs.slice(n1);
   ok('Lưu 4 kết quả từ ảnh', saved.length === 4 && saved.every(x => x.source === 'photo' && dayKey(x.date) === '2026-10-28') && saved.find(x => x.test === 'ldl').v === 2.2);
@@ -203,7 +210,7 @@ test('Học', () => {
   load('an'); A.go({ v: 'article', topic: 'meds', id: 'missed' }); render();
   ok('Bài quên liều có gọi bác sĩ', /Gọi bác sĩ/.test(text()) && /Đừng tự dùng bù/.test(text()));
   load('an'); c('tab', { t: 'learn' });
-  ok('Dành cho bạn: bài tập và thuốc chống đông', /Bài tập phục hồi/.test(text()) && /Thuốc chống đông/.test(text()));
+  ok('Học: bài riêng và bài tập đứng đầu', /Bài tập phục hồi/.test(text()) && /Thuốc chống đông/.test(text()));
   load('mai'); c('tab', { t: 'learn' }); ok('Người bệnh nằm giường: có bài khó nuốt', /Khó nuốt sau đột quỵ/.test(text()));
   load('moi'); c('onGuest');
   ok('Khách xem được, có 115, không có tab', /Học/.test(text()) && !!document.querySelector('#view .sos') && !document.querySelector('#tabs button'));
@@ -214,7 +221,7 @@ test('Thuốc', () => {
   c('medNew'); c('medPick'); c('medPicked', { g: 'bp', n: 'Amlodipine' }); c('medF', { k: 'strength', v: '5 mg' }); c('medM', { v: 'sang' }); c('medF', { k: 'days', v: '30' }); c('medSave');
   ok('Thêm thuốc 7 chạm', P().meds.length === 1 && taps - t0 === 7, taps - t0);
   load('an'); c('tab', { t: 'meds' });
-  ok('Thuốc: 7 ngày, 30 ngày, câu BRD', /7 ngày/.test(text()) && /30 ngày/.test(text()) && text().includes(BRD.medGood));
+  ok('Thuốc: 7 chấm, 30 ngày, câu BRD', document.querySelectorAll('#view .dot').length === 7 && /30 ngày qua: \d+\/\d+ liều/.test(text()) && text().includes(BRD.medGood));
   c('openMoment', { mk: 'sang' }); c('dose', { mk: 'sang', id: 'aml' });
   ok('Ghi liều từ tab Thuốc', !!P().doses[doseKey(now(), 'sang', 'aml')]);
   load('an'); A.go({ v: 'medDetail', id: 'apx' }); render(); c('medPause', { id: 'apx' });
@@ -285,8 +292,9 @@ function crawl(k, setup) {
   return { k, states: seen.size, left: queue.length, issues: [...issues] };
 }
 const crawls = [];
-['an', 'ha', 'tu', 'mai', 'lan', 'binh', 'moi'].forEach(k => { try { crawls.push(crawl(k)); } catch (e) { crawls.push({ k, states: 0, left: 0, issues: [e.message] }); } });
+['an', 'ha', 'tu', 'mai', 'lan', 'binh', 'moi', 'xau'].forEach(k => { try { crawls.push(crawl(k)); } catch (e) { crawls.push({ k, states: 0, left: 0, issues: [e.message] }); } });
 try { crawls.push(Object.assign(crawl('an', () => { D.settings.size = 'xl'; document.getElementById('phone').style.width = '320px'; }), { k: 'an, chữ rất lớn, 320px' })); } catch (e) { crawls.push({ k: 'xl', states: 0, issues: [e.message] }); }
+try { crawls.push(Object.assign(crawl('xau', () => { D.settings.size = 'xl'; document.getElementById('phone').style.width = '320px'; }), { k: 'dữ liệu xấu nhất, chữ rất lớn, 320px' })); } catch (e) { crawls.push({ k: 'xau xl', states: 0, issues: [e.message] }); }
 document.getElementById('phone').style.width = '390px';
 crawls.forEach(r => ok(`Duyệt mọi màn: ${r.k} (${r.states} màn${r.left ? `, còn ${r.left}` : ''})`, !r.issues.length, r.issues.slice(0, 6).join(' | ')));
 

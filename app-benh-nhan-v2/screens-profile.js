@@ -6,12 +6,12 @@ const answerText = (p, id) => { const v = factOf(p, id); if (id === 'sbp' && v) 
 
 V.profile = () => {
   const p = P(), ms = now(), ids = Object.keys(D.profiles), unread = p.messages.filter(m => !m.read).length, remain = riskRemaining(p, ms).length;
-  let h = topBar({ back: 'Quay lại' }) + h1(p.name, 'sm') + (p.birthYear ? `<div class="date">${ageOf(p, ms)} tuổi</div>` : '');
-  if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', tone: 'blue', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
-  h += group([row({ icon: 'user', tone: 'blue', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'doc', tone: 'orange', title: 'Bệnh nền', a: 'go', p: { v: 'conditions' } }), riskPlan(p, ms).ids.length ? row({ icon: 'msg', tone: 'orange', title: 'Câu hỏi cho bác sĩ', value: remain ? `Còn ${remain}` : '', a: 'go', p: { v: 'questions' } }) : '', row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } })]);
-  h += group([row({ icon: 'group', tone: 'green', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'msg', tone: 'blue', title: 'Tin nhắn', value: unread ? `${unread} mới` : '', a: 'go', p: { v: 'messages' } }), row({ icon: 'pencil', tone: 'green', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
-  h += group([row({ icon: 'lock', tone: 'blue', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', tone: 'orange', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', tone: 'purple', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
-  h += group([row({ icon: 'star', tone: 'orange', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', tone: 'muted', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);
+  let h = topBar({ back: tabLabel() }) + h1(p.name, 'sm');
+  if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
+  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'doc', title: 'Bệnh nền', a: 'go', p: { v: 'conditions' } }), riskPlan(p, ms).ids.length ? row({ icon: 'msg', title: 'Câu hỏi cho bác sĩ', value: remain ? `Còn ${remain}` : '', a: 'go', p: { v: 'questions' } }) : '', row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } })]);
+  h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'msg', title: 'Tin nhắn', value: unread ? `${unread} mới` : '', a: 'go', p: { v: 'messages' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
+  h += group([row({ icon: 'lock', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
+  h += group([row({ icon: 'star', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);
   return { chrome: 'push', html: h };
 };
 A.switchProfile = ({ id }) => { D.active = id; S.draft = {}; home(); };
@@ -123,9 +123,9 @@ V.family = () => {
   const p = P();
   let h = topBar({ back: 'Hồ sơ' }) + h1('Người nhà', 'sm');
   if (isProxy()) h += `<div class="banner">Bạn đang chăm ${esc(p.name)}</div>`;
-  h += group(p.family.map(f => row({ icon: 'user', tone: 'green', title: `${esc(f.name)} (${esc(f.rel)})`, value: f.canSee ? 'Xem, nhập hộ' : 'Đã tắt' })), p.family.length ? { title: 'Được xem hồ sơ này' } : null);
+  h += group(p.family.map(f => row({ icon: 'user', title: `${esc(f.name)} (${esc(f.rel)})`, value: f.canSee ? 'Xem, nhập hộ' : 'Đã tắt' })), p.family.length ? { title: 'Được xem hồ sơ này' } : null);
   h += btn(`${icon('plus')}Mời người nhà`, 'familyInvite');
-  h += group(row({ icon: 'plus', tone: 'blue', title: 'Thêm hồ sơ người thân', a: 'profileAdd' }));
+  h += group(row({ icon: 'plus', title: 'Thêm hồ sơ người thân', a: 'profileAdd' }));
   return { chrome: 'push', html: h };
 };
 A.familyInvite = () => dialog({ title: 'Mời người nhà?', body: '<p class="body">Người nhà sẽ xem được số đo, thuốc, lịch khám và nhập hộ được. Tắt được bất cứ lúc nào.</p>', buttons: [{ label: 'Đồng ý, gửi lời mời', a: 'familyYes' }, { label: 'Không', a: 'closeDialog', cls: 'soft' }] });
@@ -166,10 +166,10 @@ V.messages = () => {
   const p = P();
   p.messages.forEach(m => { m.read = true; });
   let h = topBar({ back: 'Quay lại' }) + h1('Tin nhắn', 'sm');
-  h += p.messages.length ? p.messages.map(m => `<section class="card"><div class="card-head">${tile('msg', 'blue')}${esc(m.from)}<span class="aside">${ddmm(m.t)}</span></div><p class="body">${esc(m.text)}</p></section>`).join('') : '<section class="card"><p class="lead">Chưa có tin nhắn</p></section>';
+  h += p.messages.length ? p.messages.map(m => `<section class="card"><div class="card-head">${esc(m.from)}<span class="aside">${ddmm(m.t)}</span></div><p class="body">${esc(m.text)}</p></section>`).join('') : '<section class="card"><p class="lead">Chưa có tin nhắn</p></section>';
   return { chrome: 'push', html: h };
 };
-V.support = () => ({ chrome: 'push', html: `${topBar({ back: 'Hồ sơ' })}${h1('Nhờ nhập giúp', 'sm')}<p class="body">Bác sĩ hoặc nhân viên y tế nhập thuốc và tiền sử bệnh giúp bạn khi đi khám.</p>${btn('Gửi yêu cầu', 'supportReq')}${group(row({ icon: 'group', tone: 'green', title: 'Nhờ người nhà', a: 'go', p: { v: 'family' } }))}` });
+V.support = () => ({ chrome: 'push', html: `${topBar({ back: 'Hồ sơ' })}${h1('Nhờ nhập giúp', 'sm')}<p class="body">Bác sĩ hoặc nhân viên y tế nhập thuốc và tiền sử bệnh giúp bạn khi đi khám.</p>${btn('Gửi yêu cầu', 'supportReq')}${group(row({ icon: 'group', title: 'Nhờ người nhà', a: 'go', p: { v: 'family' } }))}` });
 A.supportReq = () => { back(); toast('Đã gửi. Nhân viên y tế sẽ liên hệ.'); };
 
 // ---- Phản hồi theo BRD: ngắn, được bỏ qua, luôn cảm ơn ----

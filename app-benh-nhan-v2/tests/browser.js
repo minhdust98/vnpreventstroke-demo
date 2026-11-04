@@ -45,7 +45,7 @@ async function openBrowser() {
     return r.result.value;
   };
   return {
-    send, run,
+    port: Number(port), send, run,
     // ready: biểu thức trả true khi trang đã dựng xong
     async open(url, { w = 375, h = 812, theme = 'light', ready = "document.readyState === 'complete'" } = {}) {
       await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: true });
