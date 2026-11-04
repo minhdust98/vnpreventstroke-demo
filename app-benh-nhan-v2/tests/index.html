@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi" data-size="l">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Đang chạy kiểm tra</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { background: #fff; }
+  #report { font: 14px/1.5 ui-monospace, Consolas, monospace; padding: 16px; white-space: pre-wrap; }
+  #phone { position: fixed; left: -2000px; top: 0; width: 390px; height: 844px; border: 0; }
+</style>
+</head>
+<body>
+<pre id="report">Đang chạy...</pre>
+<aside id="panel"></aside>
+<div id="phone">
+  <button id="statusbar" data-a="openPanel"></button>
+  <main id="view" tabindex="-1"></main>
+  <nav id="tabs"></nav>
+  <div id="sheetLayer"></div>
+  <div id="dialogLayer"></div>
+  <div id="lockLayer"></div>
+  <div id="toast" role="status"></div>
+</div>
+<input type="file" id="scanInput" data-field="scanFile" hidden>
+<script>window.__TEST__ = true;</script>
+<script src="../content.js"></script>
+<script src="../rules.js"></script>
+<script src="../data.js"></script>
+<script src="../app.js"></script>
+<script src="../screens-today.js"></script>
+<script src="../screens-meds.js"></script>
+<script src="../screens-metrics.js"></script>
+<script src="../screens-learn.js"></script>
+<script src="../screens-profile.js"></script>
+<script src="../screens-onboarding.js"></script>
+<script src="../panel.js"></script>
+<script src="../i18n.js"></script>
+<script src="tests.js"></script>
+</body>
+</html>
