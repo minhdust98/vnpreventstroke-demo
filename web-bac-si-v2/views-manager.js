@@ -1,109 +1,86 @@
-/* VNPreventStroke (demo) · màn chọn vai trò + vai Quản lý (chart tổng hợp, danh sách, ngưỡng) */
+/* VNPreventStroke (demo) · màn chọn vai trò + cổng Quản lý: toàn khoa, từng bác sĩ, tin nhắn, ngưỡng.
+ * Quản lý xem danh sách và số liệu, không mở hồ sơ bệnh án, không đọc nội dung tin nhắn. */
 (function (g) {
   'use strict';
-  const V = g.VNPS, T = V.T, R = V.rules, D = V.data, U = V.ui, esc = U.esc, ic = U.ic;
+  const V = g.VNPS, T = V.T, R = V.rules, D = V.data, U = V.ui, Ins = V.ins, esc = U.esc, ic = U.ic;
   const W = (V.views = V.views || {});
   const S = () => V.S;
+  const lvl = (p) => S().cls[p.id].level;
+  const RANK = { act: 0, watch: 1, ok: 2 };
+  const pct = (n, N) => (N ? Math.round((100 * n) / N) : 0);
+  const hrs = (h) => (h == null ? '—' : h < 1 ? '<1 giờ' : h < 48 ? Math.round(h) + ' giờ' : Math.round(h / 24) + ' ngày');
+  const docOf = (p) => D.doctors.find((d) => d.id === p.doc);
+  const siteName = (d) => (d.site === 'VM' ? 'Vinmec Times City' : 'Bạch Mai');
 
-  W.landing = () => '<div class="landing"><div class="land-card"><div class="brand" style="padding:0 0 10px"><span class="logo">V</span><span class="bt"><b>VNPreventStroke (demo)</b><span>Cổng nhân viên y tế</span></span></div>' +
-    '<h1>Chọn cổng làm việc</h1><p class="muted" style="margin:6px 0 0">Tài khoản demo <b>' + esc(D.doctor.name) + '</b> có hai vai trò. Chọn một để vào. Bản demo không yêu cầu mật khẩu và không có mục đăng ký.</p>' +
-    '<div class="roles"><button class="role" data-a="role" data-v="doctor"><span class="rh">' + ic('stetho') + 'Bác sĩ</span><span class="muted small">Theo dõi từng bệnh nhân, xử lý cảnh báo hằng ngày.</span><ul><li>Hàng đợi: ai cần can thiệp, ai cần theo dõi</li><li>Hồ sơ chi tiết, tin nhắn, lịch khám</li><li>Công cụ tính nguy cơ</li></ul></button>' +
-    '<button class="role" data-a="role" data-v="manager"><span class="rh">' + ic('chart') + 'Quản lý</span><span class="muted small">Nhìn tổng hợp toàn đơn vị theo nhóm bệnh nhân.</span><ul><li>Biểu đồ tổng hợp, có số người trên từng mảng</li><li>Danh sách theo nhóm (chỉ xem, không mở hồ sơ)</li><li>Thang điểm và ngưỡng cảnh báo</li></ul></button></div>' +
-    '<div class="legal"><span>' + ic('info', 'sm') + ' Công cụ nghiên cứu, không thay thế quyết định lâm sàng. Dữ liệu minh họa.</span><a href="#" data-a="legal">Chính sách riêng tư</a><a href="#" data-a="legal">Điều khoản sử dụng</a></div></div></div>';
+  W.landing = () => '<div class="landing"><div class="land"><div class="brand"><span class="logo">V</span><b>VNPreventStroke</b></div><h1>Chọn cổng</h1><div class="roles">' +
+    '<button class="role" data-a="role" data-v="doctor">' + ic('stetho') + '<b>Bác sĩ</b></button><button class="role" data-a="role" data-v="manager">' + ic('chart') + '<b>Quản lý</b></button></div>' +
+    '<div class="legal"><a href="#" data-a="legal">Chính sách riêng tư</a><a href="#" data-a="legal">Điều khoản sử dụng</a></div></div></div>';
 
-  /* ---------- truy vấn thống kê ---------- */
-  const scope = () => D.patients.filter(W.groupOf(S().mgr.group));
-  const per = () => S().mgr.period;
-  const bpState = (p) => { const a = R.avgBP(p, per()); return !a ? 'none' : a.s < R.cfg.bpTargetS && a.dia < R.cfg.bpTargetD ? 'ok' : 'bad'; };
-  const adhPct = (p) => { const a = R.adherence(p, per()); return a ? a.pct : null; };
-  const SC = (p) => R.patientScales(p);
-  const tierOf = (r) => (!r.applicable ? 'na' : r.missing.length ? 'miss' : r.tier.key);
+  /* ---------- số liệu ---------- */
+  W.unitOf = (id) => D.unit.filter((p) => p.doc === id);
+  W.stats = (L) => {
+    const k = { act: 0, watch: 0, ok: 0 }; L.forEach((p) => { k[lvl(p)]++; });
+    const wait = L.map(R.pending).filter(Boolean), rep = [].concat.apply([], L.map(Ins.replyHours));
+    return { n: L.length, k, convo: L.filter((p) => p.thread.length).length, wait: wait.length, late: wait.filter((w) => w.hours > R.cfg.msgHours).length, med: Ins.median(rep), within: rep.length ? pct(rep.filter((h) => h <= R.cfg.msgHours).length, rep.length) : null, overdue: L.filter((p) => S().cls[p.id].reasons.some((r) => r.code === 'overdue')).length };
+  };
+  W.tri = (k) => '<span class="tri" role="img" aria-label="' + k.act + ' cần can thiệp, ' + k.watch + ' cần theo dõi, ' + k.ok + ' ổn định"><i style="flex:' + k.act + ';background:var(--act)"></i><i style="flex:' + k.watch + ';background:var(--watch)"></i><i style="flex:' + k.ok + ';background:var(--ok)"></i></span>';
+  const byLevel = (L) => L.slice().sort((a, b) => RANK[lvl(a)] - RANK[lvl(b)] || a.name.localeCompare(b.name, 'vi'));
+
+  /* ---------- danh sách bệnh nhân (chỉ xem) ---------- */
+  const RISK = { esrs: 'ESRS', spi: 'SPI-II', cha: 'CHA₂DS₂-VASc' };
   W.mq = (q) => {
-    const [k, a, b] = q.split(':'), cfg = R.cfg, sc = scope();
-    const I = (p) => R.ind(p, cfg);
-    let title = '', f = () => true;
-    const lvl = (p) => S().cls[p.id].level;
-    if (k === 'lvl') { title = a === 'all' ? 'Tất cả bệnh nhân' : U.lvl[a].t; f = (p) => a === 'all' || lvl(p) === a; }
-    else if (k === 'stale') { title = 'Chưa nhập dữ liệu >' + cfg.staleDays + ' ngày'; f = (p) => R.staleDays(p) > cfg.staleDays; }
-    else if (k === 'site') { title = (a === 'BM' ? 'Bạch Mai' : 'Vinmec Times City') + ' · ' + (b === 'all' ? 'tất cả' : U.lvl[b].t); f = (p) => p.site === a && (b === 'all' || lvl(p) === b); }
-    else if (k === 'esrs' || k === 'spi' || k === 'cha') { const nm = { esrs: 'ESRS', spi: 'SPI-II', cha: 'CHA₂DS₂-VASc' }[k], lb = { low: 'thấp', mid: 'trung bình', high: 'cao', miss: 'thiếu biến', na: 'không áp dụng' }[a]; title = nm + ': ' + lb; f = (p) => tierOf(SC(p)[k]) === a; }
-    else if (k === 'fsrp') { title = 'FSRP: ' + { pct: 'có % minh họa', u55: 'chưa áp dụng (<55 tuổi)', miss: 'thiếu biến' }[a]; f = (p) => { const r = SC(p).fsrp; return a === 'pct' ? r.applicable && !r.insufficient : a === 'miss' ? r.applicable && r.insufficient : p.dx.type === 'NONE' && !r.applicable; }; }
-    else if (k === 'ind') {
-      const nm = { bp: 'Huyết áp TB ' + per() + ' ngày', glu: 'Đường huyết đói', ldl: 'LDL-C', a1c: 'HbA1c', bmi: 'BMI', tc: 'Cholesterol toàn phần' }[a], st = { ok: 'đạt mục tiêu', bad: 'cần cải thiện', none: 'chưa có số đo' }[b];
-      title = nm + ': ' + st; f = (p) => (a === 'a1c' && p.rf.dm !== 1 ? false : (a === 'bp' ? bpState(p) : I(p)[a].state) === b);
-    }
-    else if (k === 'cm') { title = 'Bệnh mắc kèm: ' + { htn: 'tăng huyết áp', dm: 'đái tháo đường', af: 'rung nhĩ', mi: 'nhồi máu cơ tim', pad: 'bệnh động mạch ngoại biên', hf: 'suy tim', ocvd: 'bệnh tim mạch khác', prior: 'TIA/đột quỵ trước' }[a]; f = (p) => p.rf[a] === 1; }
-    else if (k === 'life') { title = { smoke: 'Hút thuốc', alc: 'Rượu bia', ex: 'Vận động' }[a] + ': ' + { bad: { smoke: 'đang hút', alc: 'vượt mức', ex: '<150 phút/tuần' }[a], ok: { smoke: 'không hút', alc: 'trong mức', ex: '≥150 phút/tuần' }[a] }[b]; f = (p) => I(p)[a].state === b; }
-    else if (k === 'adh') { title = 'Tuân thủ thuốc ' + per() + ' ngày: ' + { lt80: '<80%', mid: '80–89%', ge90: '≥90%', priv: 'chưa chia sẻ' }[a]; f = (p) => { const v = adhPct(p); return a === 'priv' ? !p.consentAdh : v != null && (a === 'lt80' ? v < 80 : a === 'mid' ? v >= 80 && v < 90 : v >= 90); }; }
-    return { title, list: sc.filter(f) };
+    const [k, a] = (q || 'lvl:all').split(':'), cfg = R.cfg;
+    if (k === 'lvl') return { title: a === 'all' ? 'Toàn khoa' : U.lvl[a].t, f: (p) => a === 'all' || lvl(p) === a };
+    if (k === 'late') return { title: 'Tin chờ quá ' + cfg.msgHours + ' giờ', f: (p) => { const w = R.pending(p); return !!w && w.hours > cfg.msgHours; } };
+    if (k === 'overdue') return { title: 'Quá hẹn tái khám', f: (p) => S().cls[p.id].reasons.some((r) => r.code === 'overdue') };
+    if (k === 'ind') return { title: { bp: 'HA chưa đạt mục tiêu', ldl: 'LDL-C chưa đạt mục tiêu', a1c: 'HbA1c chưa đạt mục tiêu' }[a], f: (p) => (a !== 'a1c' || p.rf.dm === 1) && R.ind(p, cfg)[a].state === 'bad' };
+    if (k === 'adh') return { title: 'Tuân thủ thuốc dưới ' + cfg.adhOk + '%', f: (p) => R.ind(p, cfg).adh.state === 'bad' };
+    if (k === 'mrs') return { title: 'Ca nặng chưa cải thiện mRS', f: (p) => Ins.severe(p) && Ins.recovery(p).delta >= 0 };
+    if (k === 'risk') return { title: RISK[a] + ' cao', f: (p) => { const r = R.patientScales(p)[a]; return r.applicable && !!r.tier && r.tier.key === 'high'; } };
+    return { title: 'Toàn khoa', f: () => true };
   };
+  W.ptable = (L, withDoc) => '<div class="tw fill"><table class="tbl list"><thead><tr><th>Bệnh nhân</th>' + (withDoc ? '<th>Bác sĩ</th>' : '') + '<th>Tuổi</th><th>Chẩn đoán</th><th>Lý do</th><th class="r">mRS</th><th class="r">Cập nhật</th><th class="r">Tái khám</th></tr></thead><tbody>' +
+    (L.length ? L.map((p) => { const w = W.whyParts(p), has = S().cls[p.id].reasons.length; return '<tr class="ro"><td><span class="who">' + U.mark(lvl(p)) + '<b>' + esc(p.name) + '</b></span></td>' + (withDoc ? '<td class="muted">' + esc(docOf(p).short) + '</td>' : '') + '<td class="muted">' + p.age + ' · ' + U.sexName(p) + '</td><td class="muted">' + esc(U.dxShort(p)) + '</td><td class="clip" title="' + esc(w.all) + '">' + (has ? esc(w.txt) + (w.more ? ' <span class="muted">' + esc(w.more) + '</span>' : '') : '') + '</td><td class="r">' + W.mrsCell(p) + '</td><td class="r muted">' + esc(W.shortTime(p)) + '</td><td class="r muted">' + T.fmtDM(p.appt.d) + '</td></tr>'; }).join('') : '<tr><td colspan="8" class="empty">Không có bệnh nhân.</td></tr>') + '</tbody></table></div>';
+  W.mlist = () => { const q = W.mq(S().mq), L = byLevel(D.unit.filter(q.f)); return '<div class="page fullh"><div class="page-h"><button class="iconbtn" data-a="mback" aria-label="Về toàn khoa">' + ic('chevL') + '</button><h1>' + esc(q.title) + '</h1><span class="count">' + L.length + '</span></div>' + W.ptable(L, true) + '</div>'; };
 
-  /* ---------- Tổng hợp đơn vị ---------- */
-  const seg = (arr) => arr.filter((x) => x.n >= 0);
-  const stackRow = (label, sub, segs, total) => '<div class="sl"><div class="lbl">' + esc(label) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div><div>' + U.stack(segs, total, { label }) + '</div></div>';
+  /* ---------- Toàn khoa ---------- */
+  const kpi = (cls, q, label, v, foot) => '<button class="kpi ' + cls + '"' + (q ? ' data-a="mq" data-q="' + q + '"' : '') + '><div class="kl">' + label + '</div><div class="kv">' + v + '</div><div class="ks">' + (foot || '') + '</div></button>';
+  const meter = (label, n, N, q, tone) => '<button class="mrow" data-a="mq" data-q="' + q + '"><span>' + label + '</span><span class="meter"><i class="' + (tone || '') + '" style="width:' + pct(n, N) + '%"></i></span><b>' + pct(n, N) + '%</b><span class="muted">' + n + '/' + N + '</span></button>';
   W.overview = () => {
-    const m = S().mgr, sc = scope(), N = sc.length, cls = S().cls;
-    const cnt = (lv, arr) => (arr || sc).filter((p) => cls[p.id].level === lv).length;
-    const stale = sc.filter((p) => R.staleDays(p) > R.cfg.staleDays).length;
-    const gl = { all: 'Tất cả bệnh nhân', prim: 'Bệnh nhân tiên phát', sec: 'Bệnh nhân thứ phát' }[m.group];
-    const pg = (k, t) => '<button class="' + (m.group === k ? 'on' : '') + '" data-a="mgroup" data-v="' + k + '">' + t + '<span class="n">' + D.patients.filter(W.groupOf(k)).length + '</span></button>';
-    const pr = (k) => '<button class="' + (m.period === k ? 'on' : '') + '" data-a="mperiod" data-v="' + k + '">' + k + ' ngày</button>';
-    const kpi = (cl, lab, icn, v, sub, q) => '<button class="kpi ' + cl + '" data-a="mq" data-q="' + q + '"><div class="kl">' + ic(icn) + lab + '</div><div class="kv">' + v + '<small>bệnh nhân</small></div><div class="ks">' + sub + '</div></button>';
-    const pc = (n) => (N ? Math.round((100 * n) / N) : 0) + '% của ' + N;
-    const act = cnt('act'), watch = cnt('watch'), ok = cnt('ok');
-    // A: theo cơ sở
-    const siteRows = [['BM', 'Bạch Mai'], ['VM', 'Vinmec Times City']].map(([k, n]) => { const L = sc.filter((p) => p.site === k); return stackRow(n, L.length + ' bệnh nhân', [{ k: 'act', n: cnt('act', L), label: 'Cần can thiệp', q: 'site:' + k + ':act' }, { k: 'watch', n: cnt('watch', L), label: 'Cần theo dõi', q: 'site:' + k + ':watch' }, { k: 'ok', n: cnt('ok', L), label: 'Ổn định', q: 'site:' + k + ':ok' }], L.length); }).join('');
-    // B: phân tầng
-    const showSec = m.group !== 'prim', showPrim = m.group !== 'sec';
-    const secP = sc.filter((p) => p.dx.type !== 'NONE'), apply = (k) => sc.filter((p) => SC(p)[k].applicable);
-    const cntT = (k, t, L) => (L || sc).filter((p) => tierOf(SC(p)[k]) === t).length;
-    let B = '';
-    if (showSec) {
-      const e = apply('esrs'), s2 = apply('spi'), ch = apply('cha');
-      B += stackRow('ESRS', e.length + ' BN áp dụng (NMN/TIA) · ' + (secP.length - e.length) + ' không áp dụng (chảy máu não)', seg([{ k: 'low', n: cntT('esrs', 'low'), label: 'Thấp (0–2)', q: 'esrs:low' }, { k: 'high', n: cntT('esrs', 'high'), label: 'Cao (≥3)', q: 'esrs:high' }, { k: 'neutral', n: cntT('esrs', 'miss'), label: 'Thiếu biến', q: 'esrs:miss' }]), e.length);
-      B += stackRow('SPI-II', s2.length + ' BN áp dụng', seg([{ k: 'low', n: cntT('spi', 'low'), label: 'Thấp (0–3)', q: 'spi:low' }, { k: 'mid', n: cntT('spi', 'mid'), label: 'Trung bình (4–7)', q: 'spi:mid' }, { k: 'high', n: cntT('spi', 'high'), label: 'Cao (8–15)', q: 'spi:high' }, { k: 'neutral', n: cntT('spi', 'miss'), label: 'Thiếu biến', q: 'spi:miss' }]), s2.length);
-      B += stackRow('CHA₂DS₂-VASc', ch.length + ' BN có rung nhĩ', seg([{ k: 'low', n: cntT('cha', 'low'), label: 'Thấp', q: 'cha:low' }, { k: 'mid', n: cntT('cha', 'mid'), label: 'Trung bình', q: 'cha:mid' }, { k: 'high', n: cntT('cha', 'high'), label: 'Cao', q: 'cha:high' }, { k: 'neutral', n: cntT('cha', 'miss'), label: 'Thiếu biến', q: 'cha:miss' }]), ch.length);
-    }
-    if (showPrim) {
-      const pr0 = sc.filter((p) => p.dx.type === 'NONE');
-      const a1 = pr0.filter((p) => SC(p).fsrp.applicable && !SC(p).fsrp.insufficient).length, a2 = pr0.filter((p) => !SC(p).fsrp.applicable).length, a3 = pr0.filter((p) => SC(p).fsrp.applicable && SC(p).fsrp.insufficient).length;
-      B += stackRow('FSRP 2017', pr0.length + ' BN chưa từng đột quỵ · chưa có mốc phân tầng nên chỉ đếm tình trạng', seg([{ k: 'neutral', n: a1, label: 'Có % minh họa', q: 'fsrp:pct' }, { k: 'gray', n: a2, label: 'Chưa áp dụng (<55 tuổi)', q: 'fsrp:u55' }, { k: 'mid', n: a3, label: 'Thiếu biến', q: 'fsrp:miss' }]), pr0.length);
-    }
-    // C: chỉ số theo dõi
-    const ind = (key, label, sub, L, getter) => { const s = (st) => L.filter((p) => getter(p) === st).length; return stackRow(label, sub, seg([{ k: 'ok2', n: s('ok'), label: 'Đạt mục tiêu', q: 'ind:' + key + ':ok' }, { k: 'bad', n: s('bad'), label: 'Cần cải thiện', q: 'ind:' + key + ':bad' }, { k: 'gray', n: s('none'), label: 'Chưa có số đo', q: 'ind:' + key + ':none' }]), L.length); };
-    const dmL = sc.filter((p) => p.rf.dm === 1);
-    const C = ind('bp', 'Huyết áp', 'TB ' + per() + ' ngày <130/80 mmHg', sc, bpState) + ind('glu', 'Đường huyết đói', 'lần đo gần nhất ≤5,6 mmol/L', sc, (p) => R.ind(p).glu.state) + ind('ldl', 'LDL-C', 'xét nghiệm gần nhất <' + R.num(R.cfg.ldlTarget, 1) + ' mmol/L', sc, (p) => R.ind(p).ldl.state) + ind('a1c', 'HbA1c', 'chỉ người đái tháo đường (' + dmL.length + ') · ≤' + R.num(R.cfg.a1cDM, 1) + '%', dmL, (p) => R.ind(p).a1c.state) + ind('bmi', 'BMI', 'bình thường 18,5–22,9 kg/m²', sc, (p) => R.ind(p).bmi.state) + ind('tc', 'Cholesterol toàn phần', 'xét nghiệm gần nhất <5,2 mmol/L', sc, (p) => R.ind(p).tc.state);
-    // D: bệnh kèm
-    const cmRows = [['htn', 'Tăng huyết áp'], ['dm', 'Đái tháo đường'], ['af', 'Rung nhĩ'], ['mi', 'Nhồi máu cơ tim'], ['pad', 'Bệnh động mạch ngoại biên'], ['hf', 'Suy tim'], ['ocvd', 'Bệnh tim mạch khác'], ['prior', 'TIA/đột quỵ trước biến cố hiện tại']].map(([k, n]) => { const unk = sc.filter((p) => p.rf[k] == null).length; return U.hbar(n, sc.filter((p) => p.rf[k] === 1).length, N, 'cm:' + k, unk ? unk + ' bệnh nhân chưa rõ' : ''); }).join('');
-    // E: lối sống
-    const ls = (key, label, sub, okl, badl, qa) => { const o = sc.filter((p) => R.ind(p)[key].state === 'ok').length, b = sc.filter((p) => R.ind(p)[key].state === 'bad').length; return stackRow(label, sub, [{ k: 'ok2', n: o, label: okl, q: 'life:' + key + ':ok' }, { k: 'bad', n: b, label: badl, q: 'life:' + key + ':bad' }], N); };
-    const maxAlc = sc.reduce((a, p) => (p.life.alc > a.v ? { v: p.life.alc, id: p.id } : a), { v: 0, id: '' });
-    const E = ls('smoke', 'Hút thuốc lá', 'đang hút so với không hút', 'Không hút', 'Đang hút') + ls('alc', 'Rượu bia', 'nam ≤2, nữ ≤1 đơn vị/ngày', 'Trong mức', 'Vượt mức') + ls('ex', 'Vận động', 'đơn vị: phút/tuần · mục tiêu ≥150', '≥150 phút/tuần', '<150 phút/tuần') + '<div class="xs muted">Rượu cao nhất trong nhóm: <b>' + R.num(maxAlc.v, 1) + ' đơn vị/ngày</b> (' + maxAlc.id + '). 1 đơn vị = 10 g cồn.</div>';
-    // F: tuân thủ
-    const ad = (f) => sc.filter((p) => p.consentAdh && adhPct(p) != null && f(adhPct(p))).length;
-    const F = U.columns([{ label: '<80%', n: ad((v) => v < 80), k: 'high', q: 'adh:lt80' }, { label: '80–89%', n: ad((v) => v >= 80 && v < 90), k: 'mid', q: 'adh:mid' }, { label: '≥90%', n: ad((v) => v >= 90), k: 'low', q: 'adh:ge90' }, { label: 'Chưa chia sẻ', n: sc.filter((p) => !p.consentAdh).length, k: 'neutral', q: 'adh:priv' }], { xTitle: 'Tuân thủ thuốc ' + per() + ' ngày qua (% liều đã uống)', label: 'Phân bố tuân thủ thuốc' });
-    const card = (t, sub, body, cls) => '<section class="card ' + (cls || '') + '"><div class="card-h"><h3>' + t + '</h3><span class="muted xs">' + sub + '</span></div><div class="card-b">' + body + '</div></section>';
-    return '<div class="mgr"><div class="page-h"><h1>Tổng hợp đơn vị</h1><span class="scope">Đang xem: <b>' + gl + '</b> · HA và tuân thủ tính trên <b>' + per() + ' ngày</b> · <b>' + N + '/' + D.patients.length + '</b> bệnh nhân</span><span class="sp"></span><div class="seg">' + pg('all', 'Tất cả') + pg('prim', 'Tiên phát') + pg('sec', 'Thứ phát') + '</div><div class="seg">' + pr(7) + pr(30) + '</div></div>' +
-      '<div class="kpis m5">' + kpi('', 'Đang quản lý', 'users', N, D.patients.length === N ? 'toàn đơn vị' : pc(N), 'lvl:all') + kpi('act', 'Cần can thiệp', 'alert', act, pc(act), 'lvl:act') + kpi('watch', 'Cần theo dõi', 'watch', watch, pc(watch), 'lvl:watch') + kpi('ok', 'Ổn định', 'check', ok, pc(ok), 'lvl:ok') + kpi('', 'Chưa nhập >' + R.cfg.staleDays + ' ngày', 'dash', stale, pc(stale), 'stale') + '</div>' +
-      '<div class="mgr-grid">' + card('Mức theo dõi theo cơ sở', 'số bệnh nhân trên từng mảng · bấm để xem danh sách', siteRows) + card('Phân tầng nguy cơ', 'mốc phân tầng cần BS xác nhận', B || '<span class="muted">Không có nhóm áp dụng.</span>') +
-      card('Chỉ số theo dõi', 'đạt / chưa đạt mục tiêu theo bảng §4.2', C + '<div class="xs muted" style="margin-top:6px">Phân loại 5 mức riêng từng yếu tố (Bình thường, Độ 1, Độ 2, Cận ngưỡng, Nặng) đang chờ tiêu chí lâm sàng, demo dùng 2 mức.</div>') + card('Bệnh mắc kèm', 'từ hồ sơ sức khỏe, không gồm tiền sử gia đình · số BN / ' + N, cmRows) +
-      card('Lối sống', 'số bệnh nhân', E) + card('Tuân thủ thuốc', 'số bệnh nhân theo khoảng tuân thủ', F) + '</div></div>';
+    const L = D.unit, s = W.stats(L), cfg = R.cfg, ind = (p) => R.ind(p, cfg);
+    const has = (k) => L.filter((p) => ind(p)[k].state !== 'none'), dm = L.filter((p) => p.rf.dm === 1 && ind(p).a1c.state !== 'none'), adh = L.filter((p) => ind(p).adh.v), sev = L.filter(Ins.severe);
+    const ok = (A, k) => A.filter((p) => ind(p)[k].state === 'ok').length;
+    const sc = {}; L.forEach((p) => { sc[p.id] = R.patientScales(p); });
+    const risk = (k) => { const A = L.filter((p) => sc[p.id][k].applicable && sc[p.id][k].tier); return meter(RISK[k], A.filter((p) => sc[p.id][k].tier.key === 'high').length, A.length, 'risk:' + k, 'act'); };
+    const row = (d) => { const x = W.stats(W.unitOf(d.id)); return '<tr data-a="mdoc" data-id="' + d.id + '" tabindex="0" title="' + siteName(d) + '"><td><b>' + esc(d.name) + '</b></td><td class="r">' + x.n + '</td><td class="wtri">' + W.tri(x.k) + '</td><td class="r lv-act">' + x.k.act + '</td><td class="r lv-watch">' + x.k.watch + '</td><td class="r' + (x.late ? ' lv-watch' : ' muted') + '">' + x.late + '</td><td class="r">' + hrs(x.med) + '</td></tr>'; };
+    return '<div class="page"><div class="page-h"><h1>Toàn khoa</h1></div>' +
+      '<div class="kpis">' + kpi('', 'lvl:all', 'Bệnh nhân', s.n, W.tri(s.k)) + kpi('act', 'lvl:act', U.mark('act') + 'Cần can thiệp', s.k.act) + kpi('watch', 'lvl:watch', U.mark('watch') + 'Cần theo dõi', s.k.watch) + kpi('', 'late', 'Tin chờ quá ' + cfg.msgHours + ' giờ', s.late) + kpi('', 'overdue', 'Quá hẹn tái khám', s.overdue) + '</div>' +
+      '<div class="mgrid"><section class="card"><table class="tbl dtbl"><thead><tr><th>Bác sĩ</th><th class="r">Bệnh nhân</th><th></th><th class="r">Can thiệp</th><th class="r">Theo dõi</th><th class="r" title="Tin chờ quá ' + cfg.msgHours + ' giờ">Tin chờ</th><th class="r" title="Thời gian trả lời trung vị">Trả lời</th></tr></thead><tbody>' + D.doctors.map(row).join('') + '</tbody></table></section>' +
+      '<div class="mcol"><section class="card"><div class="card-h"><h3>Đạt mục tiêu</h3></div><div class="meters">' +
+      meter('Huyết áp', ok(has('bp'), 'bp'), has('bp').length, 'ind:bp') + meter('LDL-C', ok(has('ldl'), 'ldl'), has('ldl').length, 'ind:ldl') + meter('HbA1c (đái tháo đường)', ok(dm, 'a1c'), dm.length, 'ind:a1c') + meter('Tuân thủ thuốc', ok(adh, 'adh'), adh.length, 'adh') + meter('Ca nặng cải thiện mRS', sev.filter((p) => Ins.recovery(p).delta < 0).length, sev.length, 'mrs') +
+      '</div></section><section class="card"><div class="card-h"><h3>Nguy cơ tái phát cao</h3></div><div class="meters">' + risk('esrs') + risk('spi') + risk('cha') + '</div></section></div></div></div>';
   };
 
-  W.mlist = () => {
-    const { title, list } = W.mq(S().mq || 'lvl:all'), cls = S().cls;
-    return '<div class="page" style="height:100%"><div class="page-h"><button class="btn" data-a="mback">' + ic('chevL') + 'Quay lại tổng hợp</button><h1>' + esc(title) + '</h1><span class="scope"><b>' + list.length + '</b> bệnh nhân · ' + { all: 'Tất cả', prim: 'Tiên phát', sec: 'Thứ phát' }[S().mgr.group] + '</span></div><div class="infobox" style="margin:0">Vai Quản lý chỉ xem danh sách, <b>không mở hồ sơ bệnh án</b> (quyền hạn minh họa, cần chốt: quản lý có được xem danh tính bệnh nhân không).</div>' +
-      '<div class="tw fill"><div class="scroll" style="flex:1"><table class="tbl plain"><thead><tr><th>Mức theo dõi</th><th>Bệnh nhân</th><th>Tuổi · Giới</th><th>Chẩn đoán</th><th>Cơ sở</th><th>Lý do chính</th></tr></thead><tbody>' + (list.length ? list.map((p) => '<tr><td>' + U.chip(cls[p.id].level) + '</td><td><b>' + esc(p.name) + '</b> <span class="xs muted">' + p.id + '</span></td><td>' + p.age + ' · ' + U.sexName(p) + '</td><td>' + esc(U.dxShort(p)) + '</td><td>' + U.site(p) + '</td><td class="small">' + W.why(p, 2) + '</td></tr>').join('') : '<tr><td colspan="6" class="empty">Không có bệnh nhân trong nhóm này.</td></tr>') + '</tbody></table></div></div></div>';
+  /* ---------- một bác sĩ ---------- */
+  W.mdoctor = (id) => {
+    const d = D.doctors.find((x) => x.id === id) || D.doctors[0], L = byLevel(W.unitOf(d.id)), s = W.stats(L);
+    return '<div class="page fullh"><div class="page-h"><button class="iconbtn" data-a="mback" aria-label="Về toàn khoa">' + ic('chevL') + '</button><h1>' + esc(d.name) + '</h1><span class="muted">' + siteName(d) + '</span></div>' +
+      '<div class="kpis">' + kpi('', '', 'Bệnh nhân', s.n, W.tri(s.k)) + kpi('act', '', U.mark('act') + 'Cần can thiệp', s.k.act) + kpi('watch', '', U.mark('watch') + 'Cần theo dõi', s.k.watch) + kpi('', '', 'Tin chờ quá ' + R.cfg.msgHours + ' giờ', s.late) + kpi('', '', 'Trả lời trung vị', hrs(s.med)) + '</div>' +
+      W.ptable(L, false) + '</div>';
   };
 
-  /* ---------- Thang điểm & ngưỡng ---------- */
-  const CFGF = [['critSys', 'Huyết áp tâm thu cảnh báo (một lần đo)', 'mmHg'], ['critDia', 'Huyết áp tâm trương cảnh báo (một lần đo)', 'mmHg'], ['critWindow', 'Cửa sổ cho "bất kỳ lần đo" và đường huyết', 'ngày'], ['avg3Sys', 'HA trung bình 3 ngày: tâm thu', 'mmHg'], ['avg3Dia', 'HA trung bình 3 ngày: tâm trương', 'mmHg'], ['avg7Sys', 'HA trung bình 7 ngày: tâm thu', 'mmHg'], ['avg7Dia', 'HA trung bình 7 ngày: tâm trương', 'mmHg'], ['missWindow', 'Cửa sổ đếm bỏ liều chống đông/kháng tiểu cầu', 'ngày'], ['missCount', 'Số liều bỏ để cảnh báo đỏ', 'liều'], ['gluLow', 'Đường huyết thấp', 'mmol/L'], ['gluHigh', 'Đường huyết cao', 'mmol/L'], ['overdueDays', 'Quá hẹn tái khám', 'ngày'], ['adhLow', 'Tuân thủ thấp (kèm nguy cơ tái phát cao)', '%'], ['adhOk', 'Tuân thủ đạt', '%'], ['staleDays', 'Không có dữ liệu mới quá', 'ngày'], ['ldlTarget', 'Mục tiêu LDL-C (nhỏ hơn)', 'mmol/L'], ['a1cDM', 'Mục tiêu HbA1c người đái tháo đường [Đề xuất]', '%'], ['a1cNonDM', 'Mục tiêu HbA1c người không đái tháo đường (nhỏ hơn)', '%'], ['msgHours', 'Tin nhắn chờ quá', 'giờ'], ['apptSoonDays', 'Có lịch tái khám trong vòng', 'ngày'], ['bpTargetS', 'Mục tiêu HA tâm thu (nhỏ hơn)', 'mmHg'], ['bpTargetD', 'Mục tiêu HA tâm trương (nhỏ hơn)', 'mmHg']];
-  W.thresholds = () => {
-    const c = R.counts(D.patients, S().cls), def = R.DEFAULT_CFG;
-    const scales = [['ESRS', 'ESRS · bảng điểm file 00 §4.1', 'Phân tầng 0–2 thấp, ≥3 cao: cần BS xác nhận'], ['SPI-II', 'SPI-II · bảng điểm file 00 §4.1', '0–3 thấp, 4–7 trung bình, 8–15 cao: cần BS xác nhận'], ['FSRP 2017', 'Dufouil_2017 (khung nhập liệu)', 'Chưa có hệ số: % chỉ là minh họa'], ['CHA₂DS₂-VASc', 'CHA2DS2-VASc · BRD v6', 'Bảng điểm theo BRD'], ['ABCD2', 'ABCD2 · BRD v6', 'BRD để trống ô tuổi và HA: cần xác nhận']];
-    return '<div class="page" style="max-width:980px"><div class="page-h"><h1>Thang điểm và ngưỡng</h1><span class="scope">Kết quả: <b>' + c.act + '</b> cần can thiệp · <b>' + c.watch + '</b> cần theo dõi · <b>' + c.ok + '</b> ổn định</span><span class="sp"></span><button class="btn" data-a="cfgreset">Khôi phục mặc định</button></div>' +
-      '<p class="muted" style="margin:0">Hệ số và ngưỡng cấu hình được (BRD). Đổi giá trị thì phân loại ở cổng Bác sĩ và tổng hợp ở cổng Quản lý đổi theo ngay. Toàn bộ ngưỡng ở mục 4.3 là <b>[Đề xuất – cần bác sĩ duyệt]</b>.</p>' +
-      '<section class="card"><div class="card-h"><h3>Thang điểm</h3></div><table class="tbl plain"><thead><tr><th style="position:static">Thang</th><th style="position:static">Phiên bản thuật toán</th><th style="position:static">Ghi chú</th><th style="position:static">Bật</th></tr></thead><tbody>' + scales.map((s) => '<tr><td><b>' + s[0] + '</b></td><td><code>' + esc(s[1]) + '</code></td><td class="small">' + esc(s[2]) + '</td><td><input type="checkbox" checked data-i="demo" aria-label="Bật ' + s[0] + '"></td></tr>').join('') + '</tbody></table></section>' +
-      '<section class="card"><div class="card-h"><h3>Ngưỡng cảnh báo</h3><span class="muted xs">Giá trị khác mặc định được tô màu</span></div><table class="tbl plain cfg-tbl"><thead><tr><th style="position:static">Tiêu chí</th><th class="r" style="position:static">Giá trị</th><th style="position:static">Đơn vị</th><th class="r" style="position:static">Mặc định</th></tr></thead><tbody>' + CFGF.map(([k, n, u]) => '<tr><td>' + esc(n) + '</td><td class="r"><input type="number" step="any" value="' + R.cfg[k] + '" data-i="cfg" data-k="' + k + '" style="' + (R.cfg[k] !== def[k] ? 'border-color:var(--accent);background:var(--accent-soft)' : '') + '" aria-label="' + esc(n) + '"></td><td>' + u + '</td><td class="r muted">' + def[k] + '</td></tr>').join('') + '</tbody></table></section></div>';
+  /* ---------- Tin nhắn: số liệu phản hồi, không đọc nội dung ---------- */
+  W.mmsgs = () => {
+    const cfg = R.cfg, waits = D.unit.map((p) => ({ p, w: R.pending(p) })).filter((x) => x.w).sort((a, b) => b.w.hours - a.w.hours);
+    const row = (d) => { const x = W.stats(W.unitOf(d.id)); return '<tr data-a="mdoc" data-id="' + d.id + '" tabindex="0"><td><b>' + esc(d.name) + '</b></td><td class="r">' + x.convo + '</td><td class="r">' + x.wait + '</td><td class="r' + (x.late ? ' lv-watch' : ' muted') + '">' + x.late + '</td><td class="r">' + hrs(x.med) + '</td><td class="r">' + (x.within == null ? '—' : x.within + '%') + '</td></tr>'; };
+    const wrow = ({ p, w }) => { const late = w.hours > cfg.msgHours; return '<div class="wrow">' + U.mark(late ? 'watch' : 'ok') + '<b>' + esc(p.name) + '</b><span class="muted">' + esc(docOf(p).short) + '</span><span class="sp"></span><span class="' + (late ? 'lv-watch' : 'muted') + '">' + hrs(w.hours) + '</span>' + (late ? (S().nudged[p.id] ? '<span class="muted small">Đã nhắc</span>' : '<button class="btn sm" data-a="nudge" data-id="' + p.id + '">Nhắc bác sĩ</button>') : '<span class="nudge-gap"></span>') + '</div>'; };
+    return '<div class="page"><div class="page-h"><h1>Tin nhắn</h1></div>' +
+      '<section class="card"><table class="tbl dtbl"><thead><tr><th>Bác sĩ</th><th class="r">Hội thoại</th><th class="r">Đang chờ</th><th class="r">Chờ quá ' + cfg.msgHours + ' giờ</th><th class="r">Trả lời trung vị</th><th class="r">Trả lời trong ' + cfg.msgHours + ' giờ</th></tr></thead><tbody>' + D.doctors.map(row).join('') + '</tbody></table></section>' +
+      '<section class="card"><div class="card-h"><h3>Đang chờ trả lời</h3><span class="count">' + waits.length + '</span></div>' + (waits.length ? waits.map(wrow).join('') : '<div class="empty">Không có tin chờ.</div>') + '</section></div>';
   };
+
+  /* ---------- Ngưỡng cảnh báo (áp dụng cho cả khoa) ---------- */
+  const CFGF = [['critSys', 'HA tâm thu cảnh báo (một lần đo)', 'mmHg'], ['critDia', 'HA tâm trương cảnh báo (một lần đo)', 'mmHg'], ['critWindow', 'Cửa sổ cho "bất kỳ lần đo" và đường huyết', 'ngày'], ['avg3Sys', 'HA trung bình 3 ngày: tâm thu', 'mmHg'], ['avg3Dia', 'HA trung bình 3 ngày: tâm trương', 'mmHg'], ['avg7Sys', 'HA trung bình 7 ngày: tâm thu', 'mmHg'], ['avg7Dia', 'HA trung bình 7 ngày: tâm trương', 'mmHg'], ['missWindow', 'Cửa sổ đếm bỏ liều chống đông/kháng tiểu cầu', 'ngày'], ['missCount', 'Số liều bỏ để cảnh báo đỏ', 'liều'], ['gluLow', 'Đường huyết thấp', 'mmol/L'], ['gluHigh', 'Đường huyết cao', 'mmol/L'], ['overdueDays', 'Quá hẹn tái khám', 'ngày'], ['adhLow', 'Tuân thủ thấp (kèm nguy cơ tái phát cao)', '%'], ['adhOk', 'Tuân thủ đạt', '%'], ['staleDays', 'Không có dữ liệu mới quá', 'ngày'], ['ldlTarget', 'Mục tiêu LDL-C (nhỏ hơn)', 'mmol/L'], ['a1cDM', 'Mục tiêu HbA1c người đái tháo đường', '%'], ['a1cNonDM', 'Mục tiêu HbA1c người không đái tháo đường (nhỏ hơn)', '%'], ['msgHours', 'Tin nhắn chờ quá', 'giờ'], ['apptSoonDays', 'Có lịch tái khám trong vòng', 'ngày'], ['bpTargetS', 'Mục tiêu HA tâm thu (nhỏ hơn)', 'mmHg'], ['bpTargetD', 'Mục tiêu HA tâm trương (nhỏ hơn)', 'mmHg']];
+  W.thresholds = () => '<div class="page narrow"><div class="page-h"><h1>Ngưỡng cảnh báo</h1><span class="sp"></span><button class="btn" data-a="cfgreset">Khôi phục mặc định</button></div><section class="card"><table class="tbl plain cfg"><tbody>' +
+    CFGF.map(([k, n, u]) => '<tr><td>' + esc(n) + '</td><td class="r"><input type="number" step="any" value="' + R.cfg[k] + '" data-i="cfg" data-k="' + k + '"' + (R.cfg[k] !== R.DEFAULT_CFG[k] ? ' class="changed"' : '') + ' aria-label="' + esc(n) + '"></td><td class="muted">' + u + '</td></tr>').join('') + '</tbody></table></section></div>';
 })(typeof globalThis !== 'undefined' ? globalThis : window);

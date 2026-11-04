@@ -101,6 +101,23 @@
     return 'Bỏ ' + a.missed + '/' + (a.taken + a.missed) + ' liều trong 30 ngày; ' + (crit ? crit + ' liều chống đông/kháng tiểu cầu trong 7 ngày qua' : 'không bỏ liều chống đông/kháng tiểu cầu nào trong 7 ngày qua') + '.';
   };
 
+  /* ---------- Hồi phục: điểm mRS qua các lần khám ---------- */
+  I.MRS = ['Không triệu chứng', 'Không tàn tật đáng kể', 'Tàn tật nhẹ', 'Tàn tật vừa', 'Tàn tật khá nặng', 'Tàn tật nặng', 'Tử vong'];
+  // [Đề xuất] Màu theo chính định nghĩa của thang: 0–2 tự lập, 3 cần trợ giúp, 4–5 phụ thuộc.
+  I.mrsLv = (v) => (v >= 4 ? 'act' : v === 3 ? 'watch' : 'ok');
+  I.mrs = (p) => p.visits.filter((v) => v.mrs != null).map((v) => ({ d: v.d, v: v.mrs })).concat(p.mrsLog || []).sort((a, b) => a.d - b.d);
+  // [Đề xuất] Ca nặng = mRS ≥3 ở ít nhất một lần khám.
+  I.severe = (p) => I.mrs(p).some((x) => x.v >= 3);
+  I.recovery = (p) => { const s = I.mrs(p); return s.length ? { s, first: s[0], last: s[s.length - 1], delta: s[s.length - 1].v - s[0].v } : null; };
+
+  /* ---------- Tin nhắn: số giờ từ lúc BN hỏi đến lúc bác sĩ trả lời ---------- */
+  I.replyHours = (p) => {
+    const out = []; let q = null;
+    p.thread.forEach((m) => { if (m.from !== 'bs') { if (!q) q = m; } else if (q) { out.push(m.d * 24 + m.h - (q.d * 24 + q.h)); q = null; } });
+    return out;
+  };
+  I.median = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+
   /* ---------- Tìm theo nhu cầu ---------- */
   I.norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase().trim();
   const byCode = (t, a, codes) => ({ t, a, codes, f: (p, c) => c.reasons.some((r) => codes.includes(r.code)) });
@@ -112,6 +129,7 @@
     glu: byCode('Đường huyết, HbA1c', ['duong huyet', 'hba1c', 'tieu duong'], ['glu', 'a1c']),
     ldl: byCode('LDL-C vượt mục tiêu', ['mo mau', 'ldl'], ['ldl']),
     neuro: byCode('Triệu chứng mới', ['trieu chung'], ['neuro']),
+    severe: { t: 'Ca nặng (mRS ≥3)', a: ['ca nang', 'nang', 'mrs', 'hoi phuc'], f: (p) => I.severe(p), why: (p) => 'mRS ' + I.mrs(p).map((x) => x.v).join(' → ') },
     msg: { t: 'Tin nhắn đang chờ', a: ['tin nhan', 'cho tra loi'], f: (p) => !!R.pending(p), why: (p) => '"' + R.pending(p).text + '"' },
     supply: { t: 'Sắp hết thuốc', a: ['het thuoc', 'sap het'], f: (p) => p.meds.some((m) => m.supply <= 7), why: (p) => p.meds.filter((m) => m.supply <= 7).map((m) => m.name + ' còn ' + m.supply + ' ngày').join(', ') },
     fresh: { t: 'Có dấu hiệu mới', a: ['moi', 'dau hieu moi'], f: (p, c) => !!I.changes(p, c), why: (p, c) => { const ch = I.changes(p, c); return ch.reasons.length ? ch.reasons[0].text : 'Chuyển mức so với hôm qua'; } },

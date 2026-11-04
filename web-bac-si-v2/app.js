@@ -3,22 +3,22 @@
   'use strict';
   const V = g.VNPS, T = V.T, R = V.rules, D = V.data, U = V.ui, W = V.views, esc = U.esc, ic = U.ic;
   const $ = (s) => document.querySelector(s);
-  V.byId = {}; D.patients.forEach((p) => { V.byId[p.id] = p; });
+  V.byId = {}; D.unit.forEach((p) => { V.byId[p.id] = p; });
 
   /* ---------- trạng thái ---------- */
   const S = (V.S = {
-    role: null, route: '', qtab: 'act', qgroup: 'all', drawer: null, page: null, collapsed: false, theme: 'light', menu: null,
+    role: null, route: '', qtab: 'act', drawer: null, page: null, collapsed: false, theme: 'light', menu: null,
     al: {}, notes: {}, adv: {},
-    pf: { q: '', need: 'all', group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' },
+    pf: { q: '', need: 'all', level: 'all', dx: 'all', rf: 'all', sort: 'risk' },
     qx: null, qc: null, qmove: false, qnotes: {}, sn: {}, day: 0, drafts: {}, pdmenu: false, sheetAnim: false,
     pv: { metric: 'bp', range: 30 }, mg: { sel: null }, ap: { mode: 'week', anchor: 0, filter: 'all' }, appts: [],
     tool: 'esrs', ti: {}, set: { days: [0, 1, 2, 3, 4, 5, 6].map(() => ({ on: false, from: '08:00', to: '11:30' })), busy: [], saved: null },
-    mgr: { group: 'all', period: 7 }, mq: null, cls: {}, sres: [], ew: false,
+    mq: null, mdoc: null, nudged: {}, mrsPick: null, cls: {}, sres: [], ew: false,
   });
   let aid = 1;
   D.patients.forEach((p) => S.appts.push({ id: 'A' + aid++, pid: p.id, d: p.appt.d, time: p.appt.time, dur: 30, reason: p.appt.kind, status: 'confirmed', by: 'doctor' }));
   D.patients.filter((p) => p.req).forEach((p) => S.appts.push({ id: 'A' + aid++, pid: p.id, d: p.req.want, time: '08:30', dur: 30, reason: 'Xin đổi lịch: ' + p.req.why + ' (qua ' + p.req.via + ')', status: 'pending', by: 'patient' }));
-  const derive = () => { S.cls = R.classifyAll(D.patients, R.cfg); };
+  const derive = () => { S.cls = R.classifyAll(D.unit, R.cfg); };
   derive();
   const NOWH = 7.55;
   const parseDMY = (s) => { const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) return null; const dt = new Date(+m[3], +m[2] - 1, +m[1]); if (dt.getMonth() !== +m[2] - 1) return null; return Math.round((dt - new Date(2026, 9, 31)) / 864e5); };
@@ -34,14 +34,14 @@
     if (S.role === 'doctor') {
       if (parts[1] === 'patient' && V.byId[parts[2]]) { S.route = 'd/patient'; S.page = S.page && S.page.id === parts[2] ? S.page : { id: parts[2], tab: 'home' }; }
       else S.route = 'd/' + (['home', 'patients', 'appts', 'msgs', 'tools', 'settings'].includes(parts[1]) ? parts[1] : 'home');
-    } else S.route = 'm/' + (['overview', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'overview');
+    } else if (parts[1] === 'doctor' && D.doctors.some((d) => d.id === parts[2])) { S.route = 'm/doctor'; S.mdoc = parts[2]; } else S.route = 'm/' + (['overview', 'msgs', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'overview');
   };
   const go = (r) => { const t = '#/' + r; if (location.hash === t) { render(); } else location.hash = t; };
 
   /* ---------- khung ---------- */
   const NAVS = {
     doctor: () => [['home', 'Tổng quan', 'home'], ['patients', 'Bệnh nhân', 'users'], ['appts', 'Lịch khám', 'calendar', W.todayAppts().length, 'n'], ['msgs', 'Tin nhắn', 'msg', W.pendingPatients().length, ''], ['tools', 'Công cụ tính nguy cơ', 'calc'], ['settings', 'Cài đặt', 'gear']].map((x) => ({ r: 'd/' + x[0], t: x[1], i: x[2], b: x[3], bc: x[4] })),
-    manager: () => [{ r: 'm/overview', t: 'Tổng hợp đơn vị', i: 'chart' }, { r: 'm/thresholds', t: 'Thang điểm & ngưỡng', i: 'gear' }],
+    manager: () => [{ r: 'm/overview', t: 'Toàn khoa', i: 'chart' }, { r: 'm/msgs', t: 'Tin nhắn', i: 'msg', b: W.stats(D.unit).late, bc: '' }, { r: 'm/thresholds', t: 'Ngưỡng cảnh báo', i: 'gear' }],
   };
   function shell() {
     const app = $('#app');
@@ -51,21 +51,21 @@
     return true;
   }
   function renderSide() {
-    const on = (r) => (S.route === r || (r === 'd/patients' && S.route === 'd/patient') || (r === 'm/overview' && S.route === 'm/list') ? ' on' : '');
-    $('#side').innerHTML = '<div class="brand"><span class="logo">V</span><span class="bt"><b>VNPreventStroke</b><span>(demo) · ' + (S.role === 'doctor' ? 'Cổng Bác sĩ' : 'Cổng Quản lý') + '</span></span></div><nav class="nav" aria-label="Menu chính">' +
+    const on = (r) => (S.route === r || (r === 'd/patients' && S.route === 'd/patient') || (r === 'm/overview' && (S.route === 'm/list' || S.route === 'm/doctor')) ? ' on' : '');
+    $('#side').innerHTML = '<div class="brand"><span class="logo">V</span><span class="bt"><b>VNPreventStroke</b></span></div><nav class="nav" aria-label="Menu chính">' +
       NAVS[S.role]().map((n) => '<a href="#/' + n.r + '" class="' + on(n.r).trim() + '" title="' + esc(n.t) + '">' + ic(n.i) + '<span class="lb">' + esc(n.t) + '</span>' + (n.b ? '<span class="bd ' + n.bc + '">' + n.b + '</span>' : '') + '</a>').join('') +
-      '<div class="sep"></div><button class="navb" data-a="collapse" title="Thu gọn / mở rộng menu">' + ic('panel') + '<span class="lb">Thu gọn menu</span></button><button class="navb" data-a="switchrole" title="Đổi vai trò">' + ic('logout') + '<span class="lb">Đổi vai trò</span></button></nav><div class="side-foot">Bản demo · dữ liệu minh họa<br>Không dùng để chẩn đoán hay điều trị</div>';
+      '<div class="sep"></div><button class="navb" data-a="collapse" title="Thu gọn / mở rộng menu">' + ic('panel') + '<span class="lb">Thu gọn menu</span></button><button class="navb" data-a="switchrole" title="Đổi vai trò">' + ic('logout') + '<span class="lb">Đổi vai trò</span></button></nav>';
   }
   const bellList = () => D.patients.filter((p) => !W.muted(p)).map((p) => ({ p, r: S.cls[p.id].reasons.filter((x) => x.level === 'act' && W.alertState(p.id, x.code).status !== 'done' && T.hoursAgo(x.at.d, x.at.h) <= 48)[0] })).filter((x) => x.r).sort((a, b) => b.r.at.d * 24 + b.r.at.h - (a.r.at.d * 24 + a.r.at.h));
   function renderTop() {
     const t = $('#top'), bl = S.role === 'doctor' ? bellList() : [];
     const keep = t.querySelector('#gs'); const had = keep && document.activeElement === keep ? keep.value : null;
-    t.innerHTML = (S.role === 'doctor' ? '<div class="tb-search">' + ic('search') + '<input id="gs" type="search" placeholder="Tìm tên, mã, SĐT hoặc: bỏ liều, HA cao…" autocomplete="off" aria-label="Tìm bệnh nhân" data-i="gs"><kbd>/</kbd><div class="sres" id="sres" hidden></div></div>' : '<span class="rolechip">' + ic('building') + ' ' + esc(D.doctor.unit) + '</span>') +
+    t.innerHTML = (S.role === 'doctor' ? '<div class="tb-search">' + ic('search') + '<input id="gs" type="search" placeholder="Tìm tên, mã, SĐT hoặc: bỏ liều, HA cao…" autocomplete="off" aria-label="Tìm bệnh nhân" data-i="gs"><kbd>/</kbd><div class="sres" id="sres" hidden></div></div>' : '') +
       '<span class="tb-date">' + T.dow(0) + ', ' + T.fmtDMY(0) + ' · 07:30</span><span class="tb-sp"></span>' +
       (S.role === 'doctor' ? '<button class="iconbtn" data-a="bell" aria-label="Cảnh báo mới">' + ic('bell') + (bl.length ? '<span class="bd">' + bl.length + '</span>' : '') + '</button>' : '') +
-      '<button class="iconbtn" data-a="theme" aria-label="Đổi giao diện sáng/tối" title="Chế độ tối [Đề xuất]">' + ic(S.theme === 'dark' ? 'sun' : 'moon') + '</button>' +
+      '<button class="iconbtn" data-a="theme" aria-label="Đổi giao diện sáng/tối" title="Chế độ tối">' + ic(S.theme === 'dark' ? 'sun' : 'moon') + '</button>' +
       '<button class="userbtn" data-a="umenu"><span class="av">' + U.initials(D.doctor.name.replace('BS. ', '')) + '</span><span class="small"><b>' + D.doctor.short + '</b></span>' + ic('chevD') + '</button>';
-    if (S.menu === 'bell') t.insertAdjacentHTML('beforeend', '<div class="menu" style="min-width:340px"><div class="small muted" style="padding:6px 10px">Cảnh báo đỏ chưa xử lý trong 48 giờ qua</div>' + (bl.length ? bl.map((x) => '<button data-a="open" data-id="' + x.p.id + '"><span class="av ' + 'act' + '" style="width:26px;height:26px;font-size:11px">' + U.initials(x.p.name) + '</span><span style="flex:1"><b>' + esc(x.p.name) + '</b><br><span class="xs muted">' + esc(x.r.text) + '</span></span></button>').join('') : '<div class="empty">Không có cảnh báo mới.</div>') + '</div>');
+    if (S.menu === 'bell') t.insertAdjacentHTML('beforeend', '<div class="menu" style="min-width:340px"><div class="small muted" style="padding:6px 10px">Cảnh báo đỏ 48 giờ qua</div>' + (bl.length ? bl.map((x) => '<button data-a="open" data-id="' + x.p.id + '"><span class="av ' + 'act' + '" style="width:26px;height:26px;font-size:11px">' + U.initials(x.p.name) + '</span><span style="flex:1"><b>' + esc(x.p.name) + '</b><br><span class="xs muted">' + esc(x.r.text) + '</span></span></button>').join('') : '<div class="empty">Không có cảnh báo mới.</div>') + '</div>');
     if (S.menu === 'user') t.insertAdjacentHTML('beforeend', '<div class="menu"><div class="mi"><span><b>' + esc(D.doctor.name) + '</b><br><span class="xs muted">' + (S.role === 'doctor' ? 'Vai trò: Bác sĩ' : 'Vai trò: Quản lý') + '</span></span></div><hr><button data-a="switchrole">' + ic('logout') + 'Đổi vai trò</button><button data-a="theme">' + ic('moon') + 'Chế độ sáng / tối</button><button data-a="reset">' + ic('dash') + 'Đặt lại dữ liệu demo</button></div>');
     if (had != null) { const n = t.querySelector('#gs'); n.value = had; n.focus(); }
   }
@@ -83,6 +83,8 @@
     else if (r === 'd/patient') h = W.patientView(V.byId[S.page.id], S.page.tab, 'page');
     else if (r === 'm/overview') h = W.overview();
     else if (r === 'm/list') h = W.mlist();
+    else if (r === 'm/doctor') h = W.mdoctor(S.mdoc);
+    else if (r === 'm/msgs') h = W.mmsgs();
     else if (r === 'm/thresholds') h = W.thresholds();
     m.innerHTML = h; m.scrollTop = top;
     m.querySelectorAll('.dash .scroll').forEach((x, i) => { if (inner[i]) x.scrollTop = inner[i]; });
@@ -120,16 +122,10 @@
     S.drawer = { id, tab: tab || (had ? S.drawer.tab : 'home'), direct: !!tab && !had }; S.menu = null; S.pdmenu = false; S.sheetAnim = !!tab; render();
   };
   const curV = () => (S.route === 'd/patient' ? S.page : S.drawer);
-  const curP = () => V.byId[curV().id];
   const noteBox = (el) => el.closest('#modal') || document.getElementById('main');
   const noteInput = (el) => noteBox(el).querySelector('[data-i="qnote"]');
-  const syncAppt = (pid) => {
-    const p = V.byId[pid]; const L = S.appts.filter((a) => a.pid === pid && a.status !== 'canceled' && a.status !== 'done' && a.by === 'doctor' || (a.pid === pid && a.status === 'confirmed')).filter((a) => a.d >= 0).sort((a, b) => a.d - b.d || a.time.localeCompare(b.time));
-    if (L.length) p.appt = Object.assign({}, p.appt, { d: L[0].d, time: L[0].time, status: 'scheduled' });
-  };
-  const setPatientField = () => { /* chỗ giữ chỗ để mở rộng */ };
   const nextInQueue = (msg) => {
-    const n = W.queueList(S.qtab, S.qgroup).find((p) => !W.muted(p));
+    const n = W.queueList(S.qtab).find((p) => !W.muted(p));
     S.qx = n ? n.id : null; S.qc = null; S.qmove = true; render();
     U.toast(msg + (n ? ' Chuyển sang ' + n.name + '.' : ' Đã hết bệnh nhân chưa xử lý trong tab này.'));
   };
@@ -145,7 +141,6 @@
     bell: () => { S.menu = S.menu === 'bell' ? null : 'bell'; renderTop(); },
     reset: () => location.reload(),
     legal: () => U.toast('Nội dung chính sách riêng tư và điều khoản đang chờ pháp chế xác nhận (chỗ giữ chỗ).'),
-    demo: () => U.demoMsg(),
     open: (el) => openP(el.dataset.id, el.dataset.tab),
     msgto: (el) => { if (S.route === 'd/msgs') { S.mg.sel = el.dataset.id; render(); } else openP(el.dataset.id, 'msg'); },
     close: () => { S.drawer = null; S.pdmenu = false; S.pv.metric = 'bp'; render(); },
@@ -193,11 +188,11 @@
       if (!el.closest('#drawer') && S.route === 'd/home') { S.qx = id; S.qmove = true; } render(); U.toast('Đã hoàn tác.');
     },
     qtua: () => { S.day += 3; render(); U.toast('Demo đã tua thêm 3 ngày, chỉ để thử hẹn xem lại. Số liệu và ngày trên trang không đổi.'); },
-    need: (el) => { const sr = $('#sres'), gs = $('#gs'); if (sr) sr.hidden = true; if (gs) gs.value = ''; S.pf = Object.assign({}, S.pf, { q: '', need: el.dataset.k, group: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all', sort: 'risk' }); S.drawer = null; go('d/patients'); },
+    need: (el) => { const sr = $('#sres'), gs = $('#gs'); if (sr) sr.hidden = true; if (gs) gs.value = ''; S.pf = Object.assign({}, S.pf, { q: '', need: el.dataset.k, level: 'all', dx: 'all', rf: 'all', sort: 'risk' }); S.drawer = null; go('d/patients'); },
     print: () => U.toast('Tính năng minh họa: in/xuất tóm tắt. Bản chính thức sẽ cảnh báo quyền riêng tư và ghi nhật ký truy cập.'),
     /* bệnh nhân */
-    pgroup: (el) => { S.pf.group = el.dataset.v; render(); },
-    pclear: (el) => { const v = el.dataset.v; if (v === 'all') S.pf = Object.assign({}, S.pf, { q: '', need: 'all', level: 'all', dx: 'all', rf: 'all', site: 'all' }); else S.pf[v === 'q' ? 'q' : v] = v === 'q' ? '' : 'all'; render(); },
+    plv: (el) => { S.pf.level = el.dataset.v; render(); },
+    pclear: (el) => { const v = el.dataset.v; if (v === 'all') S.pf = Object.assign({}, S.pf, { q: '', need: 'all', level: 'all', dx: 'all', rf: 'all' }); else S.pf[v === 'q' ? 'q' : v] = v === 'q' ? '' : 'all'; render(); },
     export: () => { const L = W.filterPatients(); U.modal(W.modalHead('Xuất danh sách bệnh nhân') + '<div class="mbox-b"><div class="warnbox">Tệp CSV chứa thông tin bệnh nhân trong phạm vi đang lọc (' + L.length + ' bệnh nhân). Chỉ xuất khi cần cho công việc chuyên môn. Việc xuất được ghi nhật ký truy cập (minh họa).</div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="exportgo">' + ic('download') + 'Xuất CSV</button></div>'); },
     exportgo: () => {
       const L = W.filterPatients(), rows = [['Mã', 'Họ tên', 'Tuổi', 'Giới', 'Cơ sở', 'Chẩn đoán', 'Mức theo dõi', 'Vấn đề cần chú ý', 'HA TB 7 ngày (mmHg)', 'Tuân thủ 30 ngày (%)', 'Cập nhật gần nhất']].concat(L.map((p) => { const I = R.ind(p); return [p.id, p.name, p.age, U.sexName(p), U.site(p), U.dx(p), U.lvl[S.cls[p.id].level].t, W.issues(p).join('; '), I.bp.avg7 ? I.bp.avg7.s + '/' + I.bp.avg7.dia : '', I.adh.v ? I.adh.v.pct : '', U.dt(p.lastData.d, p.lastData.h)]; }));
@@ -210,10 +205,10 @@
       const name = val('p_name').trim(), age = parseInt(val('p_age'), 10);
       if (!name) return say('p_msg', box('errbox', 'Nhập họ và tên.'));
       if (!(age >= 0 && age <= 120)) return say('p_msg', box('errbox', 'Tuổi phải từ 0 đến 120.'));
-      const id = 'P' + String(D.patients.length + 1).padStart(3, '0'), n = D.patients.length + 1;
+      const n = D.unit.length + 1, id = 'P' + String(n).padStart(3, '0');
       const nul = { htn: null, dm: null, smoke: null, af: null, mi: null, pad: null, hf: null, ocvd: null, prior: null };
-      const p = { id, name, age, sex: val('p_sex'), site: val('p_site'), phone: '0900 000 ' + String(n).padStart(3, '0'), family: null, doctor: D.doctor.name, coDoctor: null, consent: true, consentAdh: true, dx: { type: val('p_dx'), onset: null, nihss: null, mrs: null, reg: 0 }, rf: nul, ht: 165, meds: [], targets: {}, fsrp: null, life: { cig: 0, alc: 0, ex: 0, diet: 'Chưa ghi nhận', sleep: 7 }, events: [], lastRecD: 0, bp: [], glu: [], weight: [], labs: { ldl: [], tc: [], a1c: [] }, lastData: { d: 0, h: T.NOW_H }, noData: true, appt: { d: 14, time: '08:30', status: 'scheduled', kind: 'Khám lần đầu', iv: 1 }, visits: [], req: null, thread: [], notes: [], history: [] };
-      D.patients.push(p); V.byId[id] = p; S.appts.push({ id: 'A' + aid++, pid: id, d: 14, time: '08:30', dur: 30, reason: 'Khám lần đầu', status: 'confirmed', by: 'doctor' });
+      const p = { id, doc: 'nam', name, age, sex: val('p_sex'), site: val('p_site'), phone: '0900 000 ' + String(n).padStart(3, '0'), family: null, doctor: D.doctor.name, coDoctor: null, consent: true, consentAdh: true, dx: { type: val('p_dx'), onset: null, nihss: null, mrs: null, reg: 0 }, rf: nul, ht: 165, meds: [], targets: {}, fsrp: null, life: { cig: 0, alc: 0, ex: 0, diet: 'Chưa ghi nhận', sleep: 7 }, events: [], lastRecD: 0, bp: [], glu: [], weight: [], labs: { ldl: [], tc: [], a1c: [] }, lastData: { d: 0, h: T.NOW_H }, noData: true, appt: { d: 14, time: '08:30', status: 'scheduled', kind: 'Khám lần đầu', iv: 1 }, visits: [], req: null, thread: [], notes: [], history: [] };
+      D.patients.push(p); D.unit.push(p); V.byId[id] = p; S.appts.push({ id: 'A' + aid++, pid: id, d: 14, time: '08:30', dur: 30, reason: 'Khám lần đầu', status: 'confirmed', by: 'doctor' });
       U.closeModal(); refresh(); U.toast('Đã tạo hồ sơ ' + name + ' (' + id + '). Chưa có số đo nên vào "Cần theo dõi".');
     },
     entry: (el) => { S.ew = false; W.entryModal(V.byId[el.dataset.id]); },
@@ -248,7 +243,6 @@
     pvr: (el) => { S.pv.range = +el.dataset.v; render(); },
     /* tin nhắn */
     msel: (el) => { S.mg.sel = el.dataset.id; render(); },
-    tpl: (el) => { const p = V.byId[el.dataset.id], b = document.querySelector('#drawer #msgbox') || document.getElementById('msgbox'); if (b) { b.value = W.fillTpl(W.TPL[+el.dataset.i].x, p); S.drafts[p.id] = b.value; b.focus(); } },
     send: (el) => {
       const p = V.byId[el.dataset.id], b = el.dataset.box ? document.getElementById(el.dataset.box) : (el.closest('#drawer, #main') || document).querySelector('#msgbox'), t = b ? b.value.trim() : '';
       if (!t) return U.toast('Nhập nội dung tin nhắn.');
@@ -274,8 +268,19 @@
     },
     apconfirm: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (a && a.status === 'pending') { a.status = 'confirmed'; refresh(); U.toast('Đã xác nhận lịch của ' + V.byId[a.pid].name + '. Đã gửi thông báo cho bệnh nhân (minh họa).'); } },
     apcancel: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (a && (a.status === 'pending' || a.status === 'confirmed')) { a.status = 'canceled'; refresh(); U.toast('Đã hủy lịch. Trạng thái cuối, không đổi lại được.'); } },
-    apdone: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id); if (!a || a.status !== 'confirmed') return; U.modal(W.modalHead('Hoàn tất lịch khám') + '<div class="mbox-b"><div><b>' + esc(V.byId[a.pid].name) + '</b> · ' + T.fmtDMY(a.d) + ' ' + a.time + '</div><label class="f">Kết luận khám (bắt buộc)<textarea id="c_txt" rows="3"></textarea></label><div id="c_msg"></div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="apdonesave" data-id="' + a.id + '">Hoàn tất</button></div>'); },
-    apdonesave: (el) => { const a = S.appts.find((x) => x.id === el.dataset.id), t = val('c_txt').trim(); if (!t) return say('c_msg', box('errbox', 'Cần nhập kết luận khám.')); a.status = 'done'; a.conclusion = t; const p = V.byId[a.pid]; if (p.appt.d === a.d) p.appt.status = 'done'; U.closeModal(); refresh(); U.toast('Đã hoàn tất lịch khám. Trạng thái cuối, kết luận đã lưu.'); },
+    apdone: (el) => {
+      const a = S.appts.find((x) => x.id === el.dataset.id); if (!a || a.status !== 'confirmed') return;
+      const p = V.byId[a.pid]; S.mrsPick = null;
+      U.modal(W.modalHead('Hoàn tất khám · ' + p.name) + '<div class="mbox-b">' + (p.dx.type !== 'NONE' ? '<div class="f">mRS hôm nay<div class="seg mrs-pick" role="radiogroup" aria-label="mRS hôm nay">' + V.ins.MRS.slice(0, 6).map((t, i) => '<button data-a="mrspick" data-v="' + i + '" role="radio" aria-checked="false" title="' + esc(t) + '">' + i + '</button>').join('') + '</div></div>' : '') + '<label class="f">Kết luận<textarea id="c_txt" rows="3"></textarea></label><div id="c_msg"></div></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="apdonesave" data-id="' + a.id + '">Hoàn tất</button></div>');
+    },
+    mrspick: (el) => { S.mrsPick = +el.dataset.v; el.parentElement.querySelectorAll('button').forEach((b) => { b.classList.toggle('on', b === el); b.setAttribute('aria-checked', b === el); }); },
+    apdonesave: (el) => {
+      const a = S.appts.find((x) => x.id === el.dataset.id), t = val('c_txt').trim(); if (!t) return say('c_msg', box('errbox', 'Cần nhập kết luận khám.'));
+      const p = V.byId[a.pid]; a.status = 'done'; a.conclusion = t;
+      if (S.mrsPick != null) (p.mrsLog = p.mrsLog || []).push({ d: a.d, v: S.mrsPick });
+      if (p.appt.d === a.d) p.appt.status = 'done';
+      U.closeModal(); refresh(); U.toast('Đã hoàn tất khám' + (S.mrsPick != null ? ', mRS ' + S.mrsPick : '') + '.');
+    },
     /* công cụ tính */
     tool: (el) => { S.tool = el.dataset.v; render(); },
     tireset: () => { S.ti = {}; render(); },
@@ -286,8 +291,8 @@
     busyadd: () => { const d = parseDMY(val('bdate')), f = val('bfrom'), t = val('bto'); if (d == null) return say('berr', box('errbox', 'Ngày không hợp lệ. Nhập theo dd/mm/yyyy.')); if (d < 0) return say('berr', box('errbox', 'Không thêm lịch bận trong quá khứ.')); if (f >= t) return say('berr', box('errbox', 'Giờ kết thúc phải sau giờ bắt đầu.')); S.set.busy.push({ d, from: f, to: t, note: val('bnote') }); S.set.busy.sort((a, b) => a.d - b.d); render(); U.toast('Đã lưu lịch bận.'); },
     busydel: (el) => { S.set.busy.splice(+el.dataset.i, 1); render(); },
     /* quản lý */
-    mgroup: (el) => { S.mgr.group = el.dataset.v; render(); },
-    mperiod: (el) => { S.mgr.period = +el.dataset.v; render(); },
+    mdoc: (el) => go('m/doctor/' + el.dataset.id),
+    nudge: (el) => { const p = V.byId[el.dataset.id]; S.nudged[p.id] = true; render(); U.toast('Đã nhắc ' + p.doctor + ' trả lời ' + p.name + ' (minh họa).'); },
     mq: (el) => { S.mq = el.dataset.q; go('m/list'); },
     mback: () => go('m/overview'),
     cfgreset: () => { R.cfg = Object.assign({}, R.DEFAULT_CFG); refresh(); U.toast('Đã khôi phục ngưỡng mặc định.'); },
@@ -307,12 +312,12 @@
   document.addEventListener('keydown', (e) => {
     const t = e.target, typing = /INPUT|TEXTAREA|SELECT/.test(t.tagName);
     if (e.key === 'Enter' && t.dataset && t.dataset.a === 'open' && !typing) { H.open(t); return; }
-    if ((e.key === 'Enter' || e.key === ' ') && t.dataset && t.dataset.a === 'qx' && !typing) { e.preventDefault(); H.qx(t); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && t.dataset && (t.dataset.a === 'qx' || t.dataset.a === 'mdoc') && !typing) { e.preventDefault(); H[t.dataset.a](t); return; }
     if (e.key === 'Escape') { if (!$('#modal').hidden) U.closeModal(); else if (S.pdmenu) H.pdmenu(); else if ((S.drawer || S.route === 'd/patient') && curV() && curV().tab !== 'home') H.sheetclose(); else if (S.drawer) H.close(); else if (S.qx) { S.qx = null; S.qc = null; render(); } const sr = $('#sres'); if (sr) sr.hidden = true; return; }
     if (typing || e.ctrlKey || e.metaKey) { if (t.id === 'gs' && e.key === 'Enter') { const sr = $('#sres'), nk = V.ins.needOf(t.value); if (nk) { H.need({ dataset: { k: nk } }); return; } if (S.sres.length) { sr.hidden = true; t.value = ''; openP(S.sres[0].id); } } return; }
     if (e.key === '/' && S.role === 'doctor') { e.preventDefault(); const gs = $('#gs'); if (gs) gs.focus(); }
     if ((e.key === 'j' || e.key === 'k') && S.role === 'doctor' && S.drawer) {
-      const L = S.route === 'd/home' ? W.queueList(S.qtab, S.qgroup) : S.route === 'd/patients' ? W.filterPatients() : D.patients; const i = L.findIndex((p) => p.id === S.drawer.id);
+      const L = S.route === 'd/home' ? W.queueList(S.qtab) : S.route === 'd/patients' ? W.filterPatients() : D.patients; const i = L.findIndex((p) => p.id === S.drawer.id);
       const n = L[i + (e.key === 'j' ? 1 : -1)]; if (n) { S.drawer.id = n.id; S.drawer.direct = false; render(); }
     }
   });
@@ -332,11 +337,11 @@
   });
   document.addEventListener('change', (e) => {
     const t = e.target, i = t.dataset && t.dataset.i, v = t.type === 'checkbox' ? t.checked : t.value;
-    const map = { qtpl: () => { if (v === '') return; const p = V.byId[t.dataset.id]; S.drafts[p.id] = W.fillTpl(W.TPL[+v].x, p); render(); }, qgroup: () => { S.qgroup = v; S.qx = null; S.qc = null; render(); }, plevel: () => { S.pf.level = v; render(); }, pdx: () => { S.pf.dx = v; render(); }, prf: () => { S.pf.rf = v; render(); }, psite: () => { S.pf.site = v; render(); }, psort: () => { S.pf.sort = v; render(); }, apfilter: () => { S.ap.filter = v; render(); },
+    const map = { tplsel: () => { if (v === '') return; const p = V.byId[t.dataset.id], txt = W.fillTpl(W.TPL[+v].x, p), b = (t.closest('.composer, .qcomp') || document).querySelector('textarea'); S.drafts[p.id] = txt; if (b) { b.value = txt; b.focus(); } t.value = ''; }, pdx: () => { S.pf.dx = v; render(); }, prf: () => { S.pf.rf = v; render(); }, psort: () => { S.pf.sort = v; render(); }, apfilter: () => { S.ap.filter = v; render(); },
       tiage: () => { S.ti.age = v; render(); }, tisex: () => { S.ti.sex = v || undefined; render(); }, tievent: () => { S.ti.event = v || undefined; render(); }, ticlin: () => { S.ti.clin = v || undefined; render(); }, tidur: () => { S.ti.dur = v || undefined; render(); },
       tipick: () => { if (!v) return; const p = V.byId[v], a7 = R.avgBP(p, 7); S.ti = Object.assign({ age: p.age, sex: p.sex, event: p.dx.type }, p.rf, { cvd: undefined, bp140: a7 ? (a7.s >= 140 || a7.dia >= 90 ? 1 : 0) : undefined }); render(); },
       setOn: () => { S.set.days[+t.dataset.d].on = v; render(); }, setT: () => { S.set.days[+t.dataset.d][t.dataset.k] = v; },
-      cfg: () => { const n = parseFloat(v); if (!isNaN(n)) { R.cfg[t.dataset.k] = n; refresh(); } }, demo: () => U.demoMsg() };
+      cfg: () => { const n = parseFloat(v); if (!isNaN(n)) { R.cfg[t.dataset.k] = n; refresh(); } } };
     if (map[i]) map[i]();
   });
   const tipEl = document.createElement('div'); tipEl.className = 'ctip'; tipEl.hidden = true; document.body.appendChild(tipEl);

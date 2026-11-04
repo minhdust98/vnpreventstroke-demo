@@ -211,6 +211,69 @@
   P('P047', 'Chu Thị Nhàn', 63, 'F', 'VM', { dx: ['NMN', '2026-03-25', 2, 0], rf: 'htn', adh: 98, next: '2026-11-22', iv: 3 });
   P('P048', 'Âu Dương Hưng', 74, 'M', 'BM', { dx: ['CMN', '2026-01-30', 5, 2], rf: 'htn', adh: 96, next: '2026-12-14', iv: 3 });
 
+  /* ---------- các bác sĩ khác trong khoa: sinh bệnh nhân bằng số ngẫu nhiên cố định ----------
+   * Thêm vào sau 48 BN của BS. Nam nên hồ sơ của BS. Nam không đổi. reply = khoảng giờ trả lời tin nhắn. */
+  const DOCTORS = [
+    { id: 'nam', name: 'BS. Nguyễn Hoàng Nam', short: 'BS. Nam', site: 'BM' },
+    { id: 'hang', name: 'BS. Lê Thu Hằng', short: 'BS. Hằng', site: 'VM', n: 36, reply: [2, 9], wait: [30, 3] },
+    { id: 'long', name: 'BS. Phạm Đức Long', short: 'BS. Long', site: 'BM', n: 41, reply: [9, 34], wait: [52, 40, 27, 9] },
+    { id: 'anh', name: 'BS. Vũ Ngọc Anh', short: 'BS. Anh', site: 'BM', n: 30, reply: [1, 5], wait: [2] },
+  ];
+  const isoOf = (o) => { const x = dateOf(o); return x.getFullYear() + '-' + pad2(x.getMonth() + 1) + '-' + pad2(x.getDate()); };
+  const NAME_POOL = {
+    fam: ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Phan', 'Vũ', 'Võ', 'Đặng', 'Bùi', 'Đỗ', 'Hồ', 'Ngô', 'Dương', 'Lý', 'Đinh', 'Trịnh', 'Mai', 'Tô', 'Hà', 'Lương', 'Kiều', 'Quách', 'Tạ', 'Lưu', 'Triệu', 'Thân', 'La'],
+    M: [['Văn', 'Đức', 'Minh', 'Quốc', 'Hữu', 'Công', 'Thành', 'Xuân'], ['An', 'Bình', 'Cường', 'Dũng', 'Hải', 'Hiếu', 'Hòa', 'Khang', 'Kiên', 'Lâm', 'Lộc', 'Nghĩa', 'Phong', 'Quang', 'Sơn', 'Tài', 'Thắng', 'Toàn', 'Trung', 'Tuấn', 'Việt', 'Vinh']],
+    F: [['Thị', 'Ngọc', 'Thu', 'Thanh', 'Kim', 'Bích', 'Hồng', 'Mỹ'], ['Anh', 'Chi', 'Dung', 'Giang', 'Hà', 'Hạnh', 'Hoa', 'Hương', 'Liên', 'Linh', 'Loan', 'Ngân', 'Nhung', 'Oanh', 'Phương', 'Quyên', 'Thoa', 'Trang', 'Uyên', 'Vân']],
+  };
+  const QA = [
+    ['Bác sĩ ơi, mấy hôm nay tôi hay chóng mặt buổi sáng, có cần đi khám sớm không ạ?', 'Chào bác, bác đo HA lúc chóng mặt và ghi vào app. Nếu kèm yếu tay chân, nói khó hay méo miệng thì gọi 115 ngay.'],
+    ['Tôi uống thuốc huyết áp xong hơi mệt, có đổi giờ uống được không?', 'Chào bác, bác giữ nguyên thuốc, ghi lại giờ mệt vào app để bác sĩ xem và điều chỉnh khi tái khám.'],
+    ['Xin bác sĩ cho hỏi tôi có được tập đi bộ buổi tối không?', 'Được bác ạ, bác đi bộ nhẹ 30 phút, tránh ngay sau bữa ăn và mang theo điện thoại.'],
+    ['Kết quả mỡ máu tháng trước của tôi có ổn không ạ?', 'Chào bác, LDL-C còn hơi cao so với mục tiêu, bác duy trì thuốc và mình sẽ xét nghiệm lại khi tái khám.'],
+  ];
+  const deptSpecs = () => {
+    let seq = SPECS.length;
+    const used = new Set(SPECS.map((s) => s.name));
+    DOCTORS.slice(1).forEach((doc, di) => {
+      const r = rng(9001 + di * 131);
+      const waits = doc.wait.slice();
+      for (let k = 0; k < doc.n; k++) {
+        const sex = r() < 0.5 ? 'M' : 'F';
+        let name; do { name = pick(r, NAME_POOL.fam) + ' ' + pick(r, NAME_POOL[sex][0]) + ' ' + pick(r, NAME_POOL[sex][1]); } while (used.has(name));
+        used.add(name);
+        const age = 48 + Math.floor(r() * 36), u = r();
+        const type = u < 0.56 ? 'NMN' : u < 0.7 ? 'TIA' : u < 0.82 ? 'CMN' : 'NONE';
+        const onsetD = -40 - Math.floor(r() * 320);
+        const nihss = type === 'TIA' ? 0 : type === 'CMN' ? 3 + Math.floor(r() * 9) : 1 + Math.floor(r() * 9);
+        const mrs = type === 'TIA' ? 0 : r() < 0.45 ? 1 : r() < 0.5 ? 2 : 0;
+        const rf = ['htn'].filter(() => r() < 0.82).concat(r() < 0.3 ? ['dm'] : [], r() < 0.18 ? ['smoke'] : [], type !== 'CMN' && r() < 0.1 ? ['af'] : [], r() < 0.06 ? ['mi'] : []).join(' ');
+        const sp = { id: 'P' + String(++seq).padStart(3, '0'), name, age, sex, site: doc.site, doc, rf, iv: r() < 0.55 ? 3 : 1, thread: [], adh: 90 + Math.floor(r() * 9) };
+        sp.dx = type === 'NONE' ? NONE_DX : [type, isoOf(onsetD), nihss, mrs];
+        if (type === 'NONE') { sp.reg = isoOf(-30 - Math.floor(r() * 150)); if (age >= 55) sp.fsrp = 5 + Math.floor(r() * 14); }
+        if (/dm/.test(rf)) sp.glu = { b: r1(6.3 + r() * 1.6), sd: 0.6 };
+        sp.next = isoOf(2 + Math.floor(r() * 75));
+        const roll = r();
+        if (roll < 0.07) sp.bp = { b: [150, 90], sd: [6, 4], pins: [[0, 'am', 6.7, 181 + Math.floor(r() * 12), 102 + Math.floor(r() * 8)]] };
+        else if (roll < 0.1) { sp.next = isoOf(-9 - Math.floor(r() * 12)); sp.nextStatus = 'missed'; sp.iv = 1; }
+        else if (roll < 0.22) sp.bp = { b: [146, 89], sd: [5, 3], w7: [146 + Math.floor(r() * 5), 88 + Math.floor(r() * 4)] };
+        else if (roll < 0.28) sp.stale = 8 + Math.floor(r() * 7);
+        else if (roll < 0.34) sp.adh = 81 + Math.floor(r() * 7);
+        else if (roll < 0.39) sp.lab = { ldl: [r1(2.8 + r() * 0.5), isoOf(-12 - Math.floor(r() * 20))] };
+        if (r() < 0.4) {
+          const t = pick(r, QA), d0 = -(4 + Math.floor(r() * 20)), h0 = 8 + r() * 10, rep = doc.reply[0] + r() * (doc.reply[1] - doc.reply[0]), h1 = h0 + rep;
+          sp.thread.push([d0, r1(h0), 'bn', t[0]], [d0 + Math.floor(h1 / 24), r1(h1 % 24), 'bs', t[1]]);
+        }
+        if (waits.length && (k + 1) % Math.floor(doc.n / (doc.wait.length + 1)) === 0) {
+          const w = waits.shift(), at = T_NOW - w, t = pick(r, QA);
+          sp.thread.push([Math.floor(at / 24), r1(((at % 24) + 24) % 24), 'bn', t[0]]);
+        }
+        SPECS.push(sp);
+      }
+    });
+  };
+  const T_NOW = NOW_H;
+  deptSpecs();
+
   /* ---------- bộ dựng: spec -> hồ sơ đầy đủ ---------- */
   function parseRF(str) {
     const o = { htn: 0, dm: 0, smoke: 0, af: 0, mi: 0, pad: 0, hf: 0, ocvd: 0, prior: 0 };
@@ -398,7 +461,7 @@
       id: sp.id, name: sp.name, age: sp.age, sex: sp.sex, site: sp.site,
       phone: '0900 000 ' + String(n).padStart(3, '0'),
       family: fam ? { name: fam[0], rel: fam[1], phone: '0900 100 ' + String(n).padStart(3, '0') } : null,
-      doctor: 'BS. Nguyễn Hoàng Nam', coDoctor: sp.site === 'VM' ? 'BS. Lê Thu Hằng (Vinmec)' : null,
+      doc: (sp.doc || DOCTORS[0]).id, doctor: (sp.doc || DOCTORS[0]).name, coDoctor: !sp.doc && sp.site === 'VM' ? 'BS. Lê Thu Hằng (Vinmec)' : null,
       consent: true, consentAdh: !sp.noAdh,
       dx: { type, onset, nihss: sp.dx[2], mrs: sp.dx[3], reg: sp.reg ? off(sp.reg) : null },
       rf, ht, meds,
@@ -452,16 +515,18 @@
     }
 
     // ghi chú lâm sàng + lịch sử cảnh báo
-    p.notes = (sp.notes || []).map(([d, text]) => ({ d, h: 10, by: 'BS. Nguyễn Hoàng Nam', text }));
+    p.notes = (sp.notes || []).map(([d, text]) => ({ d, h: 10, by: p.doctor, text }));
     if (!p.notes.length && p.visits.length) {
       const v = p.visits[p.visits.length - 1];
-      p.notes.push({ d: v.d, h: 10, by: 'BS. Nguyễn Hoàng Nam', text: 'Tái khám ' + fmtDM(v.d) + ': HA phòng khám ' + v.bp[0] + '/' + v.bp[1] + '. ' + v.note });
+      p.notes.push({ d: v.d, h: 10, by: p.doctor, text: 'Tái khám ' + fmtDM(v.d) + ': HA phòng khám ' + v.bp[0] + '/' + v.bp[1] + '. ' + v.note });
     }
-    p.history = (sp.hist || (idx % 5 === 0 && n > 5 ? [[-(15 + Math.floor(r() * 12))].concat(pick(r, ALERT_TPL))] : [])).map(([d, group, reason, note]) => ({ d, h: 8.2, group, reason, by: 'BS. Nguyễn Hoàng Nam', note, doneAt: { d, h: 9.1 } }));
+    p.history = (sp.hist || (idx % 5 === 0 && n > 5 ? [[-(15 + Math.floor(r() * 12))].concat(pick(r, ALERT_TPL))] : [])).map(([d, group, reason, note]) => ({ d, h: 8.2, group, reason, by: p.doctor, note, doneAt: { d, h: 9.1 } }));
     return p;
   }
 
-  const patients = SPECS.map((s, i) => build(s, i + 1));
+  // unit = mọi BN của khoa; patients = BN của bác sĩ đang đăng nhập (BS. Nam), cổng Bác sĩ chỉ dùng danh sách này
+  const unit = SPECS.map((s, i) => build(s, i + 1));
+  const patients = unit.filter((p) => p.doc === 'nam');
 
   /* ---------- nội dung tĩnh ---------- */
   const education = [
@@ -489,5 +554,5 @@
   const doctor = { name: 'BS. Nguyễn Hoàng Nam', short: 'BS. Nam', unit: 'Phòng khám dự phòng thứ phát, Trung tâm Đột quỵ', managed: 48 };
   const lastVisitApptToday = patients.filter((p) => p.appt.d === 0).length;
 
-  V.data = { patients, MED, CLS_VN, education, library, doctor, isCrit, lastVisitApptToday };
+  V.data = { patients, unit, doctors: DOCTORS.map(({ id, name, short, site }) => ({ id, name, short, site })), unitName: 'Trung tâm Đột quỵ', MED, CLS_VN, education, library, doctor, isCrit, lastVisitApptToday };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

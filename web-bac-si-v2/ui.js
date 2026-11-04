@@ -65,7 +65,6 @@
   U.dx = (p) => U.dxName[p.dx.type] + (p.dx.onset != null ? ' ' + T.fmtDMY(p.dx.onset) : '');
   U.dxShort = (p) => (p.dx.type === 'NONE' ? 'Chưa đột quỵ' : p.dx.type + ' ' + T.fmtDM(p.dx.onset) + '/' + String(T.dateOf(p.dx.onset).getFullYear()).slice(2));
   U.sexName = (p) => (p.sex === 'M' ? 'Nam' : 'Nữ');
-  U.group = (p) => (p.dx.type === 'NONE' ? 'prim' : 'sec');
   U.site = (p) => (p.site === 'BM' ? 'Bạch Mai' : 'Vinmec Times City');
   U.dt = (d, h) => T.fmtH(h) + ' ' + T.fmtDMY(d);
   U.num = R.num;
@@ -85,7 +84,6 @@
     const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
     document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
   };
-  U.demoMsg = () => U.toast('Tính năng minh họa: bản demo chưa thực hiện thao tác này.');
 
   /* ---------- biểu đồ ---------- */
   U.niceTicks = (lo, hi, n) => {
@@ -117,9 +115,7 @@
       s += '<text x="' + (l - 6) + '" y="' + (pb + 16) + '" text-anchor="end">Bỏ liều</text>';
       lane.forEach((m) => {
         const cx = X(m.d + 0.5), cy = pb + 12, k = 3.6;
-        s += m.crit
-          ? '<path class="mk-crit" d="M' + (cx - k) + ' ' + (cy - k) + 'L' + (cx + k) + ' ' + (cy + k) + 'M' + (cx + k) + ' ' + (cy - k) + 'L' + (cx - k) + ' ' + (cy + k) + '"/>'
-          : '<circle class="mk-dose" cx="' + cx + '" cy="' + cy + '" r="2.4"/>';
+        s += '<path class="' + (m.crit ? 'mk-crit' : 'mk-dose') + '" d="M' + (cx - k) + ' ' + (cy - k) + 'L' + (cx + k) + ' ' + (cy + k) + 'M' + (cx + k) + ' ' + (cy - k) + 'L' + (cx - k) + ' ' + (cy + k) + '"/>';
         s += '<rect class="hit" x="' + X(m.d) + '" y="' + (pb + 4) + '" width="' + (X(m.d + 1) - X(m.d)) + '" height="16" data-tip="' + esc(m.tip) + '"/>';
       });
     }
@@ -130,11 +126,11 @@
       se.pts.forEach((p) => { const c = X(p.x) + ',' + Y(p.y); d += (prev && p.x - prev.x <= 1.1 ? 'L' : 'M') + c; prev = p; });
       s += '<path d="' + d + '" fill="none" stroke="' + se.color + '" stroke-width="2" stroke-linejoin="round"/>';
       se.pts.forEach((p) => {
-        const cx = X(p.x), cy = Y(p.y), fill = p.over ? se.color : 'var(--sheet)';
+        const cx = X(p.x), cy = Y(p.y);
         if (p.crit) { crits.push({ cx, cy, v: p.y }); return; }
         s += se.shape === 'square'
-          ? '<rect x="' + (cx - 2.9) + '" y="' + (cy - 2.9) + '" width="5.8" height="5.8" fill="' + fill + '" stroke="' + se.color + '" stroke-width="1.4"/>'
-          : '<circle cx="' + cx + '" cy="' + cy + '" r="3.1" fill="' + fill + '" stroke="' + se.color + '" stroke-width="1.4"/>';
+          ? '<rect x="' + (cx - 3) + '" y="' + (cy - 3) + '" width="6" height="6" fill="' + se.color + '" stroke="var(--sheet)" stroke-width="1"/>'
+          : '<circle cx="' + cx + '" cy="' + cy + '" r="3.2" fill="' + se.color + '" stroke="var(--sheet)" stroke-width="1"/>';
       });
       const f = se.pts[0];
       if (f && o.series.length > 1) s += '<text class="dl" x="' + (X(f.x) + 8) + '" y="' + (Y(f.y) - 8) + '">' + esc(se.name) + '</text>';
@@ -146,7 +142,7 @@
     s += '<text class="ttl" x="' + ((l + w - r) / 2) + '" y="' + (h - 2) + '" text-anchor="middle">' + esc(o.xTitle || 'Ngày đo (dd/mm)') + '</text></svg>';
     return s;
   };
-  U.chartSay = (t) => (t ? '<p class="chartsay">' + esc(t) + ' <span class="xs muted">Tự sinh theo quy tắc từ số liệu của bệnh nhân.</span></p>' : '');
+  U.chartSay = (t) => (t ? '<p class="chartsay">' + esc(t) + '</p>' : '');
 
   U.spark = (pts, o) => {
     o = o || {}; const w = o.w || 220, h = o.h || 46;
@@ -169,7 +165,7 @@
     for (let i = 0; i < 30; i++) s += '<div class="dh">' + (i % 5 === 0 ? T.fmtDM(i - 30) : '') + '</div>';
     p.meds.forEach((m) => {
       const crit = D.isCrit(m.cls);
-      s += '<div class="hl"><b>' + esc(m.name) + '</b> <span class="muted">' + esc(m.dose) + '</span>' + (crit ? ' <span class="tag prop">' + esc(D.CLS_VN[m.cls]) + '</span>' : '') + '</div>';
+      s += '<div class="hl' + (crit ? ' crit' : '') + '" title="' + esc(m.name + ' ' + m.dose + ' · ' + D.CLS_VN[m.cls]) + '">' + esc(m.name) + '</div>';
       m.log.forEach((c, i) => {
         const d = i - 30;
         s += '<div class="cell" style="grid-template-rows:repeat(' + c.length + ',1fr)">';
@@ -180,39 +176,7 @@
         s += '</div>';
       });
     });
-    return s + '</div><div class="legend" style="margin-top:8px"><span><i style="background:color-mix(in srgb,var(--ok) 55%,var(--sheet))"></i>Đã uống</span><span><i style="background:var(--act)"></i>✕ Bỏ liều (viền đậm: chống đông/kháng tiểu cầu)</span><span><i style="background:var(--rule)"></i>Chưa có dữ liệu (không tính là bỏ liều)</span><span>Ô chia đôi = thuốc uống 2 lần/ngày (trên: sáng, dưới: tối)</span></div>';
+    return s + '</div><div class="legend"><span><i style="background:color-mix(in srgb,var(--ok) 55%,var(--sheet))"></i>Đã uống</span><span><i style="background:var(--act)"></i>Bỏ liều</span><span><i class="hatch"></i>Chưa có dữ liệu</span></div>';
   };
 
-  /* thanh chồng: segs [{k:'act', n, label, q}] — số hiển thị ngay trên mảng; bấm để xem danh sách */
-  U.stack = (segs, total, o) => {
-    o = o || {};
-    const sum = segs.reduce((a, x) => a + x.n, 0) || 1;
-    let s = '<div class="stack" role="img" aria-label="' + esc(o.label || '') + '">';
-    segs.forEach((x) => { if (x.n > 0) s += '<button type="button" class="s-' + x.k + '" style="flex:' + x.n + ' 1 0" ' + (x.q ? 'data-a="mq" data-q="' + esc(x.q) + '"' : '') + ' title="' + esc(x.label + ': ' + x.n + ' bệnh nhân') + '">' + x.n + '</button>'; });
-    if (!segs.some((x) => x.n > 0)) s += '<span class="muted small" style="margin:auto">Không có bệnh nhân trong phạm vi này</span>';
-    s += '</div><div class="lg">';
-    const col = { act: 'var(--act)', watch: 'var(--watch)', ok: 'var(--ok)', high: 'var(--act)', mid: 'var(--watch)', low: 'var(--ok)', neutral: '#8b877e', gray: '#9a968c', ok2: 'var(--ok)', bad: 'var(--act)' };
-    segs.forEach((x) => { s += '<span><i style="background:' + col[x.k] + '"></i>' + esc(x.label) + ' <b>' + x.n + '</b></span>'; });
-    return s + (total != null ? '<span>Tổng <b>' + total + '</b> bệnh nhân</span>' : '') + '</div>';
-  };
-
-  U.hbar = (label, n, total, q, note) => '<div class="hb"><div>' + esc(label) + (note ? '<small class="muted" style="display:block;font-size:11px">' + esc(note) + '</small>' : '') + '</div><button type="button" class="track" ' + (q ? 'data-a="mq" data-q="' + esc(q) + '"' : '') + ' aria-label="' + esc(label + ': ' + n + '/' + total) + '"><div class="fill2" style="width:' + (total ? (100 * n) / total : 0) + '%"></div></button><div class="val">' + n + '<small>/' + total + '</small></div></div>';
-
-  // cột số nguyên: items [{label,n,k}]; trục y số nguyên, ghi tên trục
-  U.columns = (items, o) => {
-    o = o || {}; const w = 460, h = 190, l = 44, r = 10, t = 12, b = 44;
-    const mx = Math.max.apply(null, items.map((i) => i.n).concat([1]));
-    let tk = U.niceTicks(0, mx, 4).filter((v) => Number.isInteger(v)); if (tk.length < 2) tk = [0, 1];
-    const top = tk[tk.length - 1];
-    const Y = (v) => t + (1 - v / top) * (h - t - b), bw = (w - l - r) / items.length;
-    const col = { low: 'var(--ok)', mid: 'var(--watch)', high: 'var(--act)', neutral: '#8b877e', ok: 'var(--ok)' };
-    let s = '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(o.label || '') + '">';
-    tk.forEach((v) => { s += '<line class="tick" x1="' + l + '" x2="' + (w - r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text x="' + (l - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '</text>'; });
-    items.forEach((it, i) => {
-      const x = l + i * bw + bw * 0.18, ww = bw * 0.64, yy = Y(it.n);
-      s += '<g ' + (it.q ? 'data-a="mq" data-q="' + esc(it.q) + '" style="cursor:pointer"' : '') + '><rect x="' + x + '" y="' + yy + '" width="' + ww + '" height="' + (h - b - yy) + '" rx="3" fill="' + col[it.k] + '"><title>' + esc(it.label + ': ' + it.n + ' bệnh nhân') + '</title></rect><text x="' + (x + ww / 2) + '" y="' + (yy - 4) + '" text-anchor="middle" style="fill:var(--ink);font-weight:700">' + it.n + '</text><text x="' + (x + ww / 2) + '" y="' + (h - b + 15) + '" text-anchor="middle">' + esc(it.label) + '</text></g>';
-    });
-    s += '<line class="ax" x1="' + l + '" x2="' + (w - r) + '" y1="' + (h - b) + '" y2="' + (h - b) + '"/><text class="ttl" x="' + (l - 38) + '" y="' + (t + 4) + '">Số BN</text><text class="ttl" x="' + ((l + w - r) / 2) + '" y="' + (h - 4) + '" text-anchor="middle">' + esc(o.xTitle || '') + '</text></svg>';
-    return s;
-  };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
