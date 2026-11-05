@@ -488,18 +488,20 @@ body.sw-col #drawer { left: 58px; }
 .mleg { display: flex; gap: 12px; font-size: 12px; color: var(--ink-soft); }
 .mleg span { display: inline-flex; align-items: center; gap: 5px; }
 .hbars { display: flex; flex-direction: column; padding: 0 6px 10px; }
-.hbar { display: grid; grid-template-columns: 150px minmax(0, 1fr) 48px; gap: 12px; align-items: center; padding: 8px; border: 0; border-radius: 8px; background: none; text-align: left; }
+.hbar { display: grid; grid-template-columns: 178px minmax(0, 1fr) 48px; gap: 12px; align-items: center; padding: 8px; border: 0; border-radius: 8px; background: none; text-align: left; }
 .hbar:hover { background: var(--fill); }
 .hbar > b { text-align: right; }
 .hl-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hb-track { display: block; height: 10px; border-radius: 3px; background: var(--fill); }
+.hb-track { position: relative; display: block; height: 10px; border-radius: 3px; background: var(--fill); }
+.hb-ref { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.hl-n .mk { margin-right: 7px; vertical-align: -1px; }
 .hbar:hover .hb-track { background: var(--fill-2); }
 .hb-fill { display: flex; gap: 2px; height: 100%; }
 .hb-fill i { display: block; min-width: 3px; border-radius: 3px; }
 .hb-fill i.act { background: var(--act); } .hb-fill i.watch { background: var(--watch); } .hb-fill i.ok { background: var(--ok); }
 .hb-fill.one { border-radius: 3px; background: var(--s1); }
 .mline { padding: 0 10px 10px; }
-.vbars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; height: 210px; padding: 0 18px 12px; }
+.vbars { display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 14px; height: 210px; padding: 0 18px 12px; }
 .vb { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; justify-items: center; gap: 4px; font-size: 12px; color: var(--ink-soft); }
 .vb b { color: var(--ink); font-size: 13px; }
 .vb-col { position: relative; width: 60%; height: 100%; }
@@ -517,7 +519,6 @@ body.sw-col #drawer { left: 58px; }
 .tbl.cfg input { width: 76px; text-align: right; }
 .tbl.cfg input.changed { font-weight: 600; }
 .tbl.cfg input.draft { border-color: var(--accent); background: var(--accent-soft); }
-.tbl tr.ro td { cursor: default; }
 
 /* ---------- màn nhỏ, in ---------- */
 @media (max-width: 1180px) {

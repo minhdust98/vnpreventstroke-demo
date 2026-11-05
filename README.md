@@ -10,7 +10,7 @@ Bản demo bấm thử của ứng dụng phòng ngừa đột quỵ. Toàn bộ
 
 **Bác sĩ** (BS. Nguyễn Hoàng Nam, 48 bệnh nhân) thấy ai cần xử lý hôm nay, xử lý ngay tại hàng đợi, mở hồ sơ một trang. Ca nặng có thẻ **Hồi phục** theo dõi điểm mRS qua các lần khám; hoàn tất khám thì ghi mRS hôm nay. Mục **Hồ sơ ban đầu** hiện những gì người bệnh khai trên app (bệnh nền, thuốc, sinh hoạt, gia đình, triệu chứng 3 tháng qua) kèm nguồn khai; bác sĩ xác nhận ngay trên hồ sơ. Người bệnh chưa đồng ý chia sẻ thì không hiện. Hai cảnh báo từ hồ sơ ban đầu (triệu chứng giống đột quỵ chưa đánh giá, rung nhĩ chưa thấy thuốc chống đông) là `[Đề xuất]`, ở mức cần theo dõi.
 
-**Quản lý** thấy toàn khoa (4 bác sĩ, 155 bệnh nhân), từng bác sĩ và bệnh nhân của họ, thời gian trả lời tin nhắn, và đặt ngưỡng cảnh báo. Quản lý không mở hồ sơ bệnh án và không đọc nội dung tin nhắn.
+**Quản lý** thấy toàn khoa (4 bác sĩ, 155 bệnh nhân), từng bác sĩ và bệnh nhân của họ, thời gian trả lời tin nhắn, và đặt ngưỡng cảnh báo. Quản lý bấm một bệnh nhân để mở hồ sơ một trang như bác sĩ nhưng chỉ đọc: không có nút ghi (gọi, nhắn, xử lý, đặt lịch, xác nhận) và không đọc nội dung tin nhắn. Trang Tổng quan có 10 biểu đồ chung cho khoa; bấm một thanh để mở danh sách bệnh nhân tương ứng.
 
 ### Cấu trúc
 

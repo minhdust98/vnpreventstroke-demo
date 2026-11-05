@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Bác sĩ chuyên khoa đột quỵ** theo dõi bệnh nhân sau xuất viện, trên máy tính ở phòng khám hoặc bàn làm việc (màn 1366–1440 px). Việc chính: biết ai cần xử lý hôm nay, xử lý ngay tại hàng đợi, mở hồ sơ một trang, hoàn tất buổi tái khám và ghi điểm mRS với ca nặng. Chỉ thấy bệnh nhân của mình.
-- **Cán bộ quản lý khoa** xem toàn khoa: số bệnh nhân, từng bác sĩ và bệnh nhân họ quản lý, tin nhắn đang chờ trả lời, ngưỡng cảnh báo. Không mở hồ sơ bệnh án và không đọc nội dung tin nhắn.
+- **Cán bộ quản lý khoa** xem toàn khoa: số bệnh nhân, từng bác sĩ và bệnh nhân họ quản lý, tin nhắn đang chờ trả lời, ngưỡng cảnh báo. Mở được hồ sơ bệnh nhân của cả khoa nhưng chỉ đọc (không ghi, không đọc nội dung tin nhắn).
 - **Người xem bản demo**: hội đồng và nhà tài trợ, cần hình dung sản phẩm sẽ hoạt động thế nào.
 
 ## Product Purpose

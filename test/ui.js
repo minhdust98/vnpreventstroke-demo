@@ -47,6 +47,15 @@ const ok = (cond, msg) => { console.log((cond ? 'PASS ' : 'FAIL ') + msg); if (!
     await click('.mstats .lvtab', 'Bệnh nhân'); ok(await js(`document.querySelectorAll('.tbl.list tbody tr').length===VNPS.data.unit.length`), 'Ô Bệnh nhân mở danh sách toàn bộ bệnh nhân của khoa');
     await goto('#/m/overview');
     await click('.dtbl tbody tr', 'Lê Thu Hằng'); ok(await js(`location.hash==='#/m/doctor/hang'&&document.querySelectorAll('.tbl.list tbody tr').length===VNPS.data.unit.filter(p=>p.doc==='hang').length`), 'Trang một bác sĩ liệt kê đúng bệnh nhân của bác sĩ đó');
+    // Quản lý mở hồ sơ bệnh nhân: giống bác sĩ nhưng chỉ đọc
+    await goto('#/m/doctor/hang'); await click('.tbl.list tbody tr'); await sleep(300);
+    ok(await js(`!!document.querySelector('#drawer .ocard')&&!document.querySelector('#drawer [data-a="call"],#drawer [data-a="pdone"],#drawer [data-a="entry"],#drawer [data-a="apnew"],#drawer [data-a="icfm"],#drawer [data-a="pdmenu"]')&&(()=>{const o=document.querySelector('.opage');return o.scrollHeight<=o.clientHeight+1})()`), 'Quản lý mở hồ sơ một trang của bệnh nhân: đủ thẻ, không nút ghi, không cuộn');
+    await click('#drawer .hl', 'Cần xử lý').catch(() => click('#drawer [data-a="ptab"][data-t="note"]')); await sleep(250);
+    ok(await js(`!document.querySelector('#notebox')&&!document.querySelector('.pd-tabs [data-t="msg"]')&&!document.querySelector('.sheet [data-a="adone"],.sheet [data-a="adoing"],.sheet [data-a="addnote"]')`), 'Quản lý: tab Ghi chú chỉ đọc, không có tab Tin nhắn');
+    ok(await js(`(()=>{const V=VNPS,W=V.views,re=new RegExp('data-a="(?:'+W.WRITE.join('|')+')"');return V.data.unit.every(p=>W.PTABS.every(([k])=>{const h=W.patientView(p,k,'drawer'),t=h.replace(/<[^>]+>/g,' ');return !re.test(h)&&!/id="(notebox|msgbox)"/.test(h)&&p.thread.every(m=>m.text.length<=12||!t.includes(m.text.slice(0,30).replace(/&/g,'&amp;')))}))})()`), 'Quản lý: cả 155 hồ sơ, mọi tab, không nút ghi và không lộ nội dung tin nhắn');
+    await key('Escape', 'Escape', 27); await key('Escape', 'Escape', 27);
+    await goto('#/m/dashboard'); ok(await js(`document.querySelectorAll('.mchart').length===10`), 'Tổng quan có 10 biểu đồ chung cho khoa');
+    await click('.mchart .hbar', 'Huyết áp'); ok(await js(`location.hash==='#/m/list'&&document.querySelectorAll('.tbl.list tbody tr').length>0`), 'Bấm một thanh lý do mở danh sách bệnh nhân tương ứng');
     await goto('#/m/msgs'); await click('[data-a="nudge"]'); ok(await js(`Object.keys(VNPS.S.nudged).length===1`), 'Nhắc bác sĩ trả lời tin chờ quá hạn');
     ok(await js(`!document.querySelector('#main .thread,#main .msg')`), 'Quản lý không thấy nội dung tin nhắn');
     await goto('#/m/thresholds'); await js(`(()=>{const i=document.querySelector('[data-k="staleDays"]');i.value='6';i.dispatchEvent(new Event('change',{bubbles:true}))})()`);

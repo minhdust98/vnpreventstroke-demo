@@ -310,6 +310,7 @@
     if (S.pdmenu && !(el && el.dataset.a === 'pdmenu')) { S.pdmenu = false; if (S.route === 'd/patient') render(); else if (S.drawer) renderDrawer(); }
     if (!el) { if (S.menu && !e.target.closest('.menu')) { S.menu = null; renderTop(); } const sr = $('#sres'); if (sr && !e.target.closest('.tb-search')) sr.hidden = true; return; }
     const a = el.dataset.a; if (el.tagName === 'A') e.preventDefault();
+    if (S.role === 'manager' && W.WRITE.includes(a)) return; // quản lý chỉ đọc hồ sơ
     if (S.menu && a !== 'umenu') S.menu = null;
     if (H[a]) { e.stopPropagation(); H[a](el, e); if (S.menu === null && $('#top') && $('#top').querySelector('.menu')) renderTop(); }
   });

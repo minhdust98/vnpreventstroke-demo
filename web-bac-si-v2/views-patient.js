@@ -6,6 +6,11 @@
   const S = () => V.S;
   const num = R.num;
 
+  /* Quản lý xem hồ sơ như bác sĩ nhưng chỉ đọc: không nút ghi, không nội dung tin nhắn. */
+  W.ro = () => S().role === 'manager';
+  W.WRITE = ['call', 'entry', 'entrysave', 'apnew', 'apnewsave', 'apdone', 'apdonesave', 'apconfirm', 'apcancel', 'pdone', 'advnew', 'advsave', 'qundo', 'qdone', 'qsnooze', 'qchip', 'icfm', 'icfv', 'icfsave', 'pdmenu', 'addnote', 'adone', 'adoing', 'adonesave', 'send', 'msgto'];
+  const noWrite = (html) => html.replace(new RegExp('<button[^>]*(?:data-a="(?:' + W.WRITE.join('|') + ')"|data-a="ptab"[^>]*data-t="msg")[^>]*>[\\s\\S]*?</button>', 'g'), '');
+
   W.PTABS = [['sum', 'Tóm tắt'], ['risk', 'Nguy cơ'], ['vit', 'Chỉ số'], ['med', 'Thuốc'], ['life', 'Lối sống'], ['intake', 'Hồ sơ ban đầu'], ['visit', 'Tái khám'], ['msg', 'Tin nhắn'], ['adv', 'Lời khuyên'], ['note', 'Ghi chú, cảnh báo']];
   const STAT = { new: ['Mới', 'watch'], doing: ['Đang xử lý', 'neutral'], done: ['Đã xử lý', 'ok'] };
 
@@ -91,8 +96,8 @@
     const lastDone = rs.map((r) => W.alertState(p.id, r.code)).filter((x) => x.status === 'done').pop();
     return '<section class="card ocard"><div class="och">' + hd('note', U.mark(lv) + 'Cần xử lý', '', 'lv-' + lv) + '</div><ul class="otodo">' +
       rs.map((r) => { const d = W.alertState(p.id, r.code).status === 'done'; return '<li' + (d ? ' class="isdone"' : '') + '><b>' + esc(cap(r.text)) + '</b>' + (d ? ' <span class="xs muted">· đã xử lý</span>' : '') + (r.code === 'appt' ? '' : ' <span class="xs muted">' + esc(R.stamp(r.at.d, r.at.h)) + '</span>') + '</li>'; }).join('') + '</ul>' +
-      (a && !muted ? '<div class="osug">' + ic('spark') + '<div><b>Gợi ý:</b> ' + esc(W.TODO[a.reason.code](p)) + '</div></div>' : '') +
-      (muted ? '<div class="ofoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div>' : '<div class="ofoot"><button class="btn sm primary" data-a="pdone" data-id="' + p.id + '">Xử lý</button></div>') + '</section>';
+      (a && !muted && !W.ro() ? '<div class="osug">' + ic('spark') + '<div><b>Gợi ý:</b> ' + esc(W.TODO[a.reason.code](p)) + '</div></div>' : '') +
+      (W.ro() ? '' : muted ? '<div class="ofoot"><span class="small muted" style="flex:1">' + (sn && sn.active ? 'Xem lại ' + T.fmtDM(sn.until) + (sn.note ? ' · ' + esc(sn.note) : '') : 'Đã xử lý' + (lastDone ? ' · ' + esc(lastDone.note) : '')) + '</span><button class="btn sm" data-a="qundo" data-id="' + p.id + '">Hoàn tác</button></div>' : '<div class="ofoot"><button class="btn sm primary" data-a="pdone" data-id="' + p.id + '">Xử lý</button></div>') + '</section>';
   };
   const riskCard = (p) => {
     const s = R.patientScales(p), rows = [], mp = { high: 'act', mid: 'watch', low: 'ok' };
@@ -117,7 +122,7 @@
     const a = p.appt, pe = R.pending(p), over = a.d < 0 && a.status !== 'done', prep = W.prepDue(p);
     const today = S().appts.find((x) => x.pid === p.id && x.d === 0 && x.status === 'confirmed');
     return '<section class="card ocard"><div class="oln oline">' + ic('calendar') + '<button class="hl" data-a="ptab" data-t="' + (prep ? 'sum' : 'visit') + '"><span>Tái khám <b>' + T.fmtDM(a.d) + '</b>, ' + a.time + '</span></button>' + (over ? '<span class="onote lv-act">quá hẹn ' + -a.d + ' ngày</span>' : a.d === 0 ? '<span class="onote lv-watch">hôm nay</span>' : '') + '<span style="flex:1"></span>' + (today ? '<button class="btn sm primary" data-a="apdone" data-id="' + today.id + '">Hoàn tất khám</button>' : '') + '</div>' +
-      (pe ? '<div class="oln oline" title="' + esc(pe.text) + '">' + ic('msg') + '<span class="onowrap">Tin chờ ' + U.hrs(pe.hours) + ': "' + esc(pe.text) + '"</span>' + more('msg', 'Trả lời') + '</div>' : '') + '</section>';
+      (pe && !W.ro() ? '<div class="oln oline" title="' + esc(pe.text) + '">' + ic('msg') + '<span class="onowrap">Tin chờ ' + U.hrs(pe.hours) + ': "' + esc(pe.text) + '"</span>' + more('msg', 'Trả lời') + '</div>' : '') + '</section>';
   };
   const more = (t, label) => '<button class="lnk" data-a="ptab" data-t="' + t + '">' + label + '</button>';
   // Chuỗi mRS qua các lần khám: chấm trung tính (màu mức độ dành cho bệnh nhân), lần gần nhất có viền.
@@ -170,15 +175,15 @@
   };
   W.pdOverview = (p) => W.ovTiles(p) + '<div class="opg"><div class="olc">' + chartCard(p) + (W.intake(p) ? '<div class="orow"><div class="ocol">' + mrsCard(p) + lifeCard(p, true) + '</div>' + intakeCard(p) + '</div>' : mrsCard(p) + lifeCard(p)) + '</div><div class="orc">' + todoCard(p) + riskCard(p) + medCard(p) + visitCard(p) + '</div></div>';
   W.pdSheet = (p, tab) => '<div class="sh-scrim" data-a="sheetclose"></div><aside class="sheet' + (S().sheetAnim ? ' enter' : '') + '" role="dialog" aria-label="Chi tiết hồ sơ"><div class="sheet-h">' + W.pdTabs(tab, p) + '<span style="flex:1"></span><button class="lnk" data-a="ptab" data-t="home">Toàn hồ sơ</button><button class="iconbtn" data-a="sheetclose" aria-label="Đóng chi tiết">' + ic('x') + '</button></div><div class="pd-body">' + W.pdBody(p, tab) + '</div></aside>';
-  W.pdTabs = (tab, p) => '<div class="pd-tabs" role="tablist">' + W.PTABS.filter(([k]) => k !== 'intake' || W.intake(p)).map(([k, t]) => '<button role="tab" class="' + (tab === k ? 'on' : '') + '" data-a="ptab" data-t="' + k + '">' + t + (k === 'msg' && R.pending(p) ? '<span class="n">1</span>' : '') + (k === 'note' && S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length ? '<span class="n">' + S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length + '</span>' : '') + '</button>').join('') + '</div>';
-  W.patientView = (p, tab, mode) => '<div class="pd opage">' + W.pdHead(p, mode) + W.pdOverview(p) + (tab && tab !== 'home' ? W.pdSheet(p, tab) : '') + '</div>';
-  W.pdBody = (p, tab) => ({ sum: W.pdSum, risk: W.pdRisk, vit: W.pdVit, med: W.pdMed, life: W.pdLife, intake: W.pdIntake, visit: W.pdVisit, msg: W.pdMsg, adv: W.pdAdv, note: W.pdNote }[tab] || W.pdSum)(p);
+  W.pdTabs = (tab, p) => '<div class="pd-tabs" role="tablist">' + W.PTABS.filter(([k]) => (k !== 'intake' || W.intake(p)) && !(k === 'msg' && W.ro())).map(([k, t]) => '<button role="tab" class="' + (tab === k ? 'on' : '') + '" data-a="ptab" data-t="' + k + '">' + t + (k === 'msg' && R.pending(p) ? '<span class="n">1</span>' : '') + (k === 'note' && S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length ? '<span class="n">' + S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length + '</span>' : '') + '</button>').join('') + '</div>';
+  W.patientView = (p, tab, mode) => { const h = '<div class="pd opage">' + W.pdHead(p, mode) + W.pdOverview(p) + (tab && tab !== 'home' ? W.pdSheet(p, tab) : '') + '</div>'; return W.ro() ? noWrite(h) : h; };
+  W.pdBody = (p, tab) => ({ sum: W.pdSum, risk: W.pdRisk, vit: W.pdVit, med: W.pdMed, life: W.pdLife, intake: W.pdIntake, visit: W.pdVisit, msg: W.pdMsg, adv: W.pdAdv, note: W.pdNote }[W.ro() && tab === 'msg' ? 'sum' : tab] || W.pdSum)(p);
 
   /* ---------- thẻ cảnh báo ---------- */
   W.alertCard = (p, r) => {
     const a = W.alertState(p.id, r.code), st = STAT[a.status], key = p.id + ':' + r.code;
     return '<div class="alertcard' + (a.status === 'done' ? ' done' : '') + '"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + U.mark(r.level) + '<b>' + esc(r.text) + '</b><span class="tag">' + esc(r.group) + '</span><span class="xs muted">' + esc(U.dt(r.at.d, r.at.h)) + '</span><span class="chip ' + st[1] + ' xs">' + st[0] + '</span></div>' +
-      '<ul class="raw">' + r.raw.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      '<ul class="raw">' + (W.ro() && r.code === 'msg' ? '' : r.raw.map((x) => '<li>' + esc(x) + '</li>').join('')) + '</ul>' +
       (a.status === 'done' ? '<div class="xs muted" style="margin-top:4px">Đã xử lý bởi ' + esc(a.by) + ' lúc ' + U.dt(a.at.d, a.at.h) + ' · ' + esc(a.note) + '</div>' : '<div style="display:flex;gap:6px;margin-top:7px">' + (a.status === 'new' ? '<button class="btn sm" data-a="adoing" data-k="' + key + '">Nhận xử lý</button>' : '') + '<button class="btn sm primary" data-a="adone" data-k="' + key + '">Đã xử lý…</button></div>') + '</div>';
   };
 
@@ -262,7 +267,7 @@
     if (pats.length) out.push(['spark', '<b>Quy luật trong dữ liệu:</b> ' + esc(pats.join(' '))]);
     return out;
   };
-  W.pdSum = (p) => (W.prepDue(p) ? W.prep(p) : '') + '<section class="card"><div class="card-b"><ul class="bul">' + W.bullets(p).map(([i, t]) => '<li>' + ic(i === 'alert' ? 'alert' : i === 'trend' ? 'chart' : i === 'pill' ? 'pill' : i === 'spark' ? 'spark' : 'info') + '<div>' + t + '</div></li>').join('') + '</ul></div></section>';
+  W.pdSum = (p) => (W.prepDue(p) && !W.ro() ? W.prep(p) : '') + '<section class="card"><div class="card-b"><ul class="bul">' + W.bullets(p).map(([i, t]) => '<li>' + ic(i === 'alert' ? 'alert' : i === 'trend' ? 'chart' : i === 'pill' ? 'pill' : i === 'spark' ? 'spark' : 'info') + '<div>' + t + '</div></li>').join('') + '</ul></div></section>';
 
   /* ---------- tab: Nguy cơ ---------- */
   W.pdRisk = (p) => {
@@ -343,7 +348,7 @@
     const c = S().cls[p.id], notes = p.notes.concat(S().notes[p.id] || []).sort((a, b) => b.d * 24 + b.h - (a.d * 24 + a.h));
     const hist = p.history.concat(Object.keys(S().al).filter((k) => k.indexOf(p.id + ':') === 0 && S().al[k].status === 'done').map((k) => { const r = c.reasons.find((x) => p.id + ':' + x.code === k); const a = S().al[k]; return { d: a.at.d, h: a.at.h, reason: r ? r.text : k, by: a.by, note: a.note, group: r ? r.group : '', doneAt: a.at }; }));
     return '<section class="card"><div class="card-h"><h2>Cảnh báo đang mở</h2><span class="tag">' + c.reasons.filter((r) => W.alertState(p.id, r.code).status !== 'done').length + '</span></div><div class="card-b" style="display:flex;flex-direction:column;gap:8px">' + (c.reasons.length ? c.reasons.map((r) => W.alertCard(p, r)).join('') : '<span class="muted">Không có cảnh báo.</span>') + '</div></section>' +
-      '<section class="card"><div class="card-h"><h2>Ghi chú lâm sàng</h2></div><div class="card-b"><textarea id="notebox" rows="2" placeholder="Thêm ghi chú lâm sàng…" aria-label="Ghi chú"></textarea><div style="margin:6px 0 10px"><button class="btn sm primary" data-a="addnote" data-id="' + p.id + '">Lưu ghi chú</button></div>' + notes.map((n) => '<div class="mod-row"><div class="small">' + esc(n.text) + '<div class="xs muted">' + esc(n.by) + ' · ' + U.dt(n.d, n.h) + '</div></div></div>').join('') + '</div></section>' +
+      '<section class="card"><div class="card-h"><h2>Ghi chú lâm sàng</h2></div><div class="card-b">' + (W.ro() ? '' : '<textarea id="notebox" rows="2" placeholder="Thêm ghi chú lâm sàng…" aria-label="Ghi chú"></textarea><div style="margin:6px 0 10px"><button class="btn sm primary" data-a="addnote" data-id="' + p.id + '">Lưu ghi chú</button></div>') + notes.map((n) => '<div class="mod-row"><div class="small">' + esc(n.text) + '<div class="xs muted">' + esc(n.by) + ' · ' + U.dt(n.d, n.h) + '</div></div></div>').join('') + '</div></section>' +
       '<section class="card"><div class="card-h"><h2>Lịch sử cảnh báo đã xử lý</h2></div><div class="card-b">' + (hist.length ? hist.map((h) => '<div class="mod-row"><div class="small"><b>' + esc(h.reason) + '</b> <span class="tag">' + esc(h.group) + '</span><div class="xs muted">Xử lý bởi ' + esc(h.by) + ' lúc ' + U.dt(h.doneAt.d, h.doneAt.h) + ' · ' + esc(h.note) + '</div></div></div>').join('') : '<span class="muted">Chưa có lịch sử.</span>') + '</div></section>';
   };
 
