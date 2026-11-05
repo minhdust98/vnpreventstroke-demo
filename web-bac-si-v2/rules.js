@@ -195,10 +195,13 @@
   };
 
   /* ---------- phân loại 🔴🟡🟢 ---------- */
-  const PRIO = ['neuro', 'bp-crit', 'miss-ac', 'glu', 'bp-avg3', 'overdue', 'hr-adh', 'bp-avg7', 'adh', 'stale', 'ldl', 'a1c', 'msg', 'appt'];
-  R.GROUPS = { neuro: 'Triệu chứng mới', 'bp-crit': 'Huyết áp', 'bp-avg3': 'Huyết áp', 'bp-avg7': 'Huyết áp', glu: 'Đường huyết', 'miss-ac': 'Bỏ liều', adh: 'Bỏ liều', 'hr-adh': 'Bỏ liều', overdue: 'Quá hẹn', stale: 'Không có dữ liệu', ldl: 'Xét nghiệm', a1c: 'Xét nghiệm', msg: 'Tin nhắn', appt: 'Tái khám sắp tới' };
-  R.ISSUE = { neuro: 'Triệu chứng', 'bp-crit': 'Huyết áp', 'bp-avg3': 'Huyết áp', 'bp-avg7': 'Huyết áp', glu: 'Đường huyết', 'miss-ac': 'Thuốc', adh: 'Thuốc', 'hr-adh': 'Thuốc', overdue: 'Lịch hẹn', stale: 'Thiếu dữ liệu', ldl: 'Mỡ máu', a1c: 'Đường huyết', msg: 'Tin nhắn', appt: 'Lịch hẹn' };
+  const PRIO = ['neuro', 'bp-crit', 'miss-ac', 'glu', 'bp-avg3', 'overdue', 'hr-adh', 'bp-avg7', 'adh', 'stale', 'intake-sym', 'intake-af', 'ldl', 'a1c', 'msg', 'appt'];
+  R.GROUPS = { 'intake-sym': 'Hồ sơ ban đầu', 'intake-af': 'Hồ sơ ban đầu', neuro: 'Triệu chứng mới', 'bp-crit': 'Huyết áp', 'bp-avg3': 'Huyết áp', 'bp-avg7': 'Huyết áp', glu: 'Đường huyết', 'miss-ac': 'Bỏ liều', adh: 'Bỏ liều', 'hr-adh': 'Bỏ liều', overdue: 'Quá hẹn', stale: 'Không có dữ liệu', ldl: 'Xét nghiệm', a1c: 'Xét nghiệm', msg: 'Tin nhắn', appt: 'Tái khám sắp tới' };
+  R.ISSUE = { 'intake-sym': 'Triệu chứng', 'intake-af': 'Thuốc', neuro: 'Triệu chứng', 'bp-crit': 'Huyết áp', 'bp-avg3': 'Huyết áp', 'bp-avg7': 'Huyết áp', glu: 'Đường huyết', 'miss-ac': 'Thuốc', adh: 'Thuốc', 'hr-adh': 'Thuốc', overdue: 'Lịch hẹn', stale: 'Thiếu dữ liệu', ldl: 'Mỡ máu', a1c: 'Đường huyết', msg: 'Tin nhắn', appt: 'Lịch hẹn' };
 
+  // Hồ sơ ban đầu (app bệnh nhân): chỉ đọc khi người bệnh đồng ý chia sẻ với bác sĩ.
+  R.intakeShared = (p) => !!(p.consents && p.consents.doctor === true);
+  R.fact = (p, id) => { const x = (p.facts || {})[id]; return x && x.v != null ? x.v : null; };
   R.classify = (p, cfg) => {
     cfg = cfg || R.cfg;
     const re = [];
@@ -253,6 +256,12 @@
     if (pm && pm.hours > cfg.msgHours) add('msg', 'watch', 'Tin nhắn chờ ' + Math.floor(pm.hours) + ' giờ chưa trả lời', { d: pm.d, h: pm.h }, ['"' + pm.text + '"']);
     if (ap.d >= 1 && ap.d <= cfg.apptSoonDays && ap.status === 'scheduled') add('appt', 'watch', 'Tái khám sau ' + ap.d + ' ngày (' + T.fmtDM(ap.d) + ' ' + ap.time + ')', { d: ap.d - 1, h: 8 }, ['Lịch hẹn ' + T.fmtDMY(ap.d) + ' ' + ap.time]);
 
+    // [Đề xuất] Hai điều app bệnh nhân gợi ý từ hồ sơ ban đầu, chưa có trong BRD: chỉ phía bác sĩ, mức cần theo dõi, không tính điểm.
+    if (R.intakeShared(p)) {
+      const it = p.intake, sym = (it && it.symptoms) || [];
+      if (sym.length) add('intake-sym', 'watch', 'Có triệu chứng giống đột quỵ trong 3 tháng qua, chưa có đánh giá', { d: it.d, h: 9 }, ['BN khai: ' + sym.join(', ')]);
+      if (R.fact(p, 'af') === 'yes' && !p.meds.some((m) => m.cls === 'anticoag') && p.drugs.anticoag !== 'Có') add('intake-af', 'watch', 'Rung nhĩ, chưa thấy thuốc chống đông' + (p.facts.af.source === 'patient' ? ' (người bệnh khai)' : ''), { d: p.facts.af.t, h: 9 }, ['Thuốc đang dùng: ' + (p.meds.map((m) => m.name).join(', ') || 'chưa ghi nhận')]);
+    }
     const level = re.some((x) => x.level === 'act') ? 'act' : re.length ? 'watch' : 'ok';
     // sắp xếp lý do: đỏ trước, theo ưu tiên
     re.sort((a, b) => (a.level === b.level ? a.prio - b.prio : a.level === 'act' ? -1 : 1));

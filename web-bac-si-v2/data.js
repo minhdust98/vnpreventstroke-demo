@@ -526,6 +526,34 @@
 
   // unit = mọi BN của khoa; patients = BN của bác sĩ đang đăng nhập (BS. Nam), cổng Bác sĩ chỉ dùng danh sách này
   const unit = SPECS.map((s, i) => build(s, i + 1));
+
+  /* ---------- Hồ sơ ban đầu do bệnh nhân khai trên app (cùng cấu trúc với app-benh-nhan-v2) ----------
+   * facts[id] = { v: 'yes' | 'no' | 'unknown', source: 'patient' | 'hospital' | 'doctor', by, t }; câu chưa trả lời thì không có mục.
+   * Đủ: P001 P002 P008 P009 P011 P013 P027 · một phần: P003 P006 P014 P020 · mở ra rồi bỏ qua hết: P004 · chưa đồng ý chia sẻ: P005.
+   * Người có cảnh báo hồ sơ ban đầu (P011, P013, P020) vốn đã ở mức cần theo dõi, nên phân loại 6 / 14 / 28 giữ nguyên. */
+  const INTAKE = {
+    P001: { f: { htn: 'yes', dm: 'yes', lipid: 'yes', kidney: 'no', cvd: 'no', af: 'no', apnea: 'unknown' }, drugs: { anticoag: 'Không', antiplatelet: 'Có' }, habits: { smoke: 'mid', alcohol: 'little', activity: 'little' }, family: ['yes', ['Đột quỵ', 'Tăng huyết áp']], symptoms: [] },
+    P002: { hosp: 1, f: { htn: 'yes', dm: 'no', lipid: 'yes', kidney: 'no', cvd: 'no', af: 'yes', apnea: 'no' }, drugs: { anticoag: 'Có' }, habits: { smoke: 'none', alcohol: 'none', activity: 'good' }, family: ['no', []], symptoms: [] },
+    P008: { hosp: 1, f: { htn: 'yes', dm: 'no', lipid: 'yes', kidney: 'no', cvd: 'no', af: 'yes', apnea: 'unknown' }, drugs: { anticoag: 'Có' }, habits: { smoke: 'none', alcohol: 'little', activity: 'none' }, family: ['unknown', []], symptoms: [], unknown: true },
+    P009: { hosp: 1, f: { htn: 'yes', dm: 'yes', lipid: 'yes', kidney: 'yes', cvd: 'no', af: 'no', apnea: 'no' }, drugs: { anticoag: 'Không', antiplatelet: 'Có' }, habits: { smoke: 'none', alcohol: 'none', activity: 'little' }, family: ['yes', ['Đái tháo đường']], symptoms: [] },
+    P011: { f: { htn: 'yes', dm: 'no', lipid: 'unknown', kidney: 'no', cvd: 'no', af: 'yes', apnea: 'yes' }, drugs: { anticoag: 'Không', antiplatelet: 'Có' }, habits: { smoke: 'none', alcohol: 'little', activity: 'good' }, family: ['no', []], symptoms: [] },
+    P013: { hosp: 1, f: { htn: 'yes', dm: 'no', lipid: 'yes', kidney: 'no', cvd: 'no', af: 'no', apnea: 'no' }, drugs: { antiplatelet: 'Có' }, habits: { smoke: 'none', alcohol: 'none', activity: 'good' }, family: ['yes', ['Đột quỵ']], symptoms: ['Mất thăng bằng, chóng mặt', 'Nói khó, nói ngọng'] },
+    P027: { hosp: 1, f: { htn: 'yes', dm: 'yes', lipid: 'no', kidney: 'no', cvd: 'no', af: 'yes', apnea: 'no' }, drugs: { anticoag: 'Có' }, habits: { smoke: 'none', alcohol: 'none', activity: 'good' }, family: ['no', []], symptoms: [] },
+    P003: { f: { htn: 'yes', dm: 'unknown' } },
+    P006: { habits: { smoke: 'none', alcohol: 'none', activity: 'strong' }, family: ['yes', ['Bệnh tim mạch']], symptoms: [] },
+    P014: { hosp: 1, f: { htn: 'yes', dm: 'no', cvd: 'yes', af: 'no' }, habits: { smoke: 'little' } },
+    P020: { f: { htn: 'yes' }, habits: { smoke: 'mid' }, symptoms: ['Yếu hoặc tê một bên'] },
+    P004: { skipped: true },
+  };
+  const HOSPITAL_KNOWN = ['htn', 'dm', 'cvd', 'af'];
+  unit.forEach((p) => {
+    const x = INTAKE[p.id] || {}, fact = (v, src) => ({ v, source: src, by: src === 'hospital' ? 'Bệnh viện' : null, t: -20 });
+    p.consents = { doctor: p.id !== 'P005' };
+    p.facts = {}; p.drugs = Object.assign({}, x.drugs); p.habits = Object.assign({}, x.habits);
+    Object.keys(x.f || {}).forEach((id) => { p.facts[id] = fact(x.f[id], x.hosp && HOSPITAL_KNOWN.includes(id) ? 'hospital' : 'patient'); });
+    if (x.family) p.facts.family = Object.assign(fact(x.family[0], 'patient'), { detail: { kinds: x.family[1] } });
+    p.intake = x.symptoms ? { symptoms: x.symptoms, unknown: !!x.unknown, d: -20 } : x.skipped ? { symptoms: null, d: -20 } : null;
+  });
   const patients = unit.filter((p) => p.doc === 'nam');
 
   /* ---------- nội dung tĩnh ---------- */

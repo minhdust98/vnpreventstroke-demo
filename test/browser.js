@@ -21,7 +21,12 @@ exports.open = async () => {
   b.js = async (expr) => { const r = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text); return r.result.value; };
   b.view = (w, h) => send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
   // Mở lại trang từ đầu: trạng thái và dữ liệu về mặc định.
-  b.goto = async (hash) => { await send('Page.navigate', { url: 'about:blank' }); await sleep(100); await send('Page.navigate', { url: PAGE + (hash || '') }); await sleep(700); };
+  b.goto = async (hash) => {
+    await send('Page.navigate', { url: 'about:blank' }); await sleep(100); await send('Page.navigate', { url: PAGE + (hash || '') });
+    // Đợi trang dựng xong (lần đầu mở trình duyệt có thể chậm vì tải phông chữ)
+    for (let i = 0; i < 50; i++) { await sleep(100); if (await b.js(`document.readyState==='complete'&&!!(window.VNPS&&VNPS.debug)&&document.getElementById('app').children.length>0`).catch(() => false)) break; }
+    await sleep(150);
+  };
   // Bấm bằng chuột thật vào phần tử đầu tiên khớp selector (và chữ, nếu có); lỗi nếu phần tử bị che.
   b.click = async (sel, text) => {
     const p = await b.js(`(()=>{const e=[...document.querySelectorAll(${JSON.stringify(sel)})].find(e=>e.getClientRects().length&&(!${JSON.stringify(text || '')}||e.textContent.includes(${JSON.stringify(text || '')})));if(!e)return{miss:1};e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2,t=document.elementFromPoint(x,y);return{x,y,ok:!!t&&(t===e||e.contains(t))}})()`);

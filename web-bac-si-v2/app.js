@@ -155,6 +155,7 @@
       if (k === 'appt') { S.qx = id; S.qc = null; render(); W.apNewModal(id, false); return; }
       if (k === 'lab') { S.pv.metric = 'lab'; openP(id, 'vit'); return; }
       if (k === 'open') { openP(id, 'sum'); return; }
+      if (k === 'intake') { openP(id, 'intake'); return; }
       S.qx = id; S.qmove = true;
       if (k === 'call') { S.qc = null; if (!S.qnotes[id]) S.qnotes[id] = 'Đã gọi BN'; render(); U.toast('Gọi ' + p.name + ': ' + p.phone + ' (số giả). Tính năng minh họa, demo không thực hiện cuộc gọi.'); return; }
       S.qc = id; render();
@@ -296,6 +297,10 @@
     cfgcancel: () => { S.cfgDraft = null; render(); },
     cfgsave: () => { const n = W.cfgShift(S.cfgDraft); R.cfg = S.cfgDraft; S.cfgDraft = null; refresh(); U.toast('Đã lưu ngưỡng cho cả khoa. ' + n + ' bệnh nhân đổi mức.'); },
     mclose: () => U.closeModal(),
+    /* hồ sơ ban đầu: bác sĩ xác nhận câu người bệnh tự khai */
+    icfm: (el) => W.intakeConfirm(V.byId[el.dataset.id]),
+    icfv: (el) => { S.icf[el.dataset.k] = el.dataset.v; el.parentElement.querySelectorAll('button').forEach((b) => { b.classList.toggle('on', b === el); b.setAttribute('aria-checked', b === el); }); },
+    icfsave: (el) => { const p = V.byId[el.dataset.id]; Object.keys(S.icf).forEach((id) => { p.facts[id] = { v: S.icf[id], source: 'doctor', by: D.doctor.short, t: 0 }; }); U.closeModal(); refresh(); U.toast('Đã xác nhận bệnh nền của ' + p.name + '.'); },
   };
   R.cfgSet = (k, v) => { R.cfg[k] = v; };
 

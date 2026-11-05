@@ -40,8 +40,9 @@
     neuro: ['Gọi hỏi triệu chứng', 'call'], 'bp-crit': ['Gọi hỏi triệu chứng', 'call'], glu: ['Gọi xác nhận', 'call'], 'miss-ac': ['Gọi hỏi bỏ liều', 'call'],
     msg: ['Trả lời tin nhắn', 'msg'], 'bp-avg3': ['Nhắc đo lại HA', 'msg'], overdue: ['Đặt lại lịch', 'appt'], 'hr-adh': ['Nhắc uống thuốc', 'msg'], stale: ['Nhắc nhập số', 'msg'],
     'bp-avg7': ['Nhắc đo lại HA', 'msg'], adh: ['Nhắc uống thuốc', 'msg'], ldl: ['Xem xét nghiệm', 'lab'], a1c: ['Xem xét nghiệm', 'lab'], appt: ['Chuẩn bị khám', 'open'],
+    'intake-sym': ['Xem hồ sơ ban đầu', 'intake'], 'intake-af': ['Xem hồ sơ ban đầu', 'intake'],
   };
-  const PRI = ['neuro', 'bp-crit', 'glu', 'miss-ac', 'msg', 'bp-avg3', 'overdue', 'hr-adh', 'stale', 'bp-avg7', 'adh', 'ldl', 'a1c', 'appt'];
+  const PRI = ['neuro', 'bp-crit', 'glu', 'miss-ac', 'msg', 'bp-avg3', 'overdue', 'hr-adh', 'stale', 'intake-sym', 'intake-af', 'bp-avg7', 'adh', 'ldl', 'a1c', 'appt'];
   I.action = (p, c, isOpen) => {
     const open = c.reasons.filter((r) => isOpen(r));
     const r = PRI.map((k) => open.find((x) => x.code === k)).find(Boolean);

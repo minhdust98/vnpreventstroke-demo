@@ -315,6 +315,19 @@ body.sw-col #drawer { left: 58px; }
 .olife b { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); }
 .olife span:not(.mk) { display: block; }
 .olife .diet span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* hồ sơ ban đầu cạnh Hồi phục và Lối sống bản gọn */
+.orow { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: 10px; flex: none; }
+.ocol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.olife2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; padding: 0 14px 10px; }
+.olife2 > div { display: flex; align-items: baseline; gap: 5px; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 12px; color: var(--ink-soft); }
+.olife2 b { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--ink); }
+.olife2 span { overflow: hidden; text-overflow: ellipsis; }
+.oin { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 4px 12px; align-items: baseline; padding: 0 14px 10px; font-size: 13px; }
+.oin .dt { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+.oin .dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oin .dd .mk { margin-right: 6px; }
+.oin .src { display: inline-flex; gap: 8px; font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+.oin .src .lnk { font-size: 12px; }
 .otodo { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0 14px 4px; list-style: none; font-size: 13.5px; }
 .otodo .isdone b { color: var(--ink-soft); font-weight: 500; }
 .osug { margin: 3px 14px 6px; background: var(--fill); }

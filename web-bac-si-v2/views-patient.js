@@ -6,7 +6,7 @@
   const S = () => V.S;
   const num = R.num;
 
-  W.PTABS = [['sum', 'Tóm tắt'], ['risk', 'Nguy cơ'], ['vit', 'Chỉ số'], ['med', 'Thuốc'], ['life', 'Lối sống'], ['visit', 'Tái khám'], ['msg', 'Tin nhắn'], ['adv', 'Lời khuyên'], ['note', 'Ghi chú, cảnh báo']];
+  W.PTABS = [['sum', 'Tóm tắt'], ['risk', 'Nguy cơ'], ['vit', 'Chỉ số'], ['med', 'Thuốc'], ['life', 'Lối sống'], ['intake', 'Hồ sơ ban đầu'], ['visit', 'Tái khám'], ['msg', 'Tin nhắn'], ['adv', 'Lời khuyên'], ['note', 'Ghi chú, cảnh báo']];
   const STAT = { new: ['Mới', 'watch'], doing: ['Đang xử lý', 'neutral'], done: ['Đã xử lý', 'ok'] };
 
   /* ---------- hồ sơ một trang: phần đầu ---------- */
@@ -79,8 +79,10 @@
     b.innerHTML = ''; const w = b.clientWidth, h = b.clientHeight;
     if (w > 0 && h > 0) b.innerHTML = W.bpChart(V.byId[b.dataset.id], S().pv.range, w, h);
   };
-  const lifeCard = (p) => {
+  const lifeCard = (p, compact) => {
     const L = p.life, I = R.ind(p), it = (st, v, u) => '<div>' + '<b>' + (st ? U.mark(st) : '') + v + '</b><span>' + u + '</span></div>', mp = (s) => (s === 'bad' ? 'watch' : s === 'ok' ? 'ok' : null);
+    // Bản gọn (2 × 2) khi đứng cạnh Hồ sơ ban đầu; ăn uống xem trong chi tiết.
+    if (compact) return '<section class="card ocard"><div class="och">' + hd('life', 'Lối sống') + '</div><div class="olife2" title="' + esc('Ăn uống: ' + L.diet) + '">' + it(mp(I.smoke.state), L.cig == null ? '—' : L.cig === 0 ? 'Không' : L.cig, L.cig ? 'điếu/ngày' : 'hút thuốc') + it(mp(I.alc.state), L.alc == null ? '—' : R.num(L.alc, 1), 'đv rượu/ngày') + it(mp(I.ex.state), L.ex == null ? '—' : L.ex, 'phút vận động/tuần') + it(null, L.sleep == null ? '—' : R.num(L.sleep, 1), 'giờ ngủ/đêm') + '</div></section>';
     return '<section class="card ocard"><div class="och">' + hd('life', 'Lối sống') + '</div><div class="olife">' + it(mp(I.smoke.state), L.cig == null ? '—' : L.cig === 0 ? 'Không' : L.cig, L.cig ? 'điếu/ngày' : 'hút thuốc') + it(mp(I.alc.state), L.alc == null ? '—' : R.num(L.alc, 1), 'đơn vị rượu/ngày') + it(mp(I.ex.state), L.ex == null ? '—' : L.ex, 'phút vận động/tuần') + it(null, L.sleep == null ? '—' : R.num(L.sleep, 1), 'giờ ngủ/đêm') + '<div class="diet" title="' + esc(L.diet) + '"><b>Ăn uống</b><span>' + esc(L.diet) + '</span></div></div></section>';
   };
   const todoCard = (p) => {
@@ -120,16 +122,57 @@
   const more = (t, label) => '<button class="lnk" data-a="ptab" data-t="' + t + '">' + label + '</button>';
   // Chuỗi mRS qua các lần khám: chấm trung tính (màu mức độ dành cho bệnh nhân), lần gần nhất có viền.
   W.mrsLine = (s) => '<ol class="mrsl">' + s.map((x) => '<li title="' + esc(T.fmtDMY(x.d) + ' · mRS ' + x.v + ' · ' + Ins.MRS[x.v]) + '"><b>' + x.v + '</b><span>' + T.fmtDM(x.d) + '</span></li>').join('') + '</ol>';
+  /* ---------- Hồ sơ ban đầu (người bệnh khai trên app). Chỉ hiện khi người bệnh đồng ý chia sẻ; không tính điểm. ---------- */
+  const SRC = { patient: 'BN khai', hospital: 'BV xác nhận', doctor: 'BS xác nhận' };
+  const COND = [['htn', 'Tăng huyết áp'], ['dm', 'Đái tháo đường'], ['lipid', 'Rối loạn mỡ máu'], ['kidney', 'Bệnh thận'], ['cvd', 'Bệnh tim mạch'], ['af', 'Rung nhĩ'], ['apnea', 'Ngưng thở khi ngủ']];
+  const CONFIRM = ['htn', 'dm', 'cvd', 'af'];
+  const HAB = [['smoke', 'Hút thuốc', { none: 'không', little: 'ít', mid: 'vừa', much: 'nhiều' }], ['alcohol', 'Rượu bia', { none: 'không', little: 'ít', mid: 'vừa', much: 'nhiều' }], ['activity', 'Vận động', { strong: 'mạnh, đủ', good: 'nhẹ, đủ', little: 'không thường xuyên', none: 'không' }]];
+  const lc = (s) => s.toLowerCase();
+  // Câu người bệnh tự khai về tăng huyết áp, đái tháo đường, tim mạch, rung nhĩ cần bác sĩ xác nhận ("chưa rõ" thì không cần).
+  W.intakePending = (p) => CONFIRM.filter((id) => p.facts[id] && p.facts[id].v != null && p.facts[id].v !== 'unknown' && p.facts[id].source === 'patient');
+  // Các dòng của hồ sơ ban đầu; dòng chưa có gì thì bỏ. Câu chưa trả lời ghi "Chưa khai", không bao giờ thành "Không".
+  W.intake = (p) => {
+    if (!R.intakeShared(p)) return null;
+    const f = p.facts, v = (id) => R.fact(p, id), out = [];
+    out.push({ k: 'Nhóm theo dõi', v: p.dx.type === 'CMN' ? 'Phòng chảy máu não tái phát' : p.dx.type === 'NONE' ? (p.age >= 55 ? 'Phòng đột quỵ lần đầu' : 'Phòng đột quỵ từ sớm') : 'Phòng đột quỵ tái phát' });
+    if (COND.some(([id]) => v(id) != null)) {
+      const of = (val) => COND.filter(([id]) => v(id) === val).map((c) => c[1]), pend = W.intakePending(p), unk = of('unknown').map(lc), miss = of(null).map(lc), yes = of('yes');
+      const src = pend.length ? 'patient' : CONFIRM.some((id) => f[id] && f[id].source === 'doctor') ? 'doctor' : CONFIRM.some((id) => f[id] && f[id].source === 'hospital') ? 'hospital' : 'patient';
+      out.push({ k: 'Bệnh nền', v: (yes.length ? yes.join(', ') : 'Không có') + (unk.length ? '. Chưa rõ: ' + unk.join(', ') : '') + (miss.length ? '. Chưa khai: ' + miss.join(', ') : ''), src, confirm: pend.length > 0 });
+    }
+    const dr = [['anticoag', 'Chống đông'], ['antiplatelet', 'Kháng tiểu cầu']].filter(([k]) => p.drugs[k]).map(([k, n]) => n + ': ' + lc(p.drugs[k]));
+    if (dr.length) out.push({ k: 'Thuốc đã dùng', v: dr.join(', '), src: 'patient' });
+    const hb = HAB.filter(([k]) => p.habits[k]);
+    if (hb.length) out.push({ k: 'Sinh hoạt', v: hb.map(([k, n, m]) => n + ': ' + m[p.habits[k]]).join(', ') + (hb.length < HAB.length ? '. Chưa khai: ' + HAB.filter(([k]) => !p.habits[k]).map((h) => lc(h[1])).join(', ') : ''), src: 'patient' });
+    const fam = f.family;
+    if (fam && fam.v != null) { const kinds = (fam.detail && fam.detail.kinds) || []; out.push({ k: 'Gia đình', v: (fam.v === 'yes' ? 'Đột quỵ hoặc bệnh tim trước 60 tuổi' : fam.v === 'no' ? 'Không có đột quỵ hoặc bệnh tim sớm' : 'Chưa rõ') + (kinds.length ? '. Từng bị: ' + kinds.map(lc).join(', ') : ''), src: fam.source }); }
+    if (p.intake && p.intake.symptoms) out.push({ k: 'Triệu chứng 3 tháng qua', v: p.intake.symptoms.length ? p.intake.symptoms.join(', ') : p.intake.unknown ? 'Không nhớ' : 'Không có', src: 'patient', flag: p.intake.symptoms.length > 0 });
+    if (out.length === 1) out.push({ k: '', v: 'Chưa khai', muted: true });
+    return out;
+  };
+  const intakeCard = (p) => '<section class="card ocard ointake"><div class="och">' + hd('intake', 'Hồ sơ ban đầu') + '</div><div class="oin">' + W.intake(p).map((x) => '<span class="dt">' + x.k + '</span><span class="dd' + (x.muted ? ' muted' : '') + '" title="' + esc(x.v) + '">' + (x.flag ? U.mark('watch') : '') + esc(x.v) + '</span><span class="src">' + (x.src ? SRC[x.src] : '') + (x.confirm ? '<button class="lnk" data-a="icfm" data-id="' + p.id + '">Xác nhận</button>' : '') + '</span>').join('') + '</div></section>';
+  W.pdIntake = (p) => {
+    const L = W.intake(p); if (!L) return '<div class="empty">Chưa có.</div>';
+    const VAL = { yes: 'Có', no: 'Không', unknown: 'Chưa rõ' }, row = (a, b, c) => '<tr><td class="muted" style="width:200px">' + a + '</td><td>' + b + '</td><td class="r muted">' + c + '</td></tr>';
+    return '<section class="card"><table class="tbl plain"><tbody>' + L.map((x) => row(x.k, esc(x.v), x.src ? SRC[x.src] : '')).join('') + '</tbody></table></section>' +
+      '<section class="card"><div class="card-h"><h2>Bệnh nền</h2><span style="flex:1"></span>' + (W.intakePending(p).length ? '<button class="btn sm primary" data-a="icfm" data-id="' + p.id + '">Xác nhận</button>' : '') + '</div><table class="tbl plain"><tbody>' +
+      COND.map(([id, n]) => { const x = p.facts[id]; return row(n, x && x.v != null ? VAL[x.v] : '<span class="muted">Chưa khai</span>', x && x.v != null ? SRC[x.source] + (x.by ? ' · ' + esc(x.by) : '') : ''); }).join('') + '</tbody></table></section>';
+  };
+  W.intakeConfirm = (p) => {
+    const s = S(); s.icf = {}; CONFIRM.forEach((id) => { if (p.facts[id] && p.facts[id].v != null) s.icf[id] = p.facts[id].v; });
+    const NAME = {}; COND.forEach(([id, n]) => { NAME[id] = n; });
+    U.modal(W.modalHead('Xác nhận bệnh nền · ' + p.name) + '<div class="mbox-b"><table class="tbl plain"><tbody>' + CONFIRM.map((id) => { const x = p.facts[id], cur = s.icf[id]; return '<tr><td>' + NAME[id] + '</td><td class="muted">' + (x && x.v != null ? SRC[x.source] : 'Chưa khai') + '</td><td class="r"><div class="seg" role="radiogroup" aria-label="' + NAME[id] + '">' + [['yes', 'Có'], ['no', 'Không'], ['unknown', 'Chưa rõ']].map(([v, t]) => '<button class="' + (cur === v ? 'on' : '') + '" role="radio" aria-checked="' + (cur === v) + '" data-a="icfv" data-k="' + id + '" data-v="' + v + '">' + t + '</button>').join('') + '</div></td></tr>'; }).join('') + '</tbody></table></div><div class="mbox-f"><button class="btn" data-a="mclose">Hủy</button><button class="btn primary" data-a="icfsave" data-id="' + p.id + '">Xác nhận</button></div>');
+  };
   const mrsCard = (p) => {
     if (!Ins.severe(p)) return '';
     const r = Ins.recovery(p), d = r.delta;
     return '<section class="card ocard omrs"><div class="och">' + hd('visit', 'Hồi phục mRS') + '<span class="' + (d < 0 ? 'lv-ok' : d > 0 ? 'lv-act' : 'muted') + '" title="' + esc('mRS ' + r.first.v + ' (' + T.fmtDM(r.first.d) + ') → ' + r.last.v + ' (' + T.fmtDM(r.last.d) + '): ' + Ins.MRS[r.last.v]) + '">' + (d ? ic(d < 0 ? 'down' : 'up') + Math.abs(d) : 'Không đổi') + '</span></div>' + W.mrsLine(r.s) + '</section>';
   };
-  W.pdOverview = (p) => W.ovTiles(p) + '<div class="opg"><div class="olc">' + chartCard(p) + mrsCard(p) + lifeCard(p) + '</div><div class="orc">' + todoCard(p) + riskCard(p) + medCard(p) + visitCard(p) + '</div></div>';
+  W.pdOverview = (p) => W.ovTiles(p) + '<div class="opg"><div class="olc">' + chartCard(p) + (W.intake(p) ? '<div class="orow"><div class="ocol">' + mrsCard(p) + lifeCard(p, true) + '</div>' + intakeCard(p) + '</div>' : mrsCard(p) + lifeCard(p)) + '</div><div class="orc">' + todoCard(p) + riskCard(p) + medCard(p) + visitCard(p) + '</div></div>';
   W.pdSheet = (p, tab) => '<div class="sh-scrim" data-a="sheetclose"></div><aside class="sheet' + (S().sheetAnim ? ' enter' : '') + '" role="dialog" aria-label="Chi tiết hồ sơ"><div class="sheet-h">' + W.pdTabs(tab, p) + '<span style="flex:1"></span><button class="lnk" data-a="ptab" data-t="home">Toàn hồ sơ</button><button class="iconbtn" data-a="sheetclose" aria-label="Đóng chi tiết">' + ic('x') + '</button></div><div class="pd-body">' + W.pdBody(p, tab) + '</div></aside>';
-  W.pdTabs = (tab, p) => '<div class="pd-tabs" role="tablist">' + W.PTABS.map(([k, t]) => '<button role="tab" class="' + (tab === k ? 'on' : '') + '" data-a="ptab" data-t="' + k + '">' + t + (k === 'msg' && R.pending(p) ? '<span class="n">1</span>' : '') + (k === 'note' && S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length ? '<span class="n">' + S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length + '</span>' : '') + '</button>').join('') + '</div>';
+  W.pdTabs = (tab, p) => '<div class="pd-tabs" role="tablist">' + W.PTABS.filter(([k]) => k !== 'intake' || W.intake(p)).map(([k, t]) => '<button role="tab" class="' + (tab === k ? 'on' : '') + '" data-a="ptab" data-t="' + k + '">' + t + (k === 'msg' && R.pending(p) ? '<span class="n">1</span>' : '') + (k === 'note' && S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length ? '<span class="n">' + S().cls[p.id].reasons.filter((x) => W.alertState(p.id, x.code).status !== 'done').length + '</span>' : '') + '</button>').join('') + '</div>';
   W.patientView = (p, tab, mode) => '<div class="pd opage">' + W.pdHead(p, mode) + W.pdOverview(p) + (tab && tab !== 'home' ? W.pdSheet(p, tab) : '') + '</div>';
-  W.pdBody = (p, tab) => ({ sum: W.pdSum, risk: W.pdRisk, vit: W.pdVit, med: W.pdMed, life: W.pdLife, visit: W.pdVisit, msg: W.pdMsg, adv: W.pdAdv, note: W.pdNote }[tab] || W.pdSum)(p);
+  W.pdBody = (p, tab) => ({ sum: W.pdSum, risk: W.pdRisk, vit: W.pdVit, med: W.pdMed, life: W.pdLife, intake: W.pdIntake, visit: W.pdVisit, msg: W.pdMsg, adv: W.pdAdv, note: W.pdNote }[tab] || W.pdSum)(p);
 
   /* ---------- thẻ cảnh báo ---------- */
   W.alertCard = (p, r) => {
@@ -143,6 +186,9 @@
   const trend = Ins.trend;
   W.tile = (label, value, unit, meta, state, extra) => '<div class="tile ' + (state === 'bad' ? 'bad' : state === 'ok' ? 'ok' : '') + '"><div class="tl">' + label + '</div><div class="tv">' + value + (unit ? ' <small>' + unit + '</small>' : '') + (extra || '') + '</div><div class="tm">' + meta + '</div><div>' + U.state(state) + '</div></div>';
   const TODO = {
+    // [Đề xuất] từ hồ sơ ban đầu của app bệnh nhân
+    'intake-sym': () => 'Đọc triệu chứng BN khai trong hồ sơ ban đầu và quyết định có cần đánh giá thêm.',
+    'intake-af': () => 'Xác nhận với BN chẩn đoán rung nhĩ và thuốc đang dùng.',
     neuro: () => 'Gọi BN ngay để hỏi lại triệu chứng; nếu còn hoặc tái diễn, hướng dẫn gọi 115.',
     'bp-crit': () => 'Gọi BN: hỏi triệu chứng (BE-FAST), đo lại sau nghỉ 5 phút; nếu có triệu chứng thần kinh mới, hướng dẫn gọi 115.',
     'miss-ac': (p) => 'Liên hệ BN xác nhận lý do bỏ liều ' + Array.from(new Set(R.misses(p, -7, true).map((m) => m.med.toLowerCase()))).join(', ') + '; cân nhắc đánh giá lại tuân thủ.',

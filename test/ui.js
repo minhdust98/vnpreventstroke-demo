@@ -26,6 +26,15 @@ const ok = (cond, msg) => { console.log((cond ? 'PASS ' : 'FAIL ') + msg); if (!
     await js(`document.getElementById('c_txt').value='Ổn định'`); await click('[data-a="apdonesave"]');
     ok(await js(`VNPS.ins.mrs(VNPS.byId.P006).slice(-1)[0].v===1&&VNPS.ins.mrs(VNPS.byId.P006).slice(-1)[0].d===0`), 'Hoàn tất khám ghi được mRS hôm nay');
     await key('Escape', 'Escape', 27); await key('Escape', 'Escape', 27);
+    // Hồ sơ ban đầu: nguồn khai, bác sĩ xác nhận ngay trên hồ sơ, chưa khai không thành "Không", chưa đồng ý chia sẻ thì không thấy
+    await goto('#/d/patient/P001');
+    ok(await js(`(()=>{const c=document.querySelector('.ointake');return !!c&&/Bệnh nền/.test(c.innerText)&&/BN khai/.test(c.innerText)})()`), 'Hồ sơ ban đầu hiện trên hồ sơ một trang, có nguồn khai');
+    await click('.ointake [data-a="icfm"]'); await click('[data-a="icfv"][data-k="dm"][data-v="no"]'); await click('[data-a="icfsave"]');
+    ok(await js(`VNPS.byId.P001.facts.htn.source==='doctor'&&VNPS.byId.P001.facts.dm.v==='no'&&/BS xác nhận/.test(document.querySelector('.ointake').innerText)&&!document.querySelector('.ointake [data-a="icfm"]')`), 'Bác sĩ xác nhận bệnh nền ngay trên hồ sơ');
+    await goto('#/d/patient/P012'); ok(await js(`(()=>{const t=document.querySelector('.ointake').innerText;return /Chưa khai/.test(t)&&!/Không/.test(t)})()`), 'Người chưa khai hiện "Chưa khai", không phải "Không"');
+    await goto('#/d/patient/P005'); ok(await js(`!document.querySelector('.ointake')&&!document.querySelector('[data-t="intake"]')`), 'Người chưa đồng ý chia sẻ: bác sĩ không thấy hồ sơ ban đầu');
+    await goto('#/d/home'); await click('[data-a="qtab"][data-v="watch"]');
+    ok(await js(`[...document.querySelectorAll('.qrow')].some(r=>/triệu chứng giống đột quỵ/i.test(r.title+r.innerText+r.querySelector('.why').title))`), 'Cảnh báo hồ sơ ban đầu vào hàng đợi Cần theo dõi');
     await goto('#/d/patients'); await click('[data-a="plv"][data-v="severe"]');
     ok(await js(`document.querySelectorAll('.tbl.list tbody tr').length`) === 18, 'Trang Bệnh nhân lọc Ca nặng: 18');
     await goto('#/d/msgs'); ok(await js(`document.getElementById('msgbox').value.length>20`), 'Hộp thư có mẫu soạn sẵn');

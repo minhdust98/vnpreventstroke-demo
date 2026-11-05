@@ -21,5 +21,9 @@ ok(I.recovery(D.patients.find((p) => p.id === 'P008')).s.map((x) => x.v).join('>
 ok(I.median([5, 1, 3]) === 3 && I.median([1, 3]) === 2, 'Trung vị tính đúng');
 const p = D.unit.find((x) => x.thread.length >= 2 && x.thread[0].from !== 'bs' && x.thread[1].from === 'bs');
 ok(!!p && I.replyHours(p)[0] > 0, 'Đo được thời gian trả lời tin nhắn');
+const ik = (id) => cls[id].reasons.filter((r) => r.code.startsWith('intake'));
+ok(ik('P011').some((r) => r.code === 'intake-af' && r.level === 'watch') && ik('P013').some((r) => r.code === 'intake-sym' && r.level === 'watch') && ik('P020').some((r) => r.code === 'intake-sym'), 'Hồ sơ ban đầu: 2 cảnh báo [Đề xuất] ở mức cần theo dõi (P011 rung nhĩ, P013 và P020 triệu chứng)');
+ok(!R.intakeShared(D.patients.find((p) => p.id === 'P005')) && !ik('P005').length, 'P005 chưa đồng ý chia sẻ: bác sĩ không thấy hồ sơ ban đầu, không có cảnh báo');
+ok(D.unit.every((p) => !ik(p.id).length || cls[p.id].level !== 'ok'), 'Cảnh báo hồ sơ ban đầu không làm bệnh nhân nào thành cần can thiệp và không có ai ổn định mang cảnh báo');
 console.log(fail ? fail + ' kiểm tra lỗi' : 'Tất cả đạt');
 process.exit(fail ? 1 : 0);
