@@ -24,7 +24,7 @@ Bản demo bấm thử của ứng dụng phòng ngừa đột quỵ. Toàn bộ
 | `app.js` | Trạng thái `S`, định tuyến theo `#/...`, xử lý sự kiện qua thuộc tính `data-a` |
 | `styles.css` | Một lớp CSS duy nhất, token ở đầu file, có chế độ tối |
 
-Đường dẫn trực tiếp: `#/d/home`, `#/d/patients`, `#/d/patient/P001`, `#/m/overview`, `#/m/doctor/hang`, `#/m/msgs`.
+Đường dẫn trực tiếp: `#/d/home`, `#/d/patients`, `#/d/patient/P001`, `#/m/dashboard` (Tổng quan), `#/m/overview` (bảng Toàn khoa), `#/m/doctor/hang`, `#/m/msgs`.
 
 ### Quy tắc khi sửa
 

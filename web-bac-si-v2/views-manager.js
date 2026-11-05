@@ -57,7 +57,28 @@
     return '<div class="page"><div class="page-h"><h1>Toàn khoa</h1></div><div class="tw"><table class="tbl plain dtbl"><thead><tr><th rowspan="2">Bác sĩ</th>' + th('Bệnh nhân', '', 1) + th(U.mark('act') + 'Can thiệp', 'Cần can thiệp', 1) + th(U.mark('watch') + 'Theo dõi', 'Cần theo dõi', 1) + th('Quá hẹn', 'Quá hẹn tái khám', 1) + th('Tin chờ >' + h + ' giờ', '', 1) + th('Trả lời trung vị', 'Thời gian trả lời tin nhắn, trung vị', 1) +
       '<th class="grp" colspan="5">Đạt mục tiêu</th>' + th('Nguy cơ cao', 'ESRS, SPI-II hoặc CHA₂DS₂-VASc ở mức cao', 1) + '</tr><tr>' + th('HA') + th('LDL‑C') + th('HbA1c', 'Người đái tháo đường') + th('Tuân thủ thuốc') + th('mRS cải thiện', 'Ca nặng (mRS ≥3) có mRS giảm so với lần đầu') + '</tr></thead><tbody>' +
       D.doctors.map((d) => { const L = W.unitOf(d.id); return '<tr data-a="mdoc" data-id="' + d.id + '" tabindex="0"><td class="nm" title="' + esc(d.name) + '"><b>' + esc(d.name) + '</b></td>' + drow(W.stats(L), goals(L)) + '</tr>'; }).join('') +
-      '</tbody><tfoot><tr><td><b>Toàn khoa</b></td>' + drow(W.stats(D.unit), goals(D.unit), true) + '</tr></tfoot></table></div></div>';
+      '</tbody><tfoot><tr><td><a class="hl" href="#/m/dashboard" title="Tổng quan toàn khoa"><b>Toàn khoa</b>' + ic('chevR') + '</a></td>' + drow(W.stats(D.unit), goals(D.unit), true) + '</tr></tfoot></table></div></div>';
+  };
+
+  /* ---------- Tổng quan: số liệu và biểu đồ bệnh nhân toàn khoa. Ô và thanh bấm được để mở danh sách. ---------- */
+  const tile = (cls, q, label, v, foot) => '<button class="lvtab' + (cls ? ' ' + cls : '') + '" data-a="mq" data-q="' + q + '"><span class="kl">' + label + '</span><span class="kv">' + U.int(v) + '</span>' + (foot ? '<span class="ks">' + foot + '</span>' : '') + '</button>';
+  const tri = (k) => '<span class="tri" role="img" aria-label="' + k.act + ' cần can thiệp, ' + k.watch + ' cần theo dõi, ' + k.ok + ' ổn định"><i style="flex:' + k.act + ';background:var(--act)"></i><i style="flex:' + k.watch + ';background:var(--watch)"></i><i style="flex:' + k.ok + ';background:var(--ok)"></i></span>';
+  const legend = () => '<span class="mleg">' + ['act', 'watch', 'ok'].map((k) => '<span>' + U.mark(k) + U.lvl[k].t + '</span>').join('') + '</span>';
+  // HA tâm thu trung bình mỗi ngày của mọi lần đo trong khoa, 30 ngày gần nhất
+  const bpDaily = () => { const by = {}; D.unit.forEach((p) => p.bp.forEach((x) => { if (x.d >= -29) (by[x.d] = by[x.d] || []).push(x.s); })); return Object.keys(by).map(Number).sort((a, b) => a - b).map((d) => { const v = Math.round(by[d].reduce((a, b) => a + b, 0) / by[d].length); return { x: d + 0.5, y: v, tip: V.T.fmtDM(d) + ' · TB ' + v + ' mmHg · ' + by[d].length + ' lần đo' }; }); };
+  W.mdash = () => {
+    const s = W.stats(D.unit), g = goals(D.unit), h = R.cfg.msgHours;
+    const card = (t, body, extra) => '<section class="card mchart"><div class="card-h"><h2>' + t + '</h2><span class="sp"></span>' + (extra || '') + '</div>' + body + '</section>';
+    const max = Math.max.apply(null, D.doctors.map((d) => W.unitOf(d.id).length).concat(1));
+    const lv = D.doctors.map((d) => { const x = W.stats(W.unitOf(d.id)), seg = (k) => (x.k[k] ? '<i class="' + k + '" style="flex:' + x.k[k] + '" data-tip="' + esc(d.short + ' · ' + U.lvl[k].t + ': ' + x.k[k]) + '"></i>' : ''); return '<button class="hbar" data-a="mdoc" data-id="' + d.id + '"><span class="hl-n" title="' + esc(d.name) + '">' + esc(d.short) + '</span><span class="hb-track"><span class="hb-fill" style="width:' + (100 * x.n / max) + '%">' + seg('act') + seg('watch') + seg('ok') + '</span></span><b>' + U.int(x.n) + '</b></button>'; }).join('');
+    const gl = [['HA', g.bp, 'ind:bp'], ['LDL-C', g.ldl, 'ind:ldl'], ['HbA1c', g.a1c, 'ind:a1c'], ['Tuân thủ thuốc', g.adh, 'adh'], ['Ca nặng cải thiện mRS', g.mrs, 'mrs']].map(([t, [n, N], q]) => '<button class="hbar" data-a="mq" data-q="' + q + '" title="Xem ' + (N - n) + ' người chưa đạt"><span class="hl-n">' + t + '</span><span class="hb-track"><span class="hb-fill one" style="width:' + pct(n, N) + '%" data-tip="' + esc(t + ': ' + n + '/' + N) + '"></span></span><b>' + (N ? pct(n, N) + '%' : '—') + '</b></button>').join('');
+    const sev = D.unit.filter(Ins.severe), mc = [0, 1, 2, 3, 4, 5].map((v) => sev.filter((p) => Ins.recovery(p).last.v === v).length), mx = Math.max.apply(null, mc.concat(1));
+    const mrs = '<div class="vbars">' + mc.map((n, v) => '<div class="vb" data-tip="' + esc('mRS ' + v + ' · ' + Ins.MRS[v] + ': ' + n + ' người') + '"><b>' + n + '</b><span class="vb-col"><i style="height:' + (100 * n / mx) + '%"></i></span><span>' + v + '</span></div>').join('') + '</div>';
+    const pts = bpDaily(), line = pts.length ? U.lineChart({ w: 560, h: 210, rr: 92, series: [{ name: 'Tâm thu TB', color: 'var(--s1)', pts }], ticks: [100, 120, 140, 160], yUnit: 'mmHg', xFrom: -29, xTo: 0, refs: [{ y: R.cfg.bpTargetS, color: 'var(--ok)', label: 'Mục tiêu <' + R.cfg.bpTargetS }], label: 'Huyết áp tâm thu trung bình toàn khoa 30 ngày' }) : '<div class="empty">Chưa có số đo.</div>';
+    return '<div class="page"><div class="page-h"><h1>Tổng quan</h1></div>' +
+      '<div class="mstats">' + tile('', 'lvl:all', 'Bệnh nhân', s.n, tri(s.k)) + tile('act', 'lvl:act', U.mark('act') + 'Cần can thiệp', s.k.act) + tile('watch', 'lvl:watch', U.mark('watch') + 'Cần theo dõi', s.k.watch) + tile('', 'overdue', 'Quá hẹn tái khám', s.overdue) + tile('', 'late', 'Tin chờ >' + h + ' giờ', s.late) + '</div>' +
+      '<div class="mgrid">' + card('Mức độ theo bác sĩ', '<div class="hbars">' + lv + '</div>', legend()) + card('Đạt mục tiêu', '<div class="hbars">' + gl + '</div>') +
+      card('Huyết áp tâm thu trung bình, 30 ngày', '<div class="mline">' + line + '</div>') + card('mRS gần nhất của ' + sev.length + ' ca nặng', mrs) + '</div></div>';
   };
 
   /* ---------- một bác sĩ ---------- */

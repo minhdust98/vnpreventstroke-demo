@@ -34,6 +34,9 @@ const ok = (cond, msg) => { console.log((cond ? 'PASS ' : 'FAIL ') + msg); if (!
     await view(1440, 900); await goto('#/m/overview'); await sleep(200);
     const sums = await js(`(()=>{const t=document.querySelector('.dtbl'),i=[...t.querySelectorAll('thead th')].findIndex(th=>th.textContent==='Bệnh nhân'),rows=[...t.querySelectorAll('tbody tr')],foot=t.querySelector('tfoot tr');return {sum:rows.reduce((a,r)=>a+(+r.children[i].textContent.replace(/\\D/g,'')),0),total:foot?+foot.children[i].textContent.replace(/\\D/g,''):-1,unit:VNPS.data.unit.length,docs:rows.length}})()`);
     ok(sums.sum === sums.total && sums.total === sums.unit && sums.docs === 4, 'Toàn khoa: tổng theo bác sĩ khớp tổng khoa (' + sums.total + ')');
+    await click('.dtbl tfoot a.hl'); ok(await js(`location.hash==='#/m/dashboard'&&document.querySelectorAll('.mstats .lvtab').length===5&&!!document.querySelector('#main svg.chart')`), 'Bấm chữ Toàn khoa mở trang Tổng quan có biểu đồ');
+    await click('.mstats .lvtab', 'Bệnh nhân'); ok(await js(`document.querySelectorAll('.tbl.list tbody tr').length===VNPS.data.unit.length`), 'Ô Bệnh nhân mở danh sách toàn bộ bệnh nhân của khoa');
+    await goto('#/m/overview');
     await click('.dtbl tbody tr', 'Lê Thu Hằng'); ok(await js(`location.hash==='#/m/doctor/hang'&&document.querySelectorAll('.tbl.list tbody tr').length===VNPS.data.unit.filter(p=>p.doc==='hang').length`), 'Trang một bác sĩ liệt kê đúng bệnh nhân của bác sĩ đó');
     await goto('#/m/msgs'); await click('[data-a="nudge"]'); ok(await js(`Object.keys(VNPS.S.nudged).length===1`), 'Nhắc bác sĩ trả lời tin chờ quá hạn');
     ok(await js(`!document.querySelector('#main .thread,#main .msg')`), 'Quản lý không thấy nội dung tin nhắn');

@@ -34,14 +34,14 @@
     if (S.role === 'doctor') {
       if (parts[1] === 'patient' && V.byId[parts[2]]) { S.route = 'd/patient'; S.page = S.page && S.page.id === parts[2] ? S.page : { id: parts[2], tab: 'home' }; }
       else S.route = 'd/' + (['home', 'patients', 'appts', 'msgs', 'tools', 'settings'].includes(parts[1]) ? parts[1] : 'home');
-    } else if (parts[1] === 'doctor' && D.doctors.some((d) => d.id === parts[2])) { S.route = 'm/doctor'; S.mdoc = parts[2]; } else S.route = 'm/' + (['overview', 'msgs', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'overview');
+    } else if (parts[1] === 'doctor' && D.doctors.some((d) => d.id === parts[2])) { S.route = 'm/doctor'; S.mdoc = parts[2]; } else S.route = 'm/' + (['dashboard', 'overview', 'msgs', 'list', 'thresholds'].includes(parts[1]) ? parts[1] : 'dashboard');
   };
   const go = (r) => { const t = '#/' + r; if (location.hash === t) { render(); } else location.hash = t; };
 
   /* ---------- khung ---------- */
   const NAVS = {
     doctor: () => [['home', 'Tổng quan', 'home'], ['patients', 'Bệnh nhân', 'users'], ['appts', 'Lịch khám', 'calendar', W.todayAppts().length, 'n'], ['msgs', 'Tin nhắn', 'msg', W.pendingPatients().length, ''], ['tools', 'Công cụ tính nguy cơ', 'calc'], ['settings', 'Cài đặt', 'gear']].map((x) => ({ r: 'd/' + x[0], t: x[1], i: x[2], b: x[3], bc: x[4] })),
-    manager: () => [{ r: 'm/overview', t: 'Toàn khoa', i: 'chart' }, { r: 'm/msgs', t: 'Tin nhắn', i: 'msg', b: W.stats(D.unit).late, bc: '' }, { r: 'm/thresholds', t: 'Ngưỡng cảnh báo', i: 'gear' }],
+    manager: () => [{ r: 'm/dashboard', t: 'Tổng quan', i: 'home' }, { r: 'm/overview', t: 'Toàn khoa', i: 'chart' }, { r: 'm/msgs', t: 'Tin nhắn', i: 'msg', b: W.stats(D.unit).late, bc: '' }, { r: 'm/thresholds', t: 'Ngưỡng cảnh báo', i: 'gear' }],
   };
   function shell() {
     const app = $('#app');
@@ -78,6 +78,7 @@
     else if (r === 'd/tools') h = W.tools();
     else if (r === 'd/settings') h = W.settings();
     else if (r === 'd/patient') h = W.patientView(V.byId[S.page.id], S.page.tab, 'page');
+    else if (r === 'm/dashboard') h = W.mdash();
     else if (r === 'm/overview') h = W.overview();
     else if (r === 'm/list') h = W.mlist();
     else if (r === 'm/doctor') h = W.mdoctor(S.mdoc);
@@ -129,7 +130,7 @@
 
   /* ---------- hành động ---------- */
   const H = {
-    role: (el) => go(el.dataset.v === 'doctor' ? 'd/home' : 'm/overview'),
+    role: (el) => go(el.dataset.v === 'doctor' ? 'd/home' : 'm/dashboard'),
     switchrole: () => { S.menu = null; S.drawer = null; location.hash = '#/'; },
     nav: (el) => { S.drawer = null; go(el.dataset.r); },
     collapse: () => { S.collapsed = !S.collapsed; render(); },

@@ -39,7 +39,7 @@ const noScroll = `(()=>{const d=document.documentElement,m=document.getElementBy
     for (const [w, h] of [[1440, 900], [1366, 768]]) {
       await view(w, h); const z = w + ' ';
       // Dữ liệu xấu nhất
-      for (const [name, hash] of [['dashboard', '#/d/home'], ['benh nhan', '#/d/patients'], ['ho so dai', '#/d/patient/P001'], ['tin nhan', '#/d/msgs'], ['toan khoa', '#/m/overview'], ['bac si', '#/m/doctor/hang'], ['bac si moi', '#/m/doctor/moi'], ['ql tin nhan', '#/m/msgs']]) {
+      for (const [name, hash] of [['dashboard', '#/d/home'], ['benh nhan', '#/d/patients'], ['ho so dai', '#/d/patient/P001'], ['tin nhan', '#/d/msgs'], ['tong quan', '#/m/dashboard'], ['toan khoa', '#/m/overview'], ['bac si', '#/m/doctor/hang'], ['bac si moi', '#/m/doctor/moi'], ['ql tin nhan', '#/m/msgs']]) {
         await goto('#/'); await js(WORST); await js(`location.hash='${hash}'`); await sleep(200);
         if (hash === '#/d/msgs') await click('.clrow', 'Nguyễn Hoàng Bảo Ngọc');
         await check(z + 'xấu nhất ' + name, '#main');
