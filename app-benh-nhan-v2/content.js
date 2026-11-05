@@ -82,7 +82,7 @@ const CONDITIONS = [
   { id: 'kidney', name: 'Bệnh thận', qs: [{ k: 'level', t: 'Mức độ', opts: ['Nhẹ', 'Vừa', 'Nặng', 'Không rõ'] }, { k: 'gfr', t: 'GFR', type: 'num', unit: 'mL/phút', min: 1, max: 200 }, { k: 'dialysis', t: 'Đang chạy thận nhân tạo', opts: YN }] },
   { id: 'memory', name: 'Trí nhớ và tinh thần', qs: [{ k: 'decline', t: 'Suy giảm trí nhớ', opts: YN }, { k: 'stress', t: 'Gần đây rất căng thẳng', opts: YN }, { k: 'dx', t: 'Đã được chẩn đoán bệnh trí nhớ', opts: YN }] },
   { id: 'apnea', name: 'Ngưng thở khi ngủ', qs: [{ k: 'dx', t: 'Đã được chẩn đoán', opts: YN }, { k: 'snore', t: 'Ngáy hoặc ban ngày buồn ngủ nhiều', opts: YN }] },
-  { id: 'family', name: 'Người thân đột quỵ hoặc bệnh tim trước 60 tuổi', qs: [] },
+  { id: 'family', name: 'Người thân đột quỵ hoặc bệnh tim trước 60 tuổi', qs: [{ k: 'kinds', t: 'Cha mẹ, anh chị em ruột từng bị', multi: ['Đột quỵ', 'Bệnh tim mạch', 'Tăng huyết áp', 'Đái tháo đường', 'Rối loạn mỡ máu'] }] },
 ];
 const DRUG_HISTORY = [
   { id: 'anticoag', name: 'Thuốc chống đông', opts: ['Có', 'Đã từng', 'Không'] },
@@ -119,6 +119,22 @@ const BEFAST = [
 ];
 const HEADACHE = 'Đau đầu dữ dội, khác thường';
 const SYMPTOMS = ['Mất thăng bằng, chóng mặt', 'Mờ mắt, mất thị lực', 'Méo miệng', 'Yếu hoặc tê một bên', 'Nói khó, nói ngọng', HEADACHE];
+
+// Hồ sơ ban đầu: hỏi ngay khi khai báo để phân loại sớm và để bác sĩ mở hồ sơ là có đủ.
+// Mọi câu đều bỏ qua được. Ô trống không bao giờ được hiểu là "Không". Người đã nối hồ sơ bệnh viện không bị hỏi lại phần bệnh viện đã có.
+const HOSPITAL_KNOWN = ['htn', 'dm', 'cvd', 'af'];
+const INTAKE_FAMILY = ['Đột quỵ', 'Bệnh tim mạch', 'Tăng huyết áp', 'Đái tháo đường', 'Rối loạn mỡ máu'];
+const INTAKE = [
+  { title: 'Bệnh nền', other: 'cond', qs: [{ k: 'fact', id: 'htn' }, { k: 'fact', id: 'dm' }, { k: 'fact', id: 'lipid', q: 'Bác sĩ có nói bạn bị rối loạn mỡ máu (mỡ máu cao) không?' }, { k: 'fact', id: 'kidney', q: 'Bác sĩ có nói bạn bị bệnh thận không?' }] },
+  { title: 'Tim mạch', other: 'heart', qs: [{ k: 'fact', id: 'cvd' }, { k: 'fact', id: 'af' }, { k: 'drug', id: 'anticoag', q: 'Bạn có đang dùng thuốc chống đông không?', opts: ['Có', 'Đã từng', 'Không'] }] },
+  { title: 'Sinh hoạt', other: 'life', qs: [{ k: 'habit', id: 'smoke' }, { k: 'habit', id: 'alcohol' }, { k: 'habit', id: 'activity' }, { k: 'fact', id: 'apnea', q: 'Bạn có hay ngáy to hoặc ngừng thở khi ngủ không?' }] },
+  { title: 'Gia đình', other: 'family', qs: [{ k: 'fact', id: 'family', q: 'Cha mẹ, anh chị em ruột có ai bị đột quỵ hoặc bệnh tim trước 60 tuổi không?' }, { k: 'multi', id: 'familyKinds', q: 'Cha mẹ, anh chị em ruột có ai từng bị:', opts: INTAKE_FAMILY, none: 'Không ai', unknown: 'Chưa rõ' }] },
+  { title: 'Triệu chứng', other: 'symptoms', qs: [{ k: 'multi', id: 'symptoms', q: 'Trong 3 tháng qua, bạn có từng bị:', opts: SYMPTOMS, none: 'Không có', unknown: 'Không nhớ' }] },
+];
+// Ô "Khác" ở mỗi nhóm: chữ tự do, tối đa 200 ký tự. Bệnh khác dùng chung p.otherConditions; các ô còn lại nằm ở p.intake.other.
+const OTHER_LABEL = { cond: 'Bệnh khác', heart: 'Tim mạch khác', life: 'Sinh hoạt khác', family: 'Gia đình khác', symptoms: 'Triệu chứng khác' };
+// Giá trị ngắn của thói quen, để dòng tóm tắt gọn
+const HABIT_SHORT = { smoke: { none: 'Không', little: 'Ít', mid: 'Vừa', much: 'Nhiều' }, alcohol: { none: 'Không', little: 'Ít', mid: 'Vừa', much: 'Nhiều' }, activity: { strong: 'Mạnh, đủ', good: 'Nhẹ, đủ', little: 'Không thường xuyên', none: 'Không' } };
 
 // Bài tập phục hồi theo khả năng vận động. Mức "Nằm" dành cho người bệnh nặng, cần người nhà hỗ trợ.
 const EXERCISE_STOP = 'Dừng tập và báo bác sĩ nếu đau ngực, khó thở, chóng mặt hoặc đau nhiều.';

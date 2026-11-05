@@ -38,6 +38,12 @@ const SCREENS = {
   sos: ['an', 'A.open115({})'],
   lock: ['an', "A.pNotif({ kind: 'meds', mk: 'sang' })"],
   empty: ['tu', ''],
+  hist0: ['moi', "S.draft.on = { stroke: false, hist: { htn: 'yes' } }; S.stack = [{ v: 'onHist', p: { step: 0 } }]"],
+  hist1: ['moi', "S.draft.on = { stroke: false, hist: {} }; S.stack = [{ v: 'onHist', p: { step: 1 } }]"],
+  hist2: ['moi', "S.draft.on = { stroke: false, hist: { smoke: 'little' } }; S.stack = [{ v: 'onHist', p: { step: 2 } }]"],
+  hist3: ['moi', "S.draft.on = { stroke: false, hist: { family: 'yes', familyKinds: ['Đột quỵ'] } }; S.stack = [{ v: 'onHist', p: { step: 3 } }]"],
+  hist4: ['moi', "S.draft.on = { stroke: false, hist: { symptoms: [] } }; S.stack = [{ v: 'onHist', p: { step: 4 } }]"],
+  summary: ['ha', "S.tab = 'metrics'; go('summary')"],
   // Dữ liệu xấu nhất: tên dài, bảy thuốc, chưa có số đo, xét nghiệm ngoài ngưỡng
   xauToday: ['xau', ''],
   xauMeds: ['xau', "S.tab = 'meds'"],

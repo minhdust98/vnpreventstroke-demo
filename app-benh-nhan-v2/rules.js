@@ -260,3 +260,35 @@ function forYou(p) {
   out.push({ topic: 'diet', id: 'salt' });
   return out.slice(0, 3);
 }
+
+// ---- Hồ sơ ban đầu: những gì người bệnh khai, để bác sĩ mở ra xem. Không tính điểm, không đổi nhóm theo dõi. ----
+const INTAKE_CONDS = [['htn', 'Tăng huyết áp'], ['dm', 'Đái tháo đường'], ['lipid', 'Rối loạn mỡ máu'], ['kidney', 'Bệnh thận'], ['cvd', 'Bệnh tim mạch'], ['af', 'Rung nhĩ'], ['apnea', 'Ngưng thở khi ngủ']];
+const joinList = l => l.join(', ');
+function intakeSummary(p, ms) {
+  const out = [{ k: 'Nhóm theo dõi', v: CARE_TITLE[careGroup(p, ms)] }];
+  const val = id => factOf(p, id);
+  const yes = INTAKE_CONDS.filter(([id]) => val(id) === 'yes').map(c => c[1]), unk = INTAKE_CONDS.filter(([id]) => val(id) === 'unknown').map(c => c[1].toLowerCase());
+  const answered = INTAKE_CONDS.some(([id]) => val(id) != null);
+  if (answered) out.push({ k: 'Bệnh nền', v: (yes.length ? joinList(yes) : 'Không có') + (unk.length ? `. Chưa rõ: ${joinList(unk)}` : '') });
+  const drugs = [p.drugs.anticoag ? `Chống đông: ${p.drugs.anticoag.toLowerCase()}` : '', p.drugs.antiplatelet ? `Kháng tiểu cầu: ${p.drugs.antiplatelet.toLowerCase()}` : ''].filter(Boolean);
+  if (drugs.length) out.push({ k: 'Thuốc đã dùng', v: joinList(drugs) });
+  const hab = [['smoke', 'Hút thuốc'], ['alcohol', 'Rượu bia'], ['activity', 'Vận động']].filter(([k]) => p.habits[k] && HABIT_SHORT[k][p.habits[k]]).map(([k, n]) => `${n}: ${HABIT_SHORT[k][p.habits[k]].toLowerCase()}`);
+  if (hab.length) out.push({ k: 'Sinh hoạt', v: joinList(hab) });
+  const fam = p.facts.family;
+  if (fam && fam.v != null) {
+    const kinds = (fam.detail && fam.detail.kinds) || [];
+    out.push({ k: 'Gia đình', v: `${fam.v === 'yes' ? 'Đột quỵ hoặc bệnh tim trước 60 tuổi' : fam.v === 'no' ? 'Không có đột quỵ hoặc bệnh tim sớm' : 'Chưa rõ'}${kinds.length ? `. Từng bị: ${joinList(kinds.map(x => x.toLowerCase()))}` : ''}` });
+  }
+  if (p.otherConditions) out.push({ k: OTHER_LABEL.cond, v: p.otherConditions });
+  const ot = (p.intake && p.intake.other) || {};
+  ['heart', 'life', 'family', 'symptoms'].forEach(k => { if (ot[k]) out.push({ k: OTHER_LABEL[k], v: ot[k] }); });
+  if (p.intake && p.intake.symptoms) out.push({ k: 'Triệu chứng 3 tháng qua', v: p.intake.symptoms.length ? joinList(p.intake.symptoms) : p.intake.unknown ? 'Không nhớ' : 'Không có' });
+  return out;
+}
+// Điều bác sĩ nên xem trước. [Đề xuất] chưa có trong BRD, chờ bác sĩ chốt. Chỉ hiện phía bác sĩ, người bệnh không thấy.
+function intakeFlags(p) {
+  const out = [], sym = (p.intake && p.intake.symptoms) || [];
+  if (sym.length) out.push('Có triệu chứng giống đột quỵ trong 3 tháng qua, chưa có đánh giá');
+  if (factOf(p, 'af') === 'yes' && !hasMedGroup(p, 'anticoag') && p.drugs.anticoag !== 'Có') out.push('Rung nhĩ, chưa thấy thuốc chống đông (người bệnh khai)');
+  return out;
+}

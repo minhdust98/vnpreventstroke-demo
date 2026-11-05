@@ -50,10 +50,13 @@ V.conditions = () => {
   let h = topBar({ back: 'Hồ sơ' }) + h1('Bệnh nền', 'sm');
   h += group(CONDITIONS.map(c => row({ title: c.name, value: answerText(p, c.id), a: 'go', p: { v: 'condition', id: c.id } })));
   h += group(DRUG_HISTORY.map(d => row({ title: d.name, value: esc(p.drugs[d.id] || ''), a: 'drugSheet', p: { id: d.id } })), { title: 'Thuốc đã dùng' });
-  h += `<label class="label" for="oc">Bệnh khác</label><input id="oc" class="input" data-field="otherCond" value="${esc(p.otherConditions)}">`;
+  h += group(row({ title: 'Triệu chứng 3 tháng qua', value: p.intake ? esc(p.intake.symptoms.length ? p.intake.symptoms.length + ' mục' : 'Không có') : '', a: 'symHist' }));
+  h += `<label class="label" for="oc">${OTHER_LABEL.cond}</label><input id="oc" class="input" maxlength="200" data-field="otherCond" value="${esc(p.otherConditions)}">`;
+  ['heart', 'life', 'family', 'symptoms'].forEach(k => { h += `<label class="label" for="o-${k}">${OTHER_LABEL[k]}</label><input id="o-${k}" class="input" maxlength="200" data-field="otherIntake" data-key="${k}" value="${esc(((p.intake && p.intake.other) || {})[k] || '')}">`; });
   return { chrome: 'push', html: h };
 };
 F.otherCond = v => { P().otherConditions = v; store.set(); };
+F.otherIntake = (v, el) => { const p = P(), i = p.intake || (p.intake = { t: now(), by: byWho() }); (i.other || (i.other = {}))[el.dataset.key] = v; store.set(); };
 V.condition = ({ id }) => {
   const p = P(), c = CONDITIONS.find(x => x.id === id), v = factOf(p, id), d = (p.facts[id] && p.facts[id].detail) || {};
   let h = topBar({ back: 'Bệnh nền' }) + h1(c.name, 'sm') + chips(YES_NO_UNSURE, v, 'condSet', { id }, 'grid');
@@ -70,6 +73,9 @@ A.condOpt = ({ id, k, v }) => { const f = factFor(id); (f.detail = f.detail || {
 A.condMulti = ({ id, k, v }) => { const f = factFor(id), d = f.detail = f.detail || {}, l = d[k] || (d[k] = []), i = l.indexOf(v); if (i >= 0) l.splice(i, 1); else l.push(v); };
 A.condNum = ({ id, k }) => { const q = CONDITIONS.find(x => x.id === id).qs.find(x => x.k === k), cur = (factFor(id).detail || {})[k]; S.draft.cond = { id, k }; openNum(q.type === 'year' ? { title: q.t, maxLen: 4, min: 1930, max: new Date(now()).getFullYear(), value: cur, onSave: 'condNumOk' } : { title: q.t, unit: q.unit, comma: true, maxLen: 5, min: q.min, max: q.max, value: cur, onSave: 'condNumOk' }); };
 A.condNumOk = v => { const { id, k } = S.draft.cond, f = factFor(id); (f.detail = f.detail || {})[k] = v; back(); };
+A.symHist = () => sheet('symHistSheet');
+V.symHistSheet = () => ({ title: 'Triệu chứng 3 tháng qua', html: `${sheetHead('Triệu chứng 3 tháng qua')}${chips(SYMPTOMS.map(x => [x, x]), (P().intake && P().intake.symptoms) || [], 'symHistSet')}` });
+A.symHistSet = ({ v }) => { const p = P(), i = p.intake || (p.intake = { t: now(), by: byWho(), symptoms: [] }), k = i.symptoms.indexOf(v); if (k >= 0) i.symptoms.splice(k, 1); else i.symptoms.push(v); i.unknown = false; };
 A.drugSheet = ({ id }) => sheet('drugPick', { id });
 V.drugPick = ({ id }) => { const d = DRUG_HISTORY.find(x => x.id === id); return { title: d.name, html: `${sheetHead(d.name)}${chips(d.opts.map(o => [o, o]), P().drugs[id], 'drugSet', { id })}` }; };
 A.drugSet = ({ id, v }) => { P().drugs[id] = v; S.sheet = null; };

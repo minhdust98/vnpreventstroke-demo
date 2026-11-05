@@ -49,7 +49,7 @@ function emptyProfile(id, name) {
     track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', steps: false, device: false },
     appts: [], messages: [], contact: null, address: '', family: [],
     careTeam: { doctor: 'BS. Demo', hospital: 'Bệnh viện mẫu A', phone: '0900 000 001', pharmacy: '0900 000 009' },
-    hospitalLinked: false, recheckAt: null,
+    hospitalLinked: false, recheckAt: null, intake: null,
   };
 }
 function appt(y, mo, d, hh, mm, extra) {
@@ -74,7 +74,8 @@ const SCENARIOS = {
       p.labs = [lab('ldl', 2.6, date(2026, 7, 20)), lab('ldl', 2.1, date(2026, 9, 28)), lab('a1c', 5.4, date(2026, 9, 28)), lab('egfr', 82, date(2026, 9, 28)), lab('tc', 4.6, date(2026, 9, 28))];
       p.track = Object.assign(p.track, { bp: true, bpMoments: ['sang', 'chieu'], weeklyHabits: true });
       p.habits = { smoke: 'none', alcohol: 'none', diet: 'yes', activity: 'little' };
-      p.facts = { prior: hosp('no'), pad: { v: null }, mi: hosp('no'), cvdother: hosp('yes'), chf: hosp('no'), smoke: { v: 'no', source: 'patient' }, htn: hosp('yes'), dm: hosp('no'), af: hosp('yes') };
+      p.facts = { prior: hosp('no'), pad: { v: null }, mi: hosp('no'), cvdother: hosp('yes'), chf: hosp('no'), smoke: { v: 'no', source: 'patient' }, htn: hosp('yes'), dm: hosp('no'), af: hosp('yes'), lipid: { v: 'yes', source: 'patient' }, kidney: { v: 'no', source: 'patient' }, family: { v: 'yes', source: 'patient', detail: { kinds: ['Đột quỵ', 'Tăng huyết áp'] } } };
+      p.drugs = { anticoag: 'Có' }; p.intake = { t: DEMO_NOW - 90 * DAY, by: 'self', symptoms: [] };
       p.contact = { name: 'Trần Mai', rel: 'con', tel: '0900 000 000' };
       p.family = [{ name: 'Trần Mai', rel: 'con', canSee: true }];
       p.appts = [
@@ -100,7 +101,8 @@ const SCENARIOS = {
       p.labs = [lab('ldl', 3.1, date(2026, 10, 1)), lab('tc', 5.6, date(2026, 10, 1)), lab('a1c', 6.8, date(2026, 10, 1))];
       p.track = Object.assign(p.track, { bp: true, bpMoments: ['sang'], glucose: true, gluMoments: ['sang'], weeklyHabits: true });
       p.habits = { smoke: 'none', alcohol: 'little', diet: 'no', activity: 'little' };
-      p.facts = { smoke: { v: 'no', source: 'patient' }, dm: { v: 'yes', source: 'patient' }, htn: { v: 'yes', source: 'patient' } };
+      p.facts = { smoke: { v: 'no', source: 'patient' }, dm: { v: 'yes', source: 'patient' }, htn: { v: 'yes', source: 'patient' }, lipid: { v: 'yes', source: 'patient' }, cvd: { v: 'no', source: 'patient' }, af: { v: 'unknown', source: 'patient' }, family: { v: 'yes', source: 'patient', detail: { kinds: ['Bệnh tim mạch', 'Đái tháo đường'] } } };
+      p.intake = { t: DEMO_NOW - 20 * DAY, by: 'self', symptoms: ['Yếu hoặc tê một bên'] };
       return { profiles: { ha: p }, active: 'ha', owner: 'ha' };
     },
   },
@@ -155,7 +157,7 @@ const SCENARIOS = {
       p.bp = genBP(41, 12, 126, 76, 0, ['sang']).filter((_, i) => i % 3 === 0);
       p.labs = [lab('ldl', 1.7, date(2026, 8, 12)), lab('a1c', 5.5, date(2026, 8, 12))];
       p.habits = { smoke: 'none', alcohol: 'none', diet: 'yes', activity: 'good' };
-      p.facts = { prior: hosp('yes'), pad: hosp('no'), mi: hosp('no'), cvdother: hosp('no'), chf: hosp('no'), smoke: hosp('no'), htn: hosp('yes'), dm: hosp('no') };
+      p.facts = { prior: hosp('yes'), pad: hosp('no'), mi: hosp('no'), cvdother: hosp('no'), chf: hosp('no'), smoke: hosp('no'), htn: hosp('yes'), dm: hosp('no'), af: hosp('yes') };
       p.appts = [appt(2026, 8, 12, 8, 30, { state: 'done', result: 'Tốt, hẹn 3 tháng' }), appt(2026, 11, 12, 8, 30)];
       return { profiles: { binh: p }, active: 'binh', owner: 'binh' };
     },

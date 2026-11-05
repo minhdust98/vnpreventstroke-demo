@@ -41,6 +41,8 @@ function doctorView() {
     if (pl.scales.includes('ESRS')) h += '<p class="pn">Cần bác sĩ chốt: câu "bệnh tim khác" dùng định nghĩa ESRS (không tính nhồi máu cơ tim và rung nhĩ), SPI-II chỉ loại nhồi máu cơ tim và cần tránh cộng trùng với suy tim.</p>';
     if (pending.length || (p.facts.confirm && p.facts.confirm.source !== 'doctor')) h += `<button class="pb" ${on('pConfirm')}>Bác sĩ xác nhận các câu bệnh nhân đã khai</button>`;
   }
+  const fl = intakeFlags(p);
+  h += `<details open><summary>Hồ sơ ban đầu${fl.length ? `, ${fl.length} điều cần xem` : ''}</summary><table>${intakeSummary(p, ms).map(x => `<tr><td>${esc(x.k)}</td><td style="text-align:left;font-weight:400">${esc(x.v)}</td></tr>`).join('')}</table>${fl.length ? `<p class="pn">Cần bác sĩ xem [Đề xuất]: ${fl.map(esc).join('; ')}.</p>` : ''}</details>`;
   h += `<details><summary>Nguồn kế hoạch theo dõi</summary><table>${planItems(p, ms).map(i => `<tr><td>${i.title}</td><td style="text-align:left;font-weight:400">${i.src}</td></tr>`).join('')}</table></details>`;
   return h;
 }

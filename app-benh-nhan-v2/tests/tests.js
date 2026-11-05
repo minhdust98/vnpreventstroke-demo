@@ -38,7 +38,7 @@ function newUser(stroke, year, type) {
   load('moi'); c('onStroke', { v: stroke ? 1 : 0 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' });
   keys(year); keys('165'); keys('62'); c('numSave');
   if (stroke) { c('go', { v: 'onType' }); c('onTypeSet', { v: type }); }
-  c('onFinish');
+  c('onHistDone'); c('onFinish');
 }
 function test(name, fn) { try { fn(); } catch (e) { results.push({ name: `${name} (lỗi)`, pass: false, extra: e.message }); } }
 
@@ -117,15 +117,46 @@ test('Lần đầu mở app', () => {
   ok('Chưa chọn đồng ý thì không đi tiếp', !findBtn('onAsk', { step: 'year' }));
   c('onConsent', { k: 'doctor', v: 1 });
   ok('Một câu vẫn chưa đủ', !findBtn('onAsk', { step: 'year' }));
-  c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1958'); keys('165'); keys('62'); c('numSave'); c('onScan'); c('go', { v: 'onTrack' }); c('onFinish');
+  c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1958'); keys('165'); keys('62'); c('numSave'); c('onScan'); c('go', { v: 'onHist' }); c('onHistDone'); c('onFinish');
   ok('Sau đột quỵ, quét mã bệnh viện', P() && P().meds.length === 3 && P().appts.length === 1, `${taps} chạm`);
   ok('Tái khám tự lên lịch 1 tháng', daysBetween(now(), P().appts[0].t) >= 28);
   ok('Đồng ý đúng lựa chọn', P().consents.doctor === true && P().consents.research === false);
-  load('moi'); taps = 0; c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 0 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1984'); keys('170'); keys('68'); c('numSave'); c('onFinish');
+  load('moi'); taps = 0; c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 0 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1984'); keys('170'); keys('68'); c('numSave'); c('onHistDone'); c('onFinish');
   ok('Chưa đột quỵ', P() && !P().meds.length, `${taps} chạm`);
   ok('Dưới 55 tuổi không có câu hỏi thang', riskRemaining(P(), now()).length === 0);
   load('moi'); c('onStroke', { v: 1 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 1 }); c('onAsk', { step: 'year' }); keys('1958'); c('back');
   ok('Quay lại bước năm sinh vẫn đúng câu', /Bạn sinh năm nào\?/.test(text()));
+});
+test('Hồ sơ ban đầu', () => {
+  load('moi'); taps = 0; c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1962'); keys('160'); keys('60'); c('numSave');
+  ok('Sau cân nặng là hồ sơ ban đầu, 5 nhóm', screen() === 'onHist' && document.querySelectorAll('#view .prog i').length === 5 && /Bệnh nền/.test(document.querySelector('#view h1').textContent));
+  c('onHistSet', { id: 'htn', v: 'yes' }); c('onHistSet', { id: 'dm', v: 'unknown' }); c('onHistSet', { id: 'lipid', v: 'no' }); c('onHistNext', { step: 1 });
+  c('onHistSet', { id: 'af', v: 'yes' }); c('onHistSet', { id: 'anticoag', v: 'Không' }); c('onHistNext', { step: 2 });
+  c('onHistPick', { id: 'smoke' }); c('onHistSet', { id: 'smoke', v: 'little', close: 1 }); c('onHistSet', { id: 'apnea', v: 'yes' }); c('onHistNext', { step: 3 });
+  c('onHistSet', { id: 'family', v: 'yes' }); c('onHistMulti', { id: 'familyKinds', v: 'Đột quỵ' }); c('onHistMulti', { id: 'familyKinds', v: 'Không ai' });
+  ok('Chọn "Không ai" bỏ các mục khác', JSON.stringify(onb().hist.familyKinds) === '["Không ai"]');
+  c('onHistMulti', { id: 'familyKinds', v: 'Đột quỵ' }); c('onHistNext', { step: 4 });
+  c('onHistMulti', { id: 'symptoms', v: 'Mờ mắt, mất thị lực' });
+  const oth = document.getElementById('oth'); oth.value = 'Hay tê đầu ngón tay'; oth.dispatchEvent(new Event('input', { bubbles: true }));
+  ok('Mỗi nhóm có ô Khác', !!oth && oth.dataset.key === 'symptoms' && onb().hist.other.symptoms === 'Hay tê đầu ngón tay');
+  c('onHistDone'); c('onFinish');
+  const p = P();
+  ok('Bệnh nền vào hồ sơ, nguồn người bệnh', factOf(p, 'htn') === 'yes' && factOf(p, 'dm') === 'unknown' && factOf(p, 'lipid') === 'no' && p.facts.htn.source === 'patient');
+  ok('Câu chưa trả lời giữ trống', factOf(p, 'kidney') == null && factOf(p, 'cvd') == null);
+  ok('Tim mạch, thuốc chống đông, ngưng thở', factOf(p, 'af') === 'yes' && p.drugs.anticoag === 'Không' && factOf(p, 'apnea') === 'yes');
+  ok('Sinh hoạt, hút thuốc thành câu thang điểm', p.habits.smoke === 'little' && factOf(p, 'smoke') === 'yes' && p.habits.alcohol == null);
+  ok('Gia đình', p.facts.family.v === 'yes' && p.facts.family.detail.kinds[0] === 'Đột quỵ');
+  ok('Triệu chứng 3 tháng qua và ô Khác', p.intake.symptoms.length === 1 && p.intake.other.symptoms === 'Hay tê đầu ngón tay' && intakeSummary(p, now()).some(x => x.k === 'Triệu chứng khác'));
+  ok('Đã trả lời thì không hỏi lại ở câu hỏi thang', !riskRemaining(p, now()).some(id => ['htn', 'dm', 'af', 'smoke'].includes(id)));
+  ok('Bác sĩ thấy hồ sơ ban đầu và hai điều cần xem', intakeSummary(p, now()).length >= 5 && intakeFlags(p).length === 2);
+  c('tab', { t: 'metrics' }); c('go', { v: 'summary' });
+  ok('Tóm tắt cho bác sĩ có hồ sơ ban đầu', /Hồ sơ ban đầu/.test(text()) && /Tăng huyết áp/.test(text()) && !/điểm nguy cơ/i.test(text()));
+  load('moi'); c('onStroke', { v: 1 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1950'); keys('160'); keys('60'); c('numSave'); c('onScan'); c('go', { v: 'onHist' });
+  ok('Nối hồ sơ bệnh viện thì không hỏi lại tăng huyết áp, đái tháo đường, tim, rung nhĩ', !findBtn('onHistSet', { id: 'htn' }) && !findBtn('onHistSet', { id: 'dm' }));
+  c('onHistNext', { step: 1 });
+  ok('Nhóm tim mạch chỉ còn thuốc chống đông', !!findBtn('onHistSet', { id: 'anticoag' }) && !findBtn('onHistSet', { id: 'af' }));
+  load('moi'); c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1962'); keys('160'); keys('60'); c('numSave'); c('onHistDone'); c('onFinish');
+  ok('Bỏ qua thì hồ sơ không có câu nào, không bị hiểu là Không', Object.keys(P().facts).length === 0 && !P().intake);
 });
 test('Câu hỏi thang điểm', () => {
   newUser(false, 1960);

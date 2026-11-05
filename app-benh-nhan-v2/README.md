@@ -13,6 +13,24 @@ Mở `index.html` bằng cách bấm đúp, không cần máy chủ. Bấm vào 
 | Chỉ số | Huyết áp, đường huyết, cân nặng, xét nghiệm (LDL, cholesterol, HbA1c, đường huyết lúc đói, eGFR), thói quen, kế hoạch theo dõi, tóm tắt cho bác sĩ. Thêm xét nghiệm: chọn tên rồi gõ số, hoặc chụp phiếu rồi xem lại từng số trước khi lưu |
 | Học | BE FAST và FAST, bài tập phục hồi theo khả năng vận động (nằm, ngồi, đứng), ăn uống phòng đột quỵ, dùng thuốc an toàn, huyết áp, trung tâm đột quỵ. Bài riêng cho từng người (thuốc chống đông, khó nuốt) đứng đầu danh sách. Mọi bài có nút Đọc to |
 
+## Hồ sơ ban đầu
+
+Ngay khi khai báo lần đầu (sau năm sinh, chiều cao, cân nặng và đột quỵ), app hỏi thêm 5 nhóm, mỗi màn một nhóm, câu nào cũng bỏ qua được (`INTAKE` trong `content.js`):
+
+| Nhóm | Câu hỏi | Lưu ở |
+|---|---|---|
+| Bệnh nền | Tăng huyết áp, đái tháo đường, rối loạn mỡ máu, bệnh thận | `p.facts.htn / dm / lipid / kidney` |
+| Tim mạch | Bệnh tim mạch (mạch vành, suy tim, hẹp động mạch chân), rung nhĩ, thuốc chống đông | `p.facts.cvd / af` (`cvd` cũng ghi vào `heart`), `p.drugs.anticoag` |
+| Sinh hoạt | Hút thuốc, rượu bia, vận động, ngáy to hoặc ngừng thở khi ngủ | `p.habits`, `p.facts.smoke`, `p.facts.apnea` |
+| Gia đình | Người thân đột quỵ hoặc bệnh tim trước 60 tuổi (câu của BRD); người thân từng bị bệnh gì | `p.facts.family` (`detail.kinds`) |
+| Triệu chứng | Triệu chứng giống đột quỵ trong 3 tháng qua | `p.intake.symptoms` |
+
+Mỗi màn có ô "Khác" để ghi thêm bằng chữ (tối đa 200 ký tự): bệnh khác (`p.otherConditions`), tim mạch khác, sinh hoạt khác, gia đình khác, triệu chứng khác (`p.intake.other`). Sửa lại được ở Hồ sơ, Bệnh nền; bác sĩ thấy ở Tóm tắt.
+
+Quy tắc: câu chưa trả lời giữ trống và không bao giờ thành "Không". Câu đã trả lời không bị hỏi lại ở bộ câu thang điểm. Người nối hồ sơ bệnh viện không bị hỏi lại tăng huyết áp, đái tháo đường, tim mạch, rung nhĩ (`HOSPITAL_KNOWN`). Mọi câu sửa lại được ở Hồ sơ, Bệnh nền.
+
+Phía bác sĩ: `intakeSummary(p)` (rules.js) gom thành các dòng cho màn Tóm tắt cho bác sĩ và bảng điều khiển demo; `intakeFlags(p)` nêu điều bác sĩ nên xem trước. Hai điều này là đề xuất chờ bác sĩ chốt (triệu chứng giống đột quỵ trong 3 tháng qua; rung nhĩ mà chưa thấy thuốc chống đông). Người bệnh không thấy, và không có điểm.
+
 Ảnh đại diện ở góc trái mở Hồ sơ. Nút 115 màu đỏ ở góc phải có trên mọi màn.
 
 ## Cấu trúc
@@ -91,3 +109,4 @@ Cần Node 22 trở lên. Đặt biến `BROWSER` nếu trình duyệt nằm ch�
 - Sau chảy máu não: mục "hỏi bác sĩ trước khi dùng thuốc mới".
 - Câu "bệnh tim khác": ESRS và SPI-II định nghĩa khác nhau, cần chốt một cách hỏi.
 - Dưới 55 tuổi và sau chảy máu não: chưa có thang phù hợp.
+- Hai điều cần xem của `intakeFlags` và danh sách bệnh nền, triệu chứng trong Hồ sơ ban đầu.
