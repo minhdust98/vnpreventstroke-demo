@@ -109,17 +109,53 @@ const HABITS = {
   activity: { icon: 'walk', name: 'Vận động', opts: [['strong', 'Từ 1,5 giờ vận động mạnh mỗi tuần'], ['good', 'Từ 2,5 giờ vận động nhẹ mỗi tuần'], ['little', 'Không thường xuyên'], ['none', 'Không']], good: v => v === 'good' || v === 'strong', okText: BRD.activeGood, badText: BRD.activeImprove, words: ['Đủ', 'Chưa đủ'] },
   smoke: { icon: 'smoke', name: 'Hút thuốc', opts: [['none', 'Không hút'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 1 gói mỗi ngày']], good: v => v === 'none', okText: BRD.smokeGood, badText: BRD.smokeImprove, words: ['Không', 'Có'] },
   alcohol: { icon: 'glass', name: 'Rượu bia', opts: [['none', 'Không uống'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều, từ 4-5 ly mỗi dịp']], good: v => v === 'none' || v === 'little', okText: BRD.alcoholGood, badText: BRD.alcoholImprove, words: ['Ít', 'Nhiều'] },
+  sleep: { icon: 'clock', name: 'Giấc ngủ', opts: [['yes', 'Đủ giấc'], ['no', 'Chưa đủ giấc']], good: v => v === 'yes', okText: 'Bạn đang ngủ đủ giấc. Hãy giữ thói quen này nhé!', badText: 'Hãy thử đi ngủ và thức dậy đúng giờ mỗi ngày. Nếu khó ngủ kéo dài, hãy hỏi bác sĩ.', words: ['Đủ', 'Chưa đủ'] },
   diet: { icon: 'leaf', name: 'Ăn uống', opts: [['yes', 'Lành mạnh'], ['no', 'Chưa lành mạnh'], ['unknown', 'Không rõ']], good: v => v === 'yes', okText: 'Bạn đang ăn uống rất tốt. Hãy tiếp tục nhé!', badText: 'Thử giảm dần món mặn, ngọt và nhiều dầu mỡ. Mỗi thay đổi nhỏ đều có ích.', words: ['Tốt', 'Chưa tốt'] },
 };
-const DIET_GOOD = ['Nhiều rau, trái cây, các loại hạt, đậu, ngũ cốc nguyên hạt', 'Dầu thực vật là nguồn chất béo chính', 'Ăn cá thường xuyên', 'Ít thịt đỏ, ít đồ chế biến sẵn', 'Sữa và sản phẩm từ sữa vừa phải'];
-const DIET_BAD = ['Ăn mặn', 'Ăn nhiều đồ ngọt', 'Ăn nhiều dầu mỡ'];
 
-// Một câu mỗi tuần, có chọn sẵn
-const WEEKLY = {
-  activity: { q: 'Tuần này bạn vận động thế nào?', opts: [['good', 'Từ 2,5 giờ trở lên'], ['little', 'Không thường xuyên'], ['none', 'Không']] },
-  diet: { q: 'Tuần này bạn có ăn mặn, ngọt hoặc nhiều dầu mỡ không?', opts: [['yes', 'Ít'], ['no', 'Khá nhiều']] },
-  alcohol: { q: 'Tuần này bạn uống rượu bia thế nào?', opts: [['none', 'Không uống'], ['little', 'Ít'], ['mid', 'Vừa'], ['much', 'Nhiều']] },
+// Bộ câu lối sống, hỏi về 7 ngày qua (theo thiết kế cũ của dự án). Câu chữ chờ bác sĩ duyệt.
+// kind num: một ô số; nums: nhiều ô số; pick: chọn một. only: chỉ hỏi khi câu trả lời trước thỏa điều kiện.
+const YN2 = [['yes', 'Có'], ['no', 'Không']];
+const FREQ3 = [['often', 'Thường xuyên'], ['sometimes', 'Thỉnh thoảng'], ['never', 'Không']];
+const LIFESTYLE = {
+  activity: { intro: 'Trong 7 ngày qua, trung bình mỗi ngày bạn dành bao nhiêu giờ cho các hoạt động:', qs: [
+    { id: 'light', kind: 'num', unit: 'giờ', max: 24, q: 'Hoạt động nhẹ: đi bộ thư thả, yoga nhẹ, làm việc nhà thông thường' },
+    { id: 'mod', kind: 'num', unit: 'giờ', max: 24, q: 'Hoạt động vừa: đi bộ nhanh, đạp xe giải trí, khiêu vũ, làm vườn' },
+    { id: 'strong', kind: 'num', unit: 'giờ', max: 24, q: 'Hoạt động mạnh: chạy bộ, bơi cường độ cao, thể thao đối kháng, leo núi' },
+  ] },
+  diet: { qs: [
+    { id: 'src', kind: 'nums', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, số bữa chính bạn đã sử dụng từ các nguồn nào?', nums: [['home', 'Nấu tại nhà'], ['out', 'Ăn ngoài'], ['order', 'Đặt đồ ăn']] },
+    { id: 'veg', kind: 'num', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, có bao nhiêu bữa chính bạn đã ăn rau/trái cây?' },
+    { id: 'bean', kind: 'num', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, có bao nhiêu bữa chính bạn đã ăn đậu phụ và các sản phẩm từ đậu?' },
+    { id: 'meat', kind: 'num', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, có bao nhiêu bữa chính bạn ăn thịt và các sản phẩm chế biến từ thịt (thịt muối, thịt hun khói, xúc xích...)?' },
+    { id: 'fish', kind: 'num', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, có bao nhiêu bữa chính bạn ăn cá/hải sản?' },
+    { id: 'grain', kind: 'num', unit: 'bữa', max: 21, q: 'Trong 7 ngày vừa qua, có bao nhiêu bữa chính bạn đã ăn gạo lứt, bánh mì nguyên cám?' },
+    { id: 'fried', kind: 'num', unit: 'lần', max: 50, q: 'Trong 7 ngày vừa qua, có bao nhiêu lần bạn sử dụng đồ ăn vặt nhiều dầu mỡ, snack, khoai tây chiên hoặc đồ chiên rán?' },
+    { id: 'sugar', kind: 'num', unit: 'lần', max: 50, q: 'Trong 7 ngày vừa qua, ước tính bạn đã uống đồ uống có đường (nước ngọt có ga, trà sữa, sinh tố, nước ép...) bao nhiêu lần?' },
+    { id: 'salt', kind: 'pick', opts: FREQ3, q: 'Bạn có thường xuyên thêm muối/nước mắm/mắm/gia vị vào thức ăn trong khi ăn không?' },
+  ] },
+  smoke: { qs: [
+    { id: 'status', kind: 'pick', opts: [['never', 'Không'], ['ex', 'Đã từng hút'], ['now', 'Đang hút']], q: 'Bạn đã bao giờ hút thuốc không (bao gồm cả thuốc lá, thuốc lào, xì gà...)?' },
+    { id: 'perDay', kind: 'pick', only: a => a.status === 'now', opts: [['10', '10 điếu trở xuống'], ['20', '11 – 20 điếu'], ['30', '21 – 30 điếu'], ['40', 'Trên 30 điếu']], q: 'Trong 7 ngày vừa qua, trung bình mỗi ngày bạn hút bao nhiêu điếu thuốc? (1 điếu thuốc lào tương đương với 1 điếu thuốc lá, 1 điếu xì gà tương đương với 20 điếu thuốc lá)' },
+    { id: 'first', kind: 'pick', only: a => a.status === 'now', opts: [['5', 'Trong vòng 5 phút'], ['30', '6 – 30 phút'], ['60', '31 – 60 phút'], ['61', 'Sau 60 phút']], q: 'Sau khi thức dậy, bạn hút điếu thuốc đầu tiên sau bao lâu?' },
+    { id: 'banned', kind: 'pick', only: a => a.status === 'now', opts: YN2, q: 'Bạn có thấy khó nhịn hút thuốc ở những nơi không được phép hút thuốc không?' },
+    { id: 'hardest', kind: 'pick', only: a => a.status === 'now', opts: [['first', 'Điếu thuốc đầu tiên vào buổi sáng'], ['other', 'Một điếu thuốc khác']], q: 'Bạn cảm thấy khó bỏ điếu thuốc nào nhất?' },
+    { id: 'morning', kind: 'pick', only: a => a.status === 'now', opts: YN2, q: 'Trong vài giờ đầu sau khi thức dậy, bạn có hút thuốc thường xuyên hơn so với thời gian còn lại trong ngày không?' },
+    { id: 'sick', kind: 'pick', only: a => a.status === 'now', opts: YN2, q: 'Khi bị bệnh và phải nằm trên giường phần lớn thời gian trong ngày, bạn có vẫn hút thuốc không?' },
+  ] },
+  alcohol: { qs: [
+    { id: 'units', kind: 'num', unit: 'đơn vị cồn', max: 30, q: 'Trong 7 ngày vừa qua, ước tính trung bình mỗi ngày bạn đã uống bao nhiêu đơn vị cồn? (1 đơn vị cồn tương đương với 1 lon bia 330 ml / 1 chén 20 – 30 ml rượu mạnh / 1 ly 100 ml rượu vang)' },
+  ] },
+  sleep: { qs: [
+    { id: 'night', kind: 'num', unit: 'giờ', max: 24, q: 'Trong tuần qua, trung bình mỗi ngày bạn ngủ buổi tối bao tiếng?' },
+    { id: 'onset', kind: 'pick', opts: FREQ3, q: 'Trong tuần qua, bạn có thường xuyên khó đi vào giấc ngủ không? (mất thời gian trên 30 phút mới đi vào giấc ngủ chính)' },
+    { id: 'wake', kind: 'pick', opts: FREQ3, q: 'Trong tuần qua, bạn có thường xuyên thức dậy giữa đêm không?' },
+    { id: 'tired', kind: 'pick', opts: FREQ3, q: 'Trong tuần qua, khi ngủ dậy buổi sáng, bạn có thường xuyên cảm thấy vẫn mệt mỏi không?' },
+    { id: 'nap', kind: 'num', unit: 'giờ', max: 24, q: 'Trong tuần qua, trung bình mỗi ngày bạn ngủ bao nhiêu tiếng ban ngày?' },
+  ] },
 };
+// Số đo chính của từng thói quen, để vẽ biểu đồ
+const LS_METRIC = { activity: ['Giờ vận động mỗi tuần', 'giờ'], diet: ['Bữa rau, trái cây trong 7 ngày', 'bữa'], smoke: ['Số điếu mỗi ngày', 'điếu'], alcohol: ['Đơn vị cồn mỗi ngày', ''], sleep: ['Giờ ngủ buổi tối', 'giờ'] };
 
 // BE FAST. FAST là bốn chữ F, A, S, T.
 const BEFAST = [

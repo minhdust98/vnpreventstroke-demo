@@ -246,7 +246,7 @@ function weeklyKind(p, ms) {
   if (!p.track.weeklyHabits) return null;
   const w = weekIdx(ms);
   if (p.habitLog.some(x => x.w === w)) return null;
-  return ['activity', 'diet', 'alcohol'][w % 3];
+  return ['activity', 'diet', 'sleep', 'alcohol'][w % 4];
 }
 
 // ---- Bài học dành cho bạn, theo nhóm, thuốc và khả năng vận động ----
@@ -323,4 +323,26 @@ function riskResult(p, ms) {
 function missRate(p, days, ms, times, medId) {
   const a = adherence(medId ? { meds: p.meds.filter(m => m.id === medId), doses: p.doses } : p, days, ms, times);
   return { due: a.due, not: a.due - a.taken };
+}
+
+// ---- Phân loại từ bộ câu lối sống. Ngưỡng là [Đề xuất], chờ bác sĩ chốt, và chỉ nằm ở đây. ----
+// Trả về giá trị theo HABITS[k].opts. Vận động theo BRD: nhẹ từ 2,5 giờ hoặc mạnh từ 1,5 giờ mỗi tuần.
+const LS_RULE = { smokeLittle: 10, smokeMid: 20, alcLittle: 1, alcMid: 2, vegGood: 14, friedMax: 3, sugarMax: 3, sleepMin: 7, sleepMax: 9 };
+const lsNum = v => { const n = Number(String(v == null ? '' : v).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+function lifestyleClass(k, a) {
+  const R = LS_RULE;
+  if (k === 'activity') { const strong = lsNum(a.strong) * 7, mild = (lsNum(a.light) + lsNum(a.mod)) * 7; return strong >= 1.5 ? 'strong' : mild >= 2.5 ? 'good' : mild + strong > 0 ? 'little' : 'none'; }
+  if (k === 'smoke') { if (a.status !== 'now') return 'none'; const n = lsNum(a.perDay); return n <= R.smokeLittle ? 'little' : n <= R.smokeMid ? 'mid' : 'much'; }
+  if (k === 'alcohol') { const n = lsNum(a.units); return n <= 0 ? 'none' : n <= R.alcLittle ? 'little' : n <= R.alcMid ? 'mid' : 'much'; }
+  if (k === 'diet') return lsNum(a.veg) >= R.vegGood && lsNum(a.fried) <= R.friedMax && lsNum(a.sugar) <= R.sugarMax && a.salt !== 'often' ? 'yes' : 'no';
+  if (k === 'sleep') { const n = lsNum(a.night); return n >= R.sleepMin && n <= R.sleepMax ? 'yes' : 'no'; }
+  return null;
+}
+function lifestyleMetric(k, a) {
+  const r1 = n => Math.round(n * 10) / 10;
+  if (k === 'activity') return r1((lsNum(a.light) + lsNum(a.mod) + lsNum(a.strong)) * 7);
+  if (k === 'smoke') return a.status === 'now' ? lsNum(a.perDay) : 0;
+  if (k === 'alcohol') return r1(lsNum(a.units));
+  if (k === 'diet') return lsNum(a.veg);
+  return r1(lsNum(a.night));
 }

@@ -332,28 +332,61 @@ A.scanSave = () => {
   S.draft.scan = null; openRoot('metrics'); toast(`Đã lưu ${items.length} kết quả`);
 };
 
-// ---- Thói quen ----
+// ---- Lối sống: mỗi thói quen một màn có biểu đồ; cập nhật bằng bộ câu hỏi về 7 ngày qua ----
+function lsSeries(p, k) { return (p.lifestyleLog || []).filter(x => x.k === k).sort((a, b) => a.t - b.t); }
 V.habit = ({ k }) => {
-  const p = P(), H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown';
+  const p = P(), H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown', ms = now(), ser = lsSeries(p, k), [mLabel, mUnit] = LS_METRIC[k];
   let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1(H.name, 'sm');
   if (known) h += `<section class="card"><div class="card-head">${statusIcon(H.good(v) ? 'good' : 'improve')}${H.good(v) ? 'Tốt' : 'Cần cải thiện'}</div><p class="body">${esc(H.good(v) ? H.okText : H.badText)}</p></section>`;
-  h += chips(H.opts, v, 'habitSet', { k });
-  if (k === 'diet' && known) { const list = v === 'yes' ? DIET_GOOD : DIET_BAD; h += chips(list.map(x => [x, x]), p.habits.dietItems || [], 'dietItem'); }
-  if (k === 'smoke' && known && v !== 'none') { const s = p.habits.smokeInfo || {}; h += group([row({ title: 'Số điếu mỗi ngày', value: s.perDay != null ? s.perDay : '', a: 'smokeNum', p: { f: 'perDay' } }), row({ title: 'Mục tiêu giảm xuống', value: s.goal != null ? `${s.goal} điếu` : '', a: 'smokeNum', p: { f: 'goal' } })]); }
-  if (k === 'activity') h += group([toggle('Số bước từ điện thoại', p.track.steps, 'toggleSteps'), p.track.steps ? row({ title: 'Hôm nay', value: '3.420 bước' }) : '']);
+  if (ser.length) {
+    const last = ser[ser.length - 1], vs = ser.map(x => x.m);
+    h += `<section class="card"><div class="center"><p class="hero-label">${mLabel}</p><p class="hero">${dec(last.m)}<small>${mUnit}</small></p></div>${ser.length >= 2 ? chart({ h: 150, label: `${mLabel}, các lần trả lời`, xMin: ser[0].t, xMax: ms, yMin: 0, yMax: Math.max(1, ...vs) * 1.2, series: [{ pts: ser.map(x => [x.t, x.m]), color: 'var(--tint)', dots: true }] }) : ''}</section>`;
+  }
+  h += btn(`${icon('pencil')}Cập nhật`, 'go', { v: 'lifestyle', k });
+  if (k === 'activity') h += group([toggle('Số bước từ điện thoại', p.track.steps, 'toggleSync', { k: 'steps' }), p.track.steps ? row({ title: 'Hôm nay', value: '3.420 bước' }) : '']);
+  if (k === 'sleep') h += group([toggle('Giấc ngủ từ điện thoại', p.track.sleep, 'toggleSync', { k: 'sleep' }), p.track.sleep ? row({ title: 'Đêm qua', value: '7,5 giờ' }) : '']);
   h += `<h2 class="label">Hỏi lại</h2>${seg([['tuan', 'Mỗi tuần'], ['thang', 'Mỗi tháng'], ['tat', 'Tắt']], p.track.weeklyHabits ? p.track.habitEvery : 'tat', 'habitEvery')}`;
   return { chrome: 'push', html: h };
 };
-A.habitSet = ({ k, v }) => { const p = P(); p.habits[k] = v; p.habitLog.push({ w: -1, kind: k, v, t: now(), by: byWho() }); if (k === 'smoke') p.facts.smoke = { v: v === 'none' ? 'no' : 'yes', source: 'patient' }; };
-A.dietItem = ({ v }) => { const l = P().habits.dietItems || (P().habits.dietItems = []), i = l.indexOf(v); if (i >= 0) l.splice(i, 1); else l.push(v); };
 A.habitEvery = ({ v }) => { const t = P().track; t.weeklyHabits = v !== 'tat'; if (v !== 'tat') t.habitEvery = v; };
-A.toggleSteps = () => {
-  if (P().track.steps) { P().track.steps = false; return; }
-  dialog({ title: 'Lấy số bước từ điện thoại?', body: '<p class="body">App chỉ đọc số bước từ Apple Health hoặc Health Connect. Tắt được bất cứ lúc nào.</p>', buttons: [{ label: 'Đồng ý', a: 'stepsYes' }, { label: 'Không', a: 'closeDialog', cls: 'soft' }] });
+A.toggleSync = ({ k }) => {
+  if (P().track[k]) { P().track[k] = false; return; }
+  const what = k === 'steps' ? 'số bước' : 'giấc ngủ';
+  dialog({ title: `Lấy ${what} từ điện thoại?`, body: '<p class="body">App chỉ đọc từ Apple Health hoặc Health Connect. Tắt được bất cứ lúc nào.</p>', buttons: [{ label: 'Đồng ý', a: 'syncYes', p: { k } }, { label: 'Không', a: 'closeDialog', cls: 'soft' }] });
 };
-A.stepsYes = () => { P().track.steps = true; S.dialog = null; };
-A.smokeNum = ({ f }) => { S.draft.smokeField = f; openNum({ title: f === 'goal' ? 'Mục tiêu giảm xuống' : 'Số điếu mỗi ngày', unit: 'điếu', maxLen: 3, min: 0, max: 100, onSave: 'smokeSaved' }); };
-A.smokeSaved = v => { const p = P(); (p.habits.smokeInfo = p.habits.smokeInfo || {})[S.draft.smokeField] = v; back(); };
+A.syncYes = ({ k }) => { P().track[k] = true; S.dialog = null; };
+
+// Bộ câu hỏi lối sống. Số gõ vào ô không vẽ lại màn; chọn đáp án thì vẽ lại để hiện các câu hỏi tiếp theo.
+const lsQs = (k, ans) => LIFESTYLE[k].qs.filter(q => !q.only || q.only(ans));
+const lsBlank = v => v == null || String(v).trim() === '';
+V.lifestyle = ({ k }) => {
+  const d = S.draft.ls && S.draft.ls.k === k ? S.draft.ls : (S.draft.ls = { k, ans: Object.assign({}, ((P().lifestyle || {})[k] || {}).ans) }), H = HABITS[k];
+  const num = (id, label, unit, val) => `<div><label class="label" for="ls-${id}">${esc(label)} (${unit})</label><input id="ls-${id}" class="input" inputmode="decimal" data-field="lsNum" data-id="${id}" value="${esc(val == null ? '' : val)}" autocomplete="off"></div>`;
+  let h = topBar({ close: true, closeA: 'lsClose' }) + h1(H.name, 'sm') + (LIFESTYLE[k].intro ? `<p class="lead">${LIFESTYLE[k].intro}</p>` : '');
+  lsQs(k, d.ans).forEach(q => {
+    if (q.kind === 'num') h += `<div class="ls-q">${num(q.id, q.q, q.unit, d.ans[q.id])}</div>`;
+    else if (q.kind === 'nums') h += `<div class="ls-q stack"><p class="label">${esc(q.q)}</p>${q.nums.map(([id, l]) => num(id, l, q.unit, d.ans[id])).join('')}</div>`;
+    else h += `<div class="ls-q"><p class="label">${esc(q.q)}</p>${chips(q.opts, d.ans[q.id], 'lsPick', { id: q.id })}</div>`;
+  });
+  return { chrome: 'modal', html: `${h}<div class="cta">${btn('Lưu', 'lsSave')}</div>` };
+};
+F.lsNum = (v, el) => { S.draft.ls.ans[el.dataset.id] = v; };
+A.lsPick = ({ id, v }) => { S.draft.ls.ans[id] = v; };
+A.lsClose = () => { S.draft.ls = null; back(); };
+A.lsSave = () => {
+  const d = S.draft.ls, k = d.k, qs = lsQs(k, d.ans);
+  const left = qs.filter(q => (q.kind === 'nums' ? q.nums.some(([id]) => lsBlank(d.ans[id])) : lsBlank(d.ans[q.id]))).length;
+  if (left) { toast(`Còn ${left} câu chưa trả lời`); return false; }
+  const bad = qs.filter(q => q.kind !== 'pick').some(q => (q.kind === 'nums' ? q.nums.map(n => n[0]) : [q.id]).some(id => { const n = Number(String(d.ans[id]).replace(',', '.')); return !Number.isFinite(n) || n < 0 || n > q.max; }));
+  if (bad) { toast('Có số chưa đúng'); return false; }
+  const p = P(), H = HABITS[k], v = lifestyleClass(k, d.ans), ms = now();
+  (p.lifestyle = p.lifestyle || {})[k] = { t: ms, ans: Object.assign({}, d.ans), by: byWho() };
+  (p.lifestyleLog = p.lifestyleLog || []).push({ k, t: ms, m: lifestyleMetric(k, d.ans) });
+  p.habits[k] = v; p.habitLog.push({ w: weekIdx(ms), kind: k, v, t: ms, by: byWho() });
+  if (k === 'smoke') p.facts.smoke = { v: v === 'none' ? 'no' : 'yes', source: 'patient' };
+  S.draft.weekReply = { good: H.good(v), text: H.good(v) ? H.okText : H.badText };
+  S.draft.ls = null; back(); toast('Đã lưu');
+};
 
 // ---- Tóm tắt cho bác sĩ: số đo, thuốc, xét nghiệm, triệu chứng. Không có điểm nguy cơ. ----
 V.summary = () => {

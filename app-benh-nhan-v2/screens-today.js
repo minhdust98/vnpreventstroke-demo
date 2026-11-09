@@ -50,7 +50,7 @@ function todayBlock() {
   if (!todo.length) {
     const wk = weeklyKind(p, ms), reply = S.draft.weekReply;
     if (reply) h += `<section class="card"><div class="card-head">${statusIcon(reply.good ? 'good' : 'improve')}${reply.good ? 'Tốt' : 'Cần cải thiện'}</div><p class="body">${esc(reply.text)}</p></section>`;
-    else if (wk) h += `<section class="card"><p class="lead">${WEEKLY[wk].q}</p>${chips(WEEKLY[wk].opts, null, 'weekly', { k: wk })}</section>`;
+    else if (wk) h += `<section class="card"><p class="lead">${HABITS[wk].name} tuần này</p>${btn('Trả lời', 'go', { v: 'lifestyle', k: wk })}</section>`;
   }
   if (p.stroke && !p.meds.length) h += `<section class="card"><div class="card-head">Thuốc</div>${btn('Thêm thuốc', 'medNew')}</section>`;
   if (!pl.length && !p.stroke) h += `<section class="card empty"><p class="lead">Hôm nay không có việc cần làm</p></section>` + group([row({ icon: 'alert', tone: 'red', title: 'Dấu hiệu đột quỵ', a: 'go', p: { v: 'befast' } }), row({ icon: 'heart', title: 'Nhắc đo huyết áp', a: 'go', p: { v: 'reminders' } })]);
@@ -72,12 +72,6 @@ V.moment = ({ mk }) => {
   const m = mo(mk), ms = now(), reached = atTime(ms, m.time) <= ms;
   const left = medsActive(P(), ms).some(x => x.moments.includes(mk) && !P().doses[doseKey(ms, mk, x.id)]);
   return { title: `Thuốc buổi ${m.word}`, html: `${sheetHead(`${m.label} · ${m.time}`)}<div class="list">${doseRows(mk, ms, !reached)}</div>${reached && left ? btn(`${icon('check')}Đã dùng`, 'dosesAll', { mk }) : ''}` };
-};
-A.weekly = ({ k, v }) => {
-  const p = P(), H = HABITS[k];
-  p.habits[k] = v;
-  p.habitLog.push({ w: weekIdx(now()), kind: k, v, t: now(), by: byWho() });
-  S.draft.weekReply = { good: H.good(v), text: H.good(v) ? H.okText : H.badText };
 };
 A.dismiss = ({ k }) => { D.dismissed[k] = true; };
 
