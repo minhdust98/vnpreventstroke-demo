@@ -38,7 +38,7 @@ function todayBlock() {
   h += group(done.map(it => doneRow(cur, it)));
 
   const msg = p.messages.find(m => !m.read);
-  if (msg) h += `<button class="card" ${on('go', { v: 'messages' })}><span class="card-head">${esc(msg.from)}<span class="aside">${ddmm(msg.t)}</span></span><span class="body">${esc(msg.text)}</span></button>`;
+  if (msg) h += `<button class="card" ${on('openChat')}><span class="card-head">${esc(msg.from)}<span class="aside">${ddmm(msg.t)}</span></span><span class="body">${esc(msg.text)}</span></button>`;
 
   const soon = [];
   pl.filter(m => !m.reached).forEach(m => m.items.forEach(it => soon.push(row({ icon: KIND[it.kind].icon, title: it.kind === 'meds' ? `Thuốc buổi ${m.word}` : `Đo ${KIND[it.kind].name.toLowerCase()}`, value: m.time }))));

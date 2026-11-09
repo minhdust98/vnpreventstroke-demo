@@ -47,7 +47,7 @@ function emptyProfile(id, name) {
     facts: {}, drugs: {}, otherConditions: '',
     habits: { smoke: null, alcohol: null, diet: null, activity: null }, habitLog: [],
     track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', steps: false, device: false },
-    appts: [], messages: [], visits: [], contact: null, address: '', family: [],
+    appts: [], messages: [], visits: [], doctors: [], aiLog: [], contact: null, address: '', family: [],
     careTeam: { doctor: 'BS. Demo', hospital: 'Bệnh viện mẫu A', phone: '0900 000 001', pharmacy: '0900 000 009' },
     hospitalLinked: false, recheckAt: null, intake: null, fsrp: null,
   };

@@ -170,13 +170,6 @@ V.display = () => {
 };
 A.setting = ({ k, v }) => { D.settings[k] = v; };
 
-V.messages = () => {
-  const p = P();
-  p.messages.forEach(m => { m.read = true; });
-  let h = topBar({ back: 'Quay lại' }) + h1('Bác sĩ', 'sm');
-  h += p.messages.length ? p.messages.map(m => `<section class="card"><div class="card-head">${esc(m.from)}<span class="aside">${ddmm(m.t)}</span></div><p class="body">${esc(m.text)}</p></section>`).join('') : '<section class="card"><p class="lead">Chưa có tin nhắn</p></section>';
-  return { chrome: 'push', html: h };
-};
 V.support = () => ({ chrome: 'push', html: `${topBar({ back: 'Cài đặt' })}${h1('Nhờ nhập giúp', 'sm')}<p class="body">Bác sĩ hoặc nhân viên y tế nhập thuốc và tiền sử bệnh giúp bạn khi đi khám.</p>${btn('Gửi yêu cầu', 'supportReq')}${group(row({ icon: 'group', title: 'Nhờ người nhà', a: 'go', p: { v: 'family' } }))}` });
 A.supportReq = () => { back(); toast('Đã gửi. Nhân viên y tế sẽ liên hệ.'); };
 

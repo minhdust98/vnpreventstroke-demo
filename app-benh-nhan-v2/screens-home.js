@@ -23,24 +23,11 @@ V.home = () => {
 // Thông báo: không lưu riêng, lấy từ những gì app đang biết
 V.notif = () => {
   const p = P(), ms = now(), rows = [], ap = nextAppt(p), remain = riskRemaining(p, ms);
-  p.messages.filter(m => !m.read).forEach(m => rows.push(row({ icon: 'msg', title: esc(m.from), value: ddmm(m.t), a: 'go', p: { v: 'messages' } })));
+  p.messages.filter(m => !m.read).forEach(m => rows.push(row({ icon: 'msg', title: esc(m.from), value: ddmm(m.t), a: 'openChat' })));
   if (p.recheckAt) rows.push(row({ icon: 'heart', title: 'Đo lại huyết áp', value: hhmm(p.recheckAt), a: 'startBP' }));
   if (ap && ap.t >= ms && daysBetween(ms, ap.t) <= 7) rows.push(row({ icon: 'cal', title: 'Tái khám', value: `${WD_S[new Date(ap.t).getDay()]} ${ddmm(ap.t)}`, a: 'go', p: { v: 'visit' } }));
   medsEnding(p, ms, 5).forEach(m => rows.push(row({ icon: 'pill', title: esc(m.name), value: `Còn ${daysLeft(m, ms)} ngày`, tone2: 'amber', a: 'go', p: { v: 'medDetail', id: m.id } })));
   if (remain.length) rows.push(row({ icon: 'gauge', title: `Còn ${remain.length} câu hỏi`, a: 'go', p: { v: 'risk' } }));
   if ((D.prompt7 || D.bpSaved >= 10) && !D.dismissed.feedback) rows.push(row({ icon: 'star', title: 'Bạn thấy app thế nào?', a: 'go', p: { v: 'feedback' } }));
   return { chrome: 'tab', html: topBar() + h1('Thông báo') + (rows.length ? group(rows) : '<section class="card empty"><p class="lead">Chưa có thông báo</p></section>') };
-};
-
-// Liên hệ: bác sĩ, trợ lý AI, lịch hẹn
-V.contact = () => {
-  const p = P(), ap = nextAppt(p), unread = p.messages.filter(m => !m.read).length;
-  let h = topBar({ back: 'Trang chủ' }) + h1('Liên hệ');
-  h += group([
-    row({ icon: 'msg', title: 'Bác sĩ', value: unread ? `${unread} mới` : '', a: 'go', p: { v: 'messages' } }),
-    row({ icon: 'brain', title: 'Trợ lý AI', a: 'demo', p: { msg: 'Trợ lý AI chưa có trong bản này' } }),
-    row({ icon: 'cal', title: 'Lịch hẹn', value: ap ? `${WD_S[new Date(ap.t).getDay()]} ${ddmm(ap.t)}` : '', a: 'go', p: { v: 'visit' } }),
-  ]);
-  h += group(row({ icon: 'plus', title: 'Thêm bác sĩ', a: 'demo', p: { msg: 'Thêm bác sĩ chưa có trong bản này' } }));
-  return { chrome: 'push', html: h };
 };

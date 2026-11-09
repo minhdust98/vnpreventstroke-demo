@@ -234,6 +234,16 @@ textarea.input { min-height: 6rem; resize: vertical; }
 .plate { width: 100%; display: block; }
 .badge { display: inline-flex; align-items: center; gap: .35rem; font-size: 1rem; font-weight: 700; color: var(--ink2); background: var(--fill); border-radius: 999px; padding: .3rem .8rem; align-self: flex-start; }
 .badge svg.i { width: 1.05rem; height: 1.05rem; }
+/* Chat: tin của bác sĩ bên trái, của bạn bên phải */
+.chat { display: flex; flex-direction: column; gap: .6rem; }
+.bubble { max-width: 86%; align-self: flex-start; background: var(--card); border-radius: var(--r-m); padding: .65rem .9rem; }
+.bubble.mine { align-self: flex-end; background: var(--tint-soft); }
+.bubble b { display: block; font-size: .95rem; color: var(--ink2); }
+.bubble p { font-size: 1.12rem; line-height: 1.4; overflow-wrap: anywhere; }
+.bubble small { display: block; margin-top: .15rem; font-size: .9rem; color: var(--ink2); }
+.cta.chat-in { flex-direction: row; align-items: center; gap: .5rem; }
+.chat-in .input { flex: 1; min-width: 0; }
+.chat-in .btn { width: auto; flex: none; padding: .3rem 1.1rem; }
 .input.otp { font-size: 2rem; letter-spacing: .5em; text-align: center; font-variant-numeric: tabular-nums; }
 .brand { width: 4.75rem; height: 4.75rem; border-radius: var(--r-l); background: var(--tint); color: var(--on-tint); display: flex; align-items: center; justify-content: center; }
 .brand svg.i { width: 2.8rem; height: 2.8rem; }
