@@ -70,7 +70,7 @@ A.dose = ({ mk, id }) => { const l = P().doses[doseKey(now(), mk, id)]; setDose(
 A.dosesAll = ({ mk }) => {
   const meds = medsActive(P(), now()).filter(m => m.moments.includes(mk));
   meds.forEach(m => { const l = P().doses[doseKey(now(), mk, m.id)]; if (!l || l.s !== 'taken') setDose(now(), mk, m.id, 'taken'); });
-  toast(meds.some(m => m.group === 'anticoag') ? 'Đã ghi. Thẻ cấp cứu có giờ liều mới.' : 'Đã ghi');
+  toast(FEATURES.sos && meds.some(m => m.group === 'anticoag') ? 'Đã ghi. Thẻ cấp cứu có giờ liều mới.' : 'Đã ghi');
 };
 V.moment = ({ mk }) => {
   const m = mo(mk), ms = now(), reached = atTime(ms, m.time) <= ms;
@@ -138,7 +138,7 @@ A.apptSend = () => { const a = nextAppt(P()); if (a) { a.state = 'change'; a.t =
 // ---- Nút 115 ----
 V.sos = () => ({ title: 'Gọi cấp cứu 115', html: `<div class="sheet-head"><span></span><button class="nav" ${on('closeSheet')}>Đóng</button></div>
   ${btn(`${icon('phone')}Gọi 115`, 'call', { num: '115' }, 'red huge')}
-  ${group([P() ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'sosTo', p: { v: 'card' } }) : '', row({ icon: 'pin', title: 'Bệnh viện gần nhất', value: `${dec(CENTERS[0].km)} km`, a: 'sosTo', p: { v: 'center', id: 'a' } })])}
+  ${group([P() && FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'sosTo', p: { v: 'card' } }) : '', row({ icon: 'pin', title: 'Bệnh viện gần nhất', value: `${dec(CENTERS[0].km)} km`, a: 'sosTo', p: { v: 'center', id: 'a' } })])}
   <div class="list">${BEFAST.filter(s => s.k !== 'T').map(s => `<div class="sign"><span class="letter">${s.k}</span><div><b>${s.name}</b><p>${s.text}</p></div></div>`).join('')}<div class="sign"><span class="letter">!</span><div><b>Đau đầu</b><p>${HEADACHE}.</p></div></div></div>
   ${P() ? group(row({ icon: 'pencil', title: 'Ghi triệu chứng', a: 'sosTo', p: { v: 'symptoms' } })) : ''}` });
 A.sosTo = ({ v, ...p }) => { S.sheet = null; go(v, p); };
@@ -172,6 +172,8 @@ V.symptoms = () => {
     if (p.symptoms.length) h += group(p.symptoms.slice().reverse().map(x => row({ title: esc(x.list.join(', ')), value: ddmm(x.t) })), { title: 'Đã ghi' });
   } else if (s.step === 2) {
     h += h1('Dấu hiệu này có đang xảy ra không?', 'q') + btn('Có, đang xảy ra', 'symNow', {}, 'red') + btn('Không, đã hết', 'symStep', { v: 3 }, 'soft');
+  } else if (s.step === 4) {
+    h += h1('Gọi 115 ngay', 'q') + btn(`${icon('phone')}Gọi 115`, 'call', { num: '115' }, 'red huge') + btn('Xong', 'symClose', {}, 'plain');
   } else {
     h += h1('Dù đã hết, vẫn nên báo bác sĩ ngay', 'q') + `<p class="body">Dấu hiệu đột quỵ có thể tự hết rồi quay lại nặng hơn.</p>`;
     h += btn(`${icon('phone')}Gọi bác sĩ`, 'call', { num: p.careTeam.phone, who: 'bác sĩ' });
@@ -182,7 +184,11 @@ V.symptoms = () => {
 A.symPick = ({ v }) => { const l = S.draft.sym.list, i = l.indexOf(v); if (i >= 0) l.splice(i, 1); else l.push(v); };
 A.symStep = ({ v }) => { S.draft.sym.step = Number(v); S.focus = true; };
 const symSave = visited => P().symptoms.push({ t: now(), list: S.draft.sym.list.slice(), visited, by: byWho() });
-A.symNow = () => { symSave(false); S.draft.sym = null; S.stack.pop(); sheet('sos'); };
+A.symNow = () => {
+  symSave(false);
+  if (!FEATURES.sos) { S.draft.sym.step = 4; S.focus = true; return; }
+  S.draft.sym = null; S.stack.pop(); sheet('sos');
+};
 A.symDone = ({ v }) => { symSave(v === '1'); S.draft.sym = null; back(); toast('Đã ghi lại cho bác sĩ'); };
 A.symClose = () => { S.draft.sym = null; back(); };
 

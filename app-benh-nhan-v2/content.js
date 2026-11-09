@@ -2,6 +2,11 @@
 // Nội dung hiển thị trong app: danh mục, câu chữ BRD v6, câu hỏi và bài học.
 // Nội dung y khoa ở đây là bản mẫu, chờ bác sĩ và kỹ thuật viên phục hồi chức năng duyệt.
 
+// Cờ bật tắt. Bước 1 ẩn các phần chưa làm: code vẫn còn, đổi true để bật lại.
+// sos: nút 115 trên mọi màn, sheet 115 và thẻ cấp cứu. exercises: bài tập phục hồi và câu "Đi lại". plan: kế hoạch theo dõi tự đề xuất.
+// hba1c, egfr: hai xét nghiệm chưa theo dõi ở bước 1. deviceLink: máy đo huyết áp kết nối.
+const FEATURES = { sos: false, exercises: false, plan: false, hba1c: false, egfr: false, deviceLink: false };
+
 const MOMENTS = [
   { key: 'sang', label: 'Sáng', time: '07:00' },
   { key: 'trua', label: 'Trưa', time: '12:00' },
@@ -49,6 +54,7 @@ const LABS = [
   { id: 'fpg', name: 'Đường huyết lúc đói', unit: 'mmol/L', min: 1, max: 40 },
   { id: 'egfr', name: 'eGFR', unit: 'mL/phút', min: 1, max: 200 },
 ];
+const labOn = l => !((l.id === 'a1c' && !FEATURES.hba1c) || (l.id === 'egfr' && !FEATURES.egfr));
 // Kết quả mô phỏng khi chụp phiếu xét nghiệm
 const SCAN_SAMPLE = { date: '2026-10-28', values: { ldl: 2.4, tc: 4.9, hdl: 1.1, tg: 1.8, a1c: 5.6 } };
 

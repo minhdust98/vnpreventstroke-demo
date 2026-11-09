@@ -40,6 +40,8 @@ function newUser(stroke, year, type) {
   if (stroke) { c('go', { v: 'onType' }); c('onTypeSet', { v: type }); }
   c('onHistDone'); c('onFinish');
 }
+// Chạy một đoạn với cờ tính năng đã bật, rồi trả lại. Phần bị ẩn ở bước 1 vẫn được kiểm tra khi bật.
+function withFlags(f, fn) { const keep = Object.assign({}, FEATURES); Object.assign(FEATURES, f); try { fn(); } finally { Object.assign(FEATURES, keep); } }
 function test(name, fn) { try { fn(); } catch (e) { results.push({ name: `${name} (lỗi)`, pass: false, extra: e.message }); } }
 
 bind();
@@ -68,7 +70,7 @@ test('Đánh dấu từng thuốc', () => {
 test('Số đo bất thường', () => {
   load('an'); c('startBP'); keys('192'); keys('118'); c('bpSave');
   ok('192/118: cảnh báo, có 115, không khen', /Huyết áp đang rất cao/.test(text()) && /Gọi 115/.test(text()) && !text().includes(BRD.bpGood));
-  ok('Có nút sửa số, kết quả có 115', !!findBtn('bpEdit', { id: current().p.id }) && !!findBtn('open115'));
+  ok('Có nút sửa số, 115 đang ẩn', !!findBtn('bpEdit', { id: current().p.id }) && !findBtn('open115'));
   load('an'); c('startBP'); keys('85'); keys('55'); c('bpSave');
   ok('85/55: cảnh báo thấp', /Huyết áp đang thấp/.test(text()) && !text().includes(BRD.bpGood));
   load('an'); c('startBP'); keys('300'); keys('80'); c('bpSave');
@@ -184,7 +186,7 @@ test('Câu hỏi thang điểm', () => {
   ok('Sửa câu trả lời trong danh sách', P().facts.pad.v === 'no' && !S.sheet);
 });
 test('Theo dõi theo nhóm', () => {
-  const planText = k => { load(k); c('tab', { t: 'metrics' }); c('go', { v: 'plan' }); return text(); };
+  const planText = k => { load(k); c('tab', { t: 'metrics' }); A.go({ v: 'plan' }); render(); return text(); };
   let t = planText('an');
   ok('Sau nhồi máu não', /Phòng đột quỵ tái phát/.test(t) && /Tái khám/.test(t) && /LDL/.test(t) && /Dưới 1,8/.test(t) && /Triệu chứng mới/.test(t));
   t = planText('lan');
@@ -194,7 +196,7 @@ test('Theo dõi theo nhóm', () => {
   t = planText('tu');
   ok('Dưới 55', /Phòng đột quỵ từ sớm/.test(t) && !/Mỗi ngày/.test(t) && !/Tái khám/.test(t));
   t = planText('binh'); ok('Đột quỵ lâu năm', /Tái khám/.test(t) && /Đang tắt/.test(t));
-  newUser(true, 1950, 'unknown'); c('tab', { t: 'metrics' }); c('go', { v: 'plan' });
+  newUser(true, 1950, 'unknown'); c('tab', { t: 'metrics' }); A.go({ v: 'plan' }); render();
   ok('Không nhớ loại đột quỵ', /Hỏi bác sĩ loại đột quỵ/.test(text()) && !/1,8/.test(text()));
   ['an', 'lan', 'ha', 'tu', 'binh', 'mai'].forEach(k => { load(k); ok(`Mục nào cũng có nguồn: ${k}`, planItems(P(), now()).every(i => i.src && A[i.a])); });
 });
@@ -214,13 +216,13 @@ test('Xét nghiệm', () => {
   ok('Nhập tay một kết quả', P().labs.length === n0 + 1 && l.test === 'ldl' && l.v === 1.7 && l.source === 'self' && dayKey(l.date) === dayKey(now()));
   ok('Kết quả mới hiện trên màn', screen() === 'labDetail' && /1,7/.test(text()));
   load('an'); A.pScan(); render();
-  ok('Chụp phiếu: màn kiểm tra 5 kết quả', screen() === 'scanReview' && /Lưu 5 kết quả/.test(text()));
-  c('scanToggle', { test: 'tg' }); ok('Bỏ một kết quả', /Lưu 4 kết quả/.test(text()));
+  ok('Chụp phiếu: màn kiểm tra 4 kết quả, không có HbA1c', screen() === 'scanReview' && /Lưu 4 kết quả/.test(text()) && !/HbA1c/.test(text()));
+  c('scanToggle', { test: 'tg' }); ok('Bỏ một kết quả', /Lưu 3 kết quả/.test(text()));
   c('scanEdit', { test: 'ldl' }); c('key', { k: 'del' }); c('key', { k: 'del' }); c('key', { k: 'del' }); keys('2'); c('key', { k: ',' }); keys('2'); c('numSave');
   ok('Sửa số đọc được', screen() === 'scanReview' && /2,2\smmol\/L/.test(text()));
   const n1 = P().labs.length; c('scanSave');
   const saved = P().labs.slice(n1);
-  ok('Lưu 4 kết quả từ ảnh', saved.length === 4 && saved.every(x => x.source === 'photo' && dayKey(x.date) === '2026-10-28') && saved.find(x => x.test === 'ldl').v === 2.2);
+  ok('Lưu 3 kết quả từ ảnh', saved.length === 3 && saved.every(x => x.source === 'photo' && dayKey(x.date) === '2026-10-28') && saved.find(x => x.test === 'ldl').v === 2.2);
   ok('Về tab Chỉ số', S.tab === 'metrics' && screen() === 'metrics');
   load('an'); c('startBP'); S.draft.scanTarget = 'bp'; scanned(null); render();
   ok('Chụp máy đo điền số, chờ bấm Lưu', S.draft.bp.sys === '126' && S.draft.bp.dia === '78' && screen() === 'bpEntry');
@@ -230,21 +232,26 @@ test('Học', () => {
   ok('BE FAST đủ 6 chữ', document.querySelectorAll('#view .letter').length === 6);
   c('fastMode', { v: 'fast' });
   ok('FAST còn 4 chữ', [...document.querySelectorAll('#view .letter')].map(x => x.textContent).join('') === 'FAST');
-  load('an'); c('tab', { t: 'learn' }); c('go', { v: 'exercises' });
+  load('an'); c('tab', { t: 'learn' });
+  ok('Bài tập phục hồi đang ẩn ở bước 1', !/Bài tập phục hồi/.test(text()));
+  withFlags({ exercises: true }, () => { render(); ok('Bật cờ thì Học có bài tập đứng đầu', /Bài tập phục hồi/.test(text())); });
+  withFlags({ exercises: true }, () => {
+  A.go({ v: 'exercises' }); render();
   ok('Mặc định bài tập nằm giường', /Đổi tư thế/.test(text()) && /Tập vai/.test(text()));
   c('exLevel', { v: 'stand' }); ok('Chọn mức đứng và nhớ trong hồ sơ', P().mobility === 'stand' && /Đi bộ/.test(text()));
   c('exLevel', { v: 'bed' }); c('go', { v: 'exercise', id: 'shoulder' });
   ok('Bài tập có các bước, cảnh báo dừng, người hỗ trợ', document.querySelectorAll('#view .steps li').length >= 3 && text().includes(EXERCISE_STOP) && /Cần người hỗ trợ/.test(text()));
+  });
   load('an'); c('tab', { t: 'learn' }); c('go', { v: 'topic', topic: 'diet' });
   ok('Ăn uống có đĩa ăn mẫu', !!document.querySelector('#view .plate') && /Ăn nhạt/.test(text()));
   c('go', { v: 'article', topic: 'diet', id: 'salt' }); ok('Bài ăn nhạt', /5 g muối/.test(text()));
   load('an'); A.go({ v: 'article', topic: 'meds', id: 'missed' }); render();
   ok('Bài quên liều có gọi bác sĩ', /Gọi bác sĩ/.test(text()) && /Đừng tự dùng bù/.test(text()));
   load('an'); c('tab', { t: 'learn' });
-  ok('Học: bài riêng và bài tập đứng đầu', /Bài tập phục hồi/.test(text()) && /Thuốc chống đông/.test(text()));
+  ok('Học: bài riêng đứng đầu', /Thuốc chống đông/.test(text()));
   load('mai'); c('tab', { t: 'learn' }); ok('Người bệnh nằm giường: có bài khó nuốt', /Khó nuốt sau đột quỵ/.test(text()));
   load('moi'); c('onGuest');
-  ok('Khách xem được, có 115, không có tab', /Học/.test(text()) && !!document.querySelector('#view .sos') && !document.querySelector('#tabs button'));
+  ok('Khách xem được, không có tab', /Học/.test(text()) && !document.querySelector('#tabs button'));
   c('go', { v: 'befast' }); c('back'); c('guestBack'); ok('Về lại câu hỏi đầu', /từng bị đột quỵ chưa/.test(text()));
 });
 test('Thuốc', () => {
@@ -265,15 +272,17 @@ test('Người nhà, chảy máu não, tái khám, triệu chứng', () => {
   load('mai'); ok('Dải đang chăm', /Đang chăm: Trần An/.test(text()));
   c('startBP'); keys('126'); keys('78'); c('bpSave'); ok('Ghi do người nhà nhập', last(P().bp).by === 'Trần Mai');
   load('lan'); ok('Chảy máu não không có câu thang', !riskPlan(P(), now()).ids.length);
-  c('open115'); c('sosTo', { v: 'card' }); ok('Thẻ cấp cứu không ghi chống đông', !/CHỐNG ĐÔNG/.test(text()));
+  withFlags({ sos: true }, () => { render(); c('open115'); c('sosTo', { v: 'card' }); ok('Thẻ cấp cứu không ghi chống đông', !/CHỐNG ĐÔNG/.test(text())); });
   load('an'); ok('Sắp tới có tái khám', /Tái khám/.test(text()) && /T3 03\/11/.test(text()));
   c('go', { v: 'visit' }); ok('Lịch đủ nơi khám và việc chuẩn bị', /tầng 3/.test(text()) && /Mang thuốc/.test(text()));
   c('apptConfirm'); ok('Xác nhận sẽ đến', /Bạn sẽ đến/.test(text()));
   load('an'); A.pDoc({ k: 'good' }); ok('Tốt thì hẹn 3 tháng', daysBetween(now(), nextAppt(P()).t) > 85);
   load('an'); A.pDoc({ k: 'bad' }); ok('Chưa tốt thì hẹn 1 tháng', daysBetween(now(), nextAppt(P()).t) < 32);
-  load('an'); c('open115'); c('sosTo', { v: 'symptoms' }); c('symPick', { v: SYMPTOMS[3] }); c('symStep', { v: 2 }); c('symNow');
-  ok('Triệu chứng đang xảy ra: mở 115', S.sheet && S.sheet.v === 'sos');
-  load('an'); c('open115'); c('sosTo', { v: 'symptoms' }); c('symPick', { v: SYMPTOMS[3] }); c('symStep', { v: 2 }); c('symStep', { v: 3 });
+  withFlags({ sos: true }, () => { load('an'); c('open115'); c('sosTo', { v: 'symptoms' }); c('symPick', { v: SYMPTOMS[3] }); c('symStep', { v: 2 }); c('symNow');
+  ok('Triệu chứng đang xảy ra: mở 115', S.sheet && S.sheet.v === 'sos'); });
+  load('an'); A.go({ v: 'symptoms' }); render(); c('symPick', { v: SYMPTOMS[3] }); c('symStep', { v: 2 }); c('symNow');
+  ok('115 ẩn: triệu chứng đang xảy ra hiện thẳng nút Gọi 115', !S.sheet && /Gọi 115 ngay/.test(text()) && !!findBtn('call', { num: '115' }) && P().symptoms.length === 1);
+  load('an'); A.go({ v: 'symptoms' }); render(); c('symPick', { v: SYMPTOMS[3] }); c('symStep', { v: 2 }); c('symStep', { v: 3 });
   ok('Đã hết vẫn khuyên báo bác sĩ', /vẫn nên báo bác sĩ/.test(text()));
   c('symDone', { v: 0 }); A.go({ v: 'summary' }); render(); ok('Có trong tóm tắt', /Yếu hoặc tê một bên/.test(text()));
   load('tu'); A.go({ v: 'summary' }); render(); ok('Chưa đồng ý thì không gửi', /Chưa chia sẻ với bác sĩ/.test(text()) && !/Gửi cho bác sĩ/.test(text()));
@@ -290,6 +299,23 @@ test('Hồ sơ', () => {
   ok('Đổi sang tiếng Anh', /Display/.test(text()));
   c('back'); ok('Tab tiếng Anh', /Today/.test(document.getElementById('tabs').innerText));
   D.settings.lang = 'vi';
+});
+
+test('Phần ẩn ở bước 1', () => {
+  load('an'); ok('Cờ ẩn đúng', !FEATURES.sos && !FEATURES.exercises && !FEATURES.plan && !FEATURES.hba1c && !FEATURES.egfr);
+  ok('Hôm nay không có nút 115', !document.querySelector('.sos') && !findBtn('open115'));
+  A.open115({}); ok('Bấm 115 khi ẩn không mở sheet', !S.sheet);
+  c('go', { v: 'profile' }); ok('Hồ sơ không có Thẻ cấp cứu', !/Thẻ cấp cứu/.test(text()));
+  c('go', { v: 'info' }); ok('Thông tin cá nhân không có Đi lại', !/Đi lại/.test(text()));
+  load('an'); c('tab', { t: 'metrics' });
+  ok('Chỉ số không có kế hoạch theo dõi, HbA1c, eGFR', !/Kế hoạch theo dõi/.test(text()) && !/HbA1c/.test(text()) && !/eGFR/.test(text()));
+  c('labAdd'); ok('Thêm xét nghiệm chỉ còn 5 chỉ số mỡ máu và đường huyết', !/HbA1c/.test(text()) && !/eGFR/.test(text()) && /Đường huyết lúc đói/.test(text()) && document.querySelectorAll('#sheetLayer [data-a="labChoose"]').length === 5);
+  load('an'); c('tab', { t: 'metrics' }); c('go', { v: 'bpDetail' }); ok('Huyết áp không có máy đo kết nối', !/Máy đo có kết nối/.test(text()));
+  withFlags({ sos: true, plan: true, hba1c: true, egfr: true, deviceLink: true }, () => {
+    load('an'); ok('Bật cờ thì có lại nút 115', !!document.querySelector('.sos'));
+    c('tab', { t: 'metrics' }); ok('Bật cờ thì có lại kế hoạch, HbA1c, eGFR', /Kế hoạch theo dõi/.test(text()) && /HbA1c/.test(text()) && /eGFR/.test(text()));
+    c('open115'); ok('Bật cờ thì sheet 115 mở được', S.sheet && S.sheet.v === 'sos' && /Thẻ cấp cứu/.test(text()));
+  });
 });
 
 // Duyệt mọi màn đi tới được: không lỗi, không tràn, nút đủ lớn, mọi màn có 115, không có chữ phụ kiểu cũ
@@ -313,7 +339,8 @@ function crawl(k, setup) {
     if (/\b(AM|PM)\b/.test(txt)) issues.add(`Giờ AM/PM: ${s}`);
     if (current().v !== 'faq' && /mức nguy cơ|nguy cơ (thấp|trung bình|cao)|điểm nguy cơ/i.test(txt)) issues.add(`Hiện nguy cơ: ${s}`);
     if (document.querySelector('#phone .sub, #phone .note, #phone .d, #phone .legend')) issues.add(`Còn chữ phụ kiểu cũ: ${s}`);
-    if (!S.sheet && !S.lock && !document.querySelector('#view .sos')) issues.add(`Thiếu nút 115: ${current().v}`);
+    if (FEATURES.sos && !S.sheet && !S.lock && !document.querySelector('#view .sos')) issues.add(`Thiếu nút 115: ${current().v}`);
+    if (!FEATURES.sos && document.querySelector('#phone .sos')) issues.add(`115 phải ẩn: ${current().v}`);
     if (!S.sheet && !S.lock && !document.querySelector('#view h1')) issues.add(`Thiếu tiêu đề: ${current().v}`);
     btns().forEach(b => { const r = b.getBoundingClientRect(); if (r.width && (r.height < 44 || r.width < 44)) issues.add(`Nút nhỏ: ${(b.innerText || b.dataset.a).trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`); if (!A[b.dataset.a]) issues.add(`Nút không có hành động: ${b.dataset.a}`); if (!(b.innerText.trim() || b.getAttribute('aria-label'))) issues.add(`Nút thiếu nhãn: ${b.dataset.a}`); });
     const next = [...new Set(btns().map(b => b.dataset.a + JSON.stringify(b.dataset)))].filter(x => !/^(key|wStep|setting|pickWhen)\{/.test(x) && !(x.startsWith('open115') && path.length) && !(x.startsWith('call{') && path.length > 2) && !x.startsWith('scan{'));

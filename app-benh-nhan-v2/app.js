@@ -66,7 +66,7 @@ const STATUS_UI = {
 const on = (a, p) => `data-a="${a}"${Object.entries(p || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('')}`;
 const icon = (n, cls) => `<svg class="i ${cls || ''}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const tile = (n, tone) => `<span class="tile ${tone || ''}">${icon(n)}</span>`;
-const sosBtn = () => `<button class="sos" ${on('open115')} aria-label="Gọi cấp cứu 115">${icon('phone')}115</button>`;
+const sosBtn = () => !FEATURES.sos ? '' : `<button class="sos" ${on('open115')} aria-label="Gọi cấp cứu 115">${icon('phone')}115</button>`;
 function topBar(o) {
   const x = o || {};
   let left;
@@ -151,7 +151,7 @@ A.tab = ({ t }) => { S.tab = t; S.stack = []; S.rootY = 0; S.scrollTo = 0; S.foc
 A.go = ({ v, ...p }) => go(v, p);
 A.closeSheet = () => { S.sheet = null; S.focus = true; };
 A.closeDialog = () => { S.dialog = null; };
-A.open115 = () => sheet('sos');
+A.open115 = () => { if (!FEATURES.sos) return false; sheet('sos'); };
 A.noop = () => {};
 A.call = ({ num, who }) => dialog({ title: num === '115' ? 'Đang gọi 115' : `Gọi ${who || num}`, body: `<p class="body">Bản demo không gọi thật. Trên điện thoại, nút này gọi ngay số <b>${esc(num)}</b>.</p>`, buttons: [{ label: 'Đóng', a: 'closeDialog' }] });
 A.speak = ({ text }) => {

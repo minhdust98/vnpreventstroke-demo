@@ -252,7 +252,7 @@ function weeklyKind(p, ms) {
 // ---- Bài học dành cho bạn, theo nhóm, thuốc và khả năng vận động ----
 function forYou(p) {
   const out = [];
-  if (p.stroke) out.push({ exercise: true });
+  if (p.stroke && FEATURES.exercises) out.push({ exercise: true });
   if (p.mobility === 'bed') out.push({ topic: 'diet', id: 'swallow' });
   if (p.meds.some(m => m.group === 'anticoag' && !m.paused)) out.push({ topic: 'meds', id: 'bleed' });
   if (p.meds.some(m => /sintrom/i.test(m.name) && !m.paused)) out.push({ topic: 'diet', id: 'vka' });

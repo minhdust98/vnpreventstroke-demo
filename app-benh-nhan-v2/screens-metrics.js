@@ -13,10 +13,10 @@ V.metrics = () => {
   if (p.track.glucose || lg) home.push(row({ icon: 'drop', title: 'Đường huyết', value: lg ? gluNum(lg.v) : '', status: lg ? gluStatus(lg.v, lg.fasting) : '', a: 'go', p: { v: 'gluDetail' } }));
   home.push(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }));
   h += group(home);
-  const labs = LABS.map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
+  const labs = LABS.filter(labOn).map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
   h += group(labs.length ? labs.map(({ l, r }) => row({ icon: 'flask', title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms), a: 'go', p: { v: 'labDetail', test: l.id } })) : row({ icon: 'plus', title: 'Thêm kết quả', a: 'labAdd' }), { title: 'Xét nghiệm', action: labs.length ? { label: 'Thêm', icon: 'plus', a: 'labAdd' } : null });
   h += group(Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }); }), { title: 'Thói quen' });
-  h += group([row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }), row({ icon: 'share', title: 'Tóm tắt cho bác sĩ', a: 'go', p: { v: 'summary' } })]);
+  h += group([FEATURES.plan ? row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }) : '', row({ icon: 'share', title: 'Tóm tắt cho bác sĩ', a: 'go', p: { v: 'summary' } })]);
   return { chrome: 'tab', html: h };
 };
 
@@ -188,7 +188,7 @@ V.bpDetail = () => {
   const show = S.draft.bpAll ? list : list.slice(0, 5);
   h += group(show.map(r => row({ title: `${WD_S[new Date(r.t).getDay()]} ${ddmm(r.t)} · ${hhmm(r.t)}`, value: `${r.by !== 'self' ? icon('user') : ''}${r.sys}/${r.dia}`, a: 'bpRow', p: { id: r.id }, aria: `${ddmm(r.t)} ${hhmm(r.t)}, ${r.sys} trên ${r.dia}${r.by !== 'self' ? `, ${r.by} nhập` : ''}` })), list.length ? { title: 'Lần đo' } : null);
   if (list.length > 5 && !S.draft.bpAll) h += btn(`Xem tất cả ${list.length} lần đo`, 'bpAll', {}, 'plain');
-  h += group([row({ icon: 'bell', title: 'Nhắc nhở', value: p.track.bp ? p.track.bpMoments.map(k => mo(k).label).join(', ') : 'Tắt', a: 'go', p: { v: 'reminders' } }), toggle('Máy đo có kết nối', p.track.device, 'toggleDevice')]);
+  h += group([row({ icon: 'bell', title: 'Nhắc nhở', value: p.track.bp ? p.track.bpMoments.map(k => mo(k).label).join(', ') : 'Tắt', a: 'go', p: { v: 'reminders' } }), FEATURES.deviceLink ? toggle('Máy đo có kết nối', p.track.device, 'toggleDevice') : '']);
   return { chrome: 'push', html: h };
 };
 A.bpPer = ({ v }) => { S.draft.bpPer = Number(v); S.draft.bpAll = false; };
@@ -290,7 +290,7 @@ V.labDetail = ({ test }) => {
 };
 // Thêm từ tab Chỉ số: một sheet có nút chụp phiếu và danh sách xét nghiệm để gõ tay
 A.labAdd = () => sheet('labAddSheet');
-V.labAddSheet = () => ({ title: 'Thêm kết quả', html: `${sheetHead('Thêm kết quả')}${btn(`${icon('camera')}Chụp phiếu`, 'scan', { target: 'lab' }, 'soft')}${group(LABS.map(l => row({ title: l.name, value: l.unit, a: 'labChoose', p: { test: l.id } })))}` });
+V.labAddSheet = () => ({ title: 'Thêm kết quả', html: `${sheetHead('Thêm kết quả')}${btn(`${icon('camera')}Chụp phiếu`, 'scan', { target: 'lab' }, 'soft')}${group(LABS.filter(labOn).map(l => row({ title: l.name, value: l.unit, a: 'labChoose', p: { test: l.id } })))}` });
 A.labChoose = ({ test }) => { S.sheet = null; labOpen(test); };
 function labOpen(test) { const l = labDef(test); S.draft.labTest = test; openNum({ title: l.name, unit: l.unit, comma: test !== 'egfr', maxLen: 5, min: l.min, max: l.max, date: dayKey(now()), scan: true, onSave: 'labSaved' }); }
 A.labSaved = v => {
@@ -309,7 +309,7 @@ F.scanFile = (v, el, type) => {
 function scanned(img) {
   if (S.draft.scanTarget === 'bp') { Object.assign(S.draft.bp, { sys: '126', dia: '78', focus: 'dia' }); return; }
   S.sheet = null;
-  S.draft.scan = { img, date: SCAN_SAMPLE.date, items: Object.entries(SCAN_SAMPLE.values).map(([test, v]) => ({ test, v, on: true })) };
+  S.draft.scan = { img, date: SCAN_SAMPLE.date, items: Object.entries(SCAN_SAMPLE.values).filter(([test]) => labOn(labDef(test))).map(([test, v]) => ({ test, v, on: true })) };
   go('scanReview');
 }
 V.scanReview = () => {
@@ -362,7 +362,7 @@ V.summary = () => {
   if (rs.length) { const sy = rs.map(r => r.sys), di = rs.map(r => r.dia); h += `<section class="card"><div class="card-head">Huyết áp<span class="aside">${rs.length} lần đo</span></div><p class="hero md">${Math.round(mean(sy))}/${Math.round(mean(di))}</p>${group([row({ title: 'Cao nhất', value: `${Math.max(...sy)}/${Math.max(...di)}` }), row({ title: 'Thấp nhất', value: `${Math.min(...sy)}/${Math.min(...di)}` }), rs.some(r => r.by !== 'self') ? row({ title: 'Người nhà nhập', value: `${rs.filter(r => r.by !== 'self').length} lần` }) : ''])}</section>`; }
   if (gl.length) h += group(row({ icon: 'drop', title: 'Đường huyết trung bình', value: `${gluNum(mean(gl.map(r => r.v)))} ${gluUnit()}` }));
   if (p.meds.length) h += `<section class="card"><div class="card-head">Thuốc<span class="aside">${a.due} liều</span></div><div class="stats"><div><b>${a.taken}</b><span>Đã dùng</span></div><div><b>${a.missed}</b><span>Bỏ lỡ</span></div><div><b>${a.none}</b><span>Không ghi</span></div></div>${group(medsActive(p, ms).map(m => row({ title: esc(medName(m)), value: momentsText(m) })))}</section>`;
-  const labs = LABS.map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
+  const labs = LABS.filter(labOn).map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
   if (labs.length) h += group(labs.map(({ l, r }) => row({ title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms) })), { title: 'Xét nghiệm gần nhất' });
   h += group(sym.length ? sym.map(s => row({ title: esc(s.list.join(', ')), value: ddmm(s.t) })) : row({ title: 'Không ghi nhận' }), { title: 'Triệu chứng mới' });
   const ask = riskPlan(p, ms).ids.filter(id => factOf(p, id) === 'unknown' || pendingConfirm(p, ms).includes(id));
