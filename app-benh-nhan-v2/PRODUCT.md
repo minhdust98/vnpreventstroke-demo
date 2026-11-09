@@ -13,12 +13,15 @@ web
 
 ## Product Purpose
 
-App phòng ngừa đột quỵ cho người bệnh, làm bốn việc:
+App phòng ngừa đột quỵ cho người bệnh, làm bảy việc:
 
-1. Nhắc dùng thuốc và ghi đã dùng.
-2. Theo dõi huyết áp, đường huyết, LDL.
-3. Tự nhập hoặc chụp phiếu xét nghiệm.
-4. Học dấu hiệu đột quỵ (BE FAST, FAST), bài tập phục hồi chức năng, chế độ ăn phòng đột quỵ.
+1. Nhắc dùng thuốc và ghi đã dùng; quên liều chỉ được ghi nhận.
+2. Theo dõi huyết áp, đường huyết, cân nặng, lối sống.
+3. Tự nhập hoặc chụp phiếu xét nghiệm mỡ máu và đường huyết.
+4. Gom hồ sơ ban đầu và các lần khám vào một hồ sơ sức khỏe.
+5. Cho biết mức nguy cơ (Thấp, Trung bình, Cao) kèm một lời khuyên chung, không hiện điểm.
+6. Liên hệ bác sĩ và lịch hẹn.
+7. Học dấu hiệu đột quỵ (BE FAST, FAST) và chế độ ăn phòng đột quỵ.
 
 Thành công là người bệnh dùng thuốc đều, chỉ số được ghi đủ để bác sĩ theo dõi, và nhận ra dấu hiệu đột quỵ để gọi 115 kịp.
 
@@ -38,7 +41,7 @@ App đi cùng web của bác sĩ điều trị. Dữ liệu người bệnh đ�
 - Người bệnh không thấy điểm nguy cơ. FSRP 2017, ESRS và SPI-II chỉ thu đầu vào; điểm tính ở phía bác sĩ.
 - Không hướng dẫn uống bù thuốc chống đông; quên liều thì hướng dẫn liên hệ bác sĩ hoặc dược sĩ.
 - Đồng ý chia sẻ dữ liệu phải do người dùng chọn rõ ràng.
-- Bắt buộc giữ: nút 115 trên mọi màn, nhãn "BẢN DEMO", chữ "minh họa" trên nội dung minh họa, màu mức độ đỏ, cam, xanh luôn có hình đi kèm.
+- Bắt buộc giữ: nhãn "BẢN DEMO", chữ "minh họa" trên nội dung minh họa, màu mức độ đỏ, cam, xanh luôn có hình đi kèm.
 - Nội dung bài tập và chế độ ăn là nội dung mẫu chờ bác sĩ duyệt. Ghi điều này trong README, không thêm chữ lên màn hình.
 - Không thư viện, không bước build; các file là script thường.
 - Tiếng Việt là chính, có bản tiếng Anh cho giao diện. Giờ 24 giờ, ngày dd/mm, số thập phân dùng dấu phẩy.
@@ -60,7 +63,7 @@ App đi cùng web của bác sĩ điều trị. Dữ liệu người bệnh đ�
 
 1. Mỗi màn một mục đích; việc của hôm nay đứng đầu.
 2. Chạm thay gõ, chụp thay nhập, bàn phím số lớn.
-3. An toàn trước: 115 luôn sẵn, số đo nguy hiểm báo rõ, không tư vấn ngoài phạm vi.
+3. An toàn trước: số đo nguy hiểm báo rõ và có nút gọi 115 ngay trên màn kết quả, không tư vấn ngoài phạm vi. Nút và sheet 115 chung đang tạm ẩn ở bước 1, bật lại bằng cờ `FEATURES.sos`.
 4. Không trách: bỏ app vài ngày rồi quay lại không phải nhập bù.
 5. Người bệnh làm chủ dữ liệu của mình.
 

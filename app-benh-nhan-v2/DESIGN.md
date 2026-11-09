@@ -239,7 +239,7 @@ A single phone column. Screens pad 1rem at the sides and stack sections with a 0
 
 Touch targets are at least 44px (2.75rem minimum for any control; buttons 3.6rem, keys 3.7rem, rows 3.5rem). Because everything is rem, extra-large text enlarges controls and spacing together. At 320px wide with extra-large text, leading row icons are hidden (container query, 360px) so titles keep their room; values never truncate and titles wrap instead. Real phones respect safe-area insets on the status bar, tab bar and sheets.
 
-**Navigation grammar.** Four tabs: Hôm nay, Thuốc, Chỉ số, Học. The avatar pushes Hồ sơ. Tasks such as entering a reading are full-screen modals with "Đóng" and no tab bar. Short pickers are bottom sheets with "Đóng". Result screens are one-way: no back into the entry, the 115 button always present, and "Xong" returns to where the flow began.
+**Navigation grammar.** Three tabs: Trang chủ, Thông báo, Cài đặt. Trang chủ is a greeting, a Hôm nay block (today's doses and readings) and five large function tiles (Dự đoán nguy cơ, Thuốc, Hồ sơ sức khỏe, Liên hệ, Giáo dục sức khỏe) that push their own screens with a back label "Trang chủ". Tasks such as entering a reading are full-screen modals with "Đóng" and no tab bar. Short pickers are bottom sheets with "Đóng". Result screens are one-way: no back into the entry, and "Xong" returns to where the flow began. The 115 pill is hidden at step 1 (flag `FEATURES.sos`); when on, it sits on every screen and every result screen.
 
 ## Elevation & Depth
 
@@ -274,6 +274,7 @@ Full-width, tall and immediate.
 
 ### Lists and rows
 - **Style:** inset grouped list in a medium-radius white container; separators indent 1rem; the whole row darkens to `fill` on press.
+- **Function tile:** two-column grid on the home screen, white `r-m` card, 2rem icon in link blue above a 700 label, min height 6.6rem; an odd last tile spans both columns.
 - **Row:** optional neutral leading icon, title, right-aligned value in `ink2` (tabular), chevron when it navigates. A non-good status tints the value amber or red and prefixes the status shape.
 - **Controls in rows:** round 1.9rem checkbox (blue when checked), 3.4rem switch (blue track when on, thumb slides 150ms).
 
@@ -287,8 +288,8 @@ Full-width, tall and immediate.
 - **Dates:** a list row showing dd/mm/yyyy in link blue, with the native picker laid invisibly over it.
 
 ### Navigation
-- **Tab bar:** white, hairline top, four equal columns, 1.65rem icons over 0.92rem labels; active tab in link blue at 800.
-- **Top bar:** sticky, matches the screen ground; avatar (3rem circle, initials) on tabs, "Đóng" on modals, chevron + parent name on pushes; 115 pill always on the right.
+- **Tab bar:** white, hairline top, three equal columns, 1.65rem icons over 0.92rem labels; active tab in link blue at 800.
+- **Top bar:** sticky, matches the screen ground; absent on tab roots when 115 is hidden, "Đóng" on modals, chevron + parent name on pushes; the 115 pill on the right when enabled.
 - **Sheets:** rise from the bottom, large top radius, title at 1.4rem with "Đóng" on the right.
 
 ### Status pill
@@ -308,7 +309,7 @@ Only four movements: press feedback (scale 0.97, 100ms ease-out), switch thumb (
 ### Do:
 - **Do** use `tint` for the single primary action, selection and progress, and nothing else.
 - **Do** pair every green, amber or red with its shape (check, dot, triangle) and its word.
-- **Do** keep the 115 pill in the top bar of every screen with chrome, and on every result screen.
+- **Do** keep the 115 pill in the top bar of every screen with chrome whenever `FEATURES.sos` is on.
 - **Do** size everything in rem so m / l / xl text grows controls with it; keep targets at least 44px.
 - **Do** give each screen one large title and let a row say one thing.
 - **Do** use medium radius for containers and controls, large for sheets, dialogs and the huge 115 button, small only for BE FAST letters.

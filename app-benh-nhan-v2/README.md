@@ -1,17 +1,48 @@
 # App người bệnh · bản demo
 
-App giúp người bệnh làm bốn việc: dùng thuốc đúng giờ; theo dõi huyết áp, đường huyết và LDL; tự nhập hoặc chụp phiếu xét nghiệm; học dấu hiệu đột quỵ, bài tập phục hồi và cách ăn uống. Toàn bộ người dùng và số liệu là giả. Không dùng để chẩn đoán hay điều trị.
+App giúp người bệnh dùng thuốc đúng giờ; theo dõi huyết áp, đường huyết và xét nghiệm mỡ máu; gom hồ sơ ban đầu và các lần khám; biết mức nguy cơ; liên hệ bác sĩ; học dấu hiệu đột quỵ và cách ăn uống. Toàn bộ người dùng và số liệu là giả. Không dùng để chẩn đoán hay điều trị.
 
 Mở `index.html` bằng cách bấm đúp, không cần máy chủ. Bấm vào thanh trạng thái (dòng "BẢN DEMO") để mở bảng điều khiển demo: đổi người dùng, đổi giờ, giả lập thông báo, phiếu xét nghiệm mẫu, phía bác sĩ.
 
-## Bốn tab
+## Ba tab và năm ô
 
-| Tab | Nội dung |
+Thanh dưới: **Trang chủ**, **Thông báo**, **Cài đặt**. Ảnh đại diện và nút 115 không còn ở bước 1.
+
+| Chỗ | Nội dung |
 |---|---|
-| Hôm nay | Tiêu đề là ngày. Việc còn lại của buổi hiện tại đứng đầu, mỗi việc một thẻ có nút; việc đã xong thu thành một dòng; rồi tới mục Sắp tới (buổi sau, tái khám, thuốc sắp hết) |
-| Thuốc | Liều theo buổi, một thẻ tuân thủ (7 chấm cho 7 ngày, số liều 30 ngày, câu khích lệ), danh sách thuốc, nhắc nhở |
-| Chỉ số | Huyết áp, đường huyết, cân nặng, xét nghiệm (LDL, cholesterol, HbA1c, đường huyết lúc đói, eGFR), thói quen, kế hoạch theo dõi, tóm tắt cho bác sĩ. Thêm xét nghiệm: chọn tên rồi gõ số, hoặc chụp phiếu rồi xem lại từng số trước khi lưu |
-| Học | BE FAST và FAST, bài tập phục hồi theo khả năng vận động (nằm, ngồi, đứng), ăn uống phòng đột quỵ, dùng thuốc an toàn, huyết áp, trung tâm đột quỵ. Bài riêng cho từng người (thuốc chống đông, khó nuốt) đứng đầu danh sách. Mọi bài có nút Đọc to |
+| Trang chủ | Thẻ chào. Khối **Hôm nay** ở giữa: việc còn lại của buổi (thuốc "Đã dùng", "Ghi số đo"), việc đã xong thu thành một dòng, rồi Sắp tới. Bên dưới là năm ô có hình |
+| Ô Dự đoán nguy cơ | Mức Thấp, Trung bình hoặc Cao kèm một lời khuyên chung, không hiện điểm. Còn câu hỏi thì hỏi tiếp; sửa câu trả lời; đánh giá cho người thân |
+| Ô Thuốc | Liều theo buổi, thẻ tuân thủ, danh sách thuốc, nhắc nhở, thêm và sửa thuốc |
+| Ô Hồ sơ sức khỏe | Ba phần chuyển bằng thanh chọn: **Theo dõi** (huyết áp, đường huyết, cân nặng, xét nghiệm LDL, cholesterol, HDL, triglyceride, đường huyết lúc đói, lối sống, triệu chứng), **Hồ sơ ban đầu** (đột quỵ, bệnh viện, bệnh nền theo từng đợt chẩn đoán, thuốc đã dùng, ô Khác), **Khám bệnh** (các lần khám: ngày, bệnh viện, chẩn đoán, ảnh phiếu; tóm tắt cho bác sĩ) |
+| Ô Liên hệ | Bác sĩ (tin nhắn), lịch hẹn, trợ lý AI và thêm bác sĩ (chưa có trong bản này) |
+| Ô Giáo dục sức khỏe | BE FAST và FAST, ăn uống phòng đột quỵ, dùng thuốc an toàn, huyết áp, trung tâm đột quỵ, hỏi đáp. Mọi bài có nút Đọc to |
+| Thông báo | Tin nhắn mới, đo lại huyết áp, tái khám trong 7 ngày, thuốc sắp hết, câu hỏi còn lại, mời đánh giá. Không lưu riêng, lấy từ dữ liệu có sẵn |
+| Cài đặt | Thông tin cá nhân, hồ sơ người thân, người nhà, nhờ nhập giúp, chia sẻ dữ liệu, nhắc nhở, hiển thị, phản hồi, bảo mật |
+
+Nhập ở Hôm nay thì sau khi lưu, số liệu nằm ở Hồ sơ sức khỏe › Theo dõi; xem lại lịch sử và biểu đồ thì vào mục đó.
+
+## Phần tạm ẩn ở bước 1
+
+Cờ trong `FEATURES` (đầu `content.js`). Code vẫn còn, đổi `true` là bật lại; bộ kiểm tra bật từng cờ để chắc phần ẩn vẫn chạy.
+
+| Cờ | Ẩn gì |
+|---|---|
+| `sos` | Nút 115 trên mọi màn, sheet 115, thẻ cấp cứu. Các nút "Gọi 115" ngay trên kết quả đo nguy hiểm, bài BE FAST và khi ghi triệu chứng đang xảy ra vẫn còn |
+| `exercises` | Bài tập phục hồi và câu "Đi lại" |
+| `plan` | Kế hoạch theo dõi tự đề xuất |
+| `hba1c`, `egfr` | Hai xét nghiệm chưa theo dõi ở bước 1; chụp phiếu chỉ điền các chỉ số còn lại |
+| `deviceLink` | Máy đo huyết áp kết nối |
+| `missedHelp` | Bài "Khi quên liều" và nút gọi bác sĩ, dược sĩ. Quên liều chỉ được ghi nhận |
+
+mRS không có trong app ở bước 1.
+
+## Mức nguy cơ
+
+Người bệnh chỉ thấy mức và một lời khuyên chung (`RISK_UI` trong `content.js`), kèm nhãn "Minh họa". Từ 55 tuổi, chưa đột quỵ: FSRP 2017. Sau nhồi máu não hoặc TIA: ESRS (app vẫn hỏi cả câu của SPI-II để phía bác sĩ dùng). Dưới 55 tuổi và sau chảy máu não: chưa có đánh giá.
+
+- Ngưỡng từng mức nằm một chỗ, `RISK_LEVEL` trong `rules.js`, và là [Đề xuất] chờ bác sĩ chốt: ESRS 0–2 Thấp, 3–6 Trung bình, từ 7 Cao; FSRP dưới 5% Thấp, 5% đến dưới 10% Trung bình, từ 10% Cao. Điểm và cách tính không đổi.
+- ESRS tính ngay từ câu trả lời. FSRP chưa có hệ số trong code, nên app chỉ đọc số % do phía bác sĩ tính (`p.fsrp`, trong demo là số minh họa); chưa có số thì app báo mức sẽ hiện sau khi bác sĩ xem câu trả lời.
+- Còn câu trả lời "chưa rõ" thì cũng chờ bác sĩ.
 
 ## Hồ sơ ban đầu
 
@@ -25,13 +56,11 @@ Ngay khi khai báo lần đầu (sau năm sinh, chiều cao, cân nặng và đ�
 | Gia đình | Người thân đột quỵ hoặc bệnh tim trước 60 tuổi (câu của BRD); người thân từng bị bệnh gì | `p.facts.family` (`detail.kinds`) |
 | Triệu chứng | Triệu chứng giống đột quỵ trong 3 tháng qua | `p.intake.symptoms` |
 
-Mỗi màn có ô "Khác" để ghi thêm bằng chữ (tối đa 200 ký tự): bệnh khác (`p.otherConditions`), tim mạch khác, sinh hoạt khác, gia đình khác, triệu chứng khác (`p.intake.other`). Sửa lại được ở Hồ sơ, Bệnh nền; bác sĩ thấy ở Tóm tắt.
+Mỗi màn có ô "Khác" để ghi thêm bằng chữ (tối đa 200 ký tự): bệnh khác (`p.otherConditions`), tim mạch khác, sinh hoạt khác, gia đình khác, triệu chứng khác (`p.intake.other`). Sửa lại được ở Hồ sơ sức khỏe › Hồ sơ ban đầu; bác sĩ thấy ở Tóm tắt.
 
-Quy tắc: câu chưa trả lời giữ trống và không bao giờ thành "Không". Câu đã trả lời không bị hỏi lại ở bộ câu thang điểm. Người nối hồ sơ bệnh viện không bị hỏi lại tăng huyết áp, đái tháo đường, tim mạch, rung nhĩ (`HOSPITAL_KNOWN`). Mọi câu sửa lại được ở Hồ sơ, Bệnh nền.
+Quy tắc: câu chưa trả lời giữ trống và không bao giờ thành "Không". Câu đã trả lời không bị hỏi lại ở bộ câu thang điểm. Người nối hồ sơ bệnh viện không bị hỏi lại tăng huyết áp, đái tháo đường, tim mạch, rung nhĩ (`HOSPITAL_KNOWN`). Mọi câu sửa lại được ở Hồ sơ sức khỏe › Hồ sơ ban đầu.
 
 Phía bác sĩ: `intakeSummary(p)` (rules.js) gom thành các dòng cho màn Tóm tắt cho bác sĩ và bảng điều khiển demo; `intakeFlags(p)` nêu điều bác sĩ nên xem trước. Hai điều này là đề xuất chờ bác sĩ chốt (triệu chứng giống đột quỵ trong 3 tháng qua; rung nhĩ mà chưa thấy thuốc chống đông). Người bệnh không thấy, và không có điểm.
-
-Ảnh đại diện ở góc trái mở Hồ sơ. Nút 115 màu đỏ ở góc phải có trên mọi màn.
 
 ## Cấu trúc
 
@@ -41,7 +70,7 @@ Phía bác sĩ: `intakeSummary(p)` (rules.js) gom thành các dòng cho màn Tó
 | `rules.js` | Logic lâm sàng thuần, không đụng giao diện: ngưỡng `TH`, trạng thái huyết áp, đường huyết, xét nghiệm, tuân thủ, lịch trong ngày, nhóm theo dõi, đầu vào thang điểm |
 | `data.js` | Người dùng giả (`SCENARIOS`), giờ demo cố định 31/10/2026 07:02. Kịch bản `xau` là dữ liệu xấu nhất: tên dài, bảy thuốc, chưa có số đo, xét nghiệm ngoài ngưỡng |
 | `app.js` | Trạng thái, lưu trữ, khung màn, thành phần dùng chung (`row`, `group`, `btn`, `chips`, `seg`, `keypad`, `dateRow`), điều hướng, xử lý sự kiện |
-| `screens-*.js` | Mỗi tab một file; Hồ sơ và màn bắt đầu mỗi thứ một file |
+| `screens-*.js` | Mỗi nhóm màn một file: `home` (Trang chủ, Thông báo, Liên hệ), `today` (Hôm nay, quên liều, tái khám), `meds`, `health` (ba phần của Hồ sơ sức khỏe), `metrics` (huyết áp, đường huyết, xét nghiệm, thói quen), `learn`, `profile` (Cài đặt, dự đoán nguy cơ), `onboarding` |
 | `panel.js` | Bảng điều khiển demo, nằm ngoài khung điện thoại |
 | `i18n.js` | Bản tiếng Anh cho giao diện. Bài học dài chỉ có tiếng Việt |
 | `styles.css` | Một file CSS, token ở đầu file, có nền tối và ba cỡ chữ |
@@ -53,13 +82,13 @@ Không có thư viện, không có bước build. Các file là script thường
 ### Cách viết một màn
 
 ```js
-V.labDetail = ({ test }) => ({ chrome: 'push', html: topBar({ back: 'Chỉ số' }) + h1(labDef(test).name) + ... });
+V.labDetail = ({ test }) => ({ chrome: 'push', html: topBar({ back: 'Hồ sơ sức khỏe' }) + h1(labDef(test).name) + ... });
 A.labChoose = ({ test }) => { S.sheet = null; labOpen(test); };   // gắn vào nút: on('labChoose', { test: 'ldl' })
 F.scanDate = v => { S.draft.scan.date = v; };              // gắn vào ô nhập: data-field="scanDate"
 ```
 
 - `V.tên` trả về `{ html, chrome }`. `chrome`: `tab` (có thanh tab), `push` (màn con), `modal` (việc riêng, có nút Đóng), `bare`. Sheet trả về `{ html }`.
-- Màn kết quả (huyết áp, đường huyết) là cửa một chiều: không quay lại ô nhập, "Xong" về chỗ đã mở, luôn có nút 115.
+- Màn kết quả (huyết áp, đường huyết) là cửa một chiều: không quay lại ô nhập, "Xong" về chỗ đã mở, có nút gọi 115 khi số đo nguy hiểm (và nút 115 chung khi `FEATURES.sos` bật).
 - Khi sheet, hộp thoại hay màn khóa mở, các lớp bên dưới bị `inert`. Sau mỗi lần bấm, tiêu điểm trở về đúng nút vừa bấm.
 - `A.tên(params, el)` nhận tham số từ thuộc tính `data-*` của nút. Sau khi chạy, app tự lưu và vẽ lại, trừ khi hàm trả `false`.
 - `F.tên(value, el)` chạy khi gõ hoặc đổi ô nhập, không vẽ lại.
@@ -68,11 +97,11 @@ F.scanDate = v => { S.draft.scan.date = v; };              // gắn vào ô nh�
 ## Quy tắc khi sửa
 
 1. Ngưỡng lâm sàng chỉ nằm trong `rules.js` và theo tài liệu yêu cầu. Không tự đặt ngưỡng hay hệ số mới.
-2. Người bệnh chỉ thấy trạng thái, không thấy điểm nguy cơ. FSRP 2017 (từ 55 tuổi, chưa đột quỵ), ESRS và SPI-II (sau nhồi máu não hoặc TIA) chỉ thu đầu vào; điểm tính ở phía bác sĩ. Không tự tạo hệ số hay kết quả.
+2. Người bệnh chỉ thấy mức Thấp, Trung bình hoặc Cao và một lời khuyên chung, không thấy điểm. Không tự tạo hệ số mới. Ngưỡng từng mức chỉ nằm ở `RISK_LEVEL`.
 3. Màu mức độ luôn có hình đi kèm: xanh dấu tích là tốt, cam chấm là cần cải thiện, cam tam giác là cao hoặc thấp, đỏ tam giác là nguy hiểm. Một màu nhấn (`--tint`) cho thao tác, trạng thái được chọn và tiến độ. Icon đầu dòng không tô màu, trừ mục cấp cứu màu đỏ.
 4. Bo góc theo ba mức `--r-s`, `--r-m`, `--r-l`; không thêm giá trị lẻ.
-5. Nút 115 có trên mọi màn và luôn dễ bấm. Số đo nguy hiểm báo rõ nhưng không gây hoảng.
-6. Không hướng dẫn uống bù thuốc chống đông. Quên liều thì hướng dẫn liên hệ bác sĩ hoặc dược sĩ.
+5. Số đo nguy hiểm báo rõ nhưng không gây hoảng, và có nút gọi 115 ngay trên màn kết quả. Nút 115 chung đang tạm ẩn (`FEATURES.sos`); khi bật phải có trên mọi màn.
+6. Quên liều chỉ ghi nhận, không gợi ý uống bù, không thao tác xử lý. Việc thuốc nào cần uống bù sẽ hỏi bác sĩ ở giai đoạn sau.
 7. Đồng ý chia sẻ dữ liệu phải do người dùng chọn rõ ràng, không có lựa chọn ngầm định.
 8. Không thêm khẩu hiệu, dòng giải thích hay nhãn phụ. Nếu màn hình cần chúng mới hiểu được thì sửa bố cục. Mỗi ý một nhãn: sheet và màn việc riêng đóng bằng "Đóng", nút ghi số là "Ghi số đo", màn giờ nhắc là "Nhắc nhở".
 9. Giờ 24 giờ, ngày dd/mm, số thập phân dùng dấu phẩy. Số và đơn vị ngắn (kg, km, mg) không tách dòng.
@@ -110,3 +139,7 @@ Cần Node 22 trở lên. Đặt biến `BROWSER` nếu trình duyệt nằm ch�
 - Câu "bệnh tim khác": ESRS và SPI-II định nghĩa khác nhau, cần chốt một cách hỏi.
 - Dưới 55 tuổi và sau chảy máu não: chưa có thang phù hợp.
 - Hai điều cần xem của `intakeFlags` và danh sách bệnh nền, triệu chứng trong Hồ sơ ban đầu.
+- Ngưỡng ba mức nguy cơ và ba lời khuyên chung (`RISK_LEVEL`, `RISK_UI`).
+- Câu chữ bộ câu hỏi thang điểm, BE FAST và danh sách triệu chứng cần ghi nhận.
+- Việc xử lý khi quên liều (thuốc nào cần uống bù).
+- Bộ câu hỏi lối sống, cách chấm Tốt và Cần cải thiện cho từng nhóm.
