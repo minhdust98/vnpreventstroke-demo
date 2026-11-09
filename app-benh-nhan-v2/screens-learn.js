@@ -59,7 +59,7 @@ const PLATE = `<svg class="plate" viewBox="0 0 200 200" role="img" aria-label="�
 V.topic = ({ topic }) => {
   const t = topicOf(topic), plate = topic === 'diet';
   let h = backLearn() + h1(t.title, 'sm') + (plate ? `<button class="plate-btn" ${on('go', { v: 'article', topic, id: 'plate' })} aria-label="Đĩa ăn mỗi bữa">${PLATE}</button>` : '');
-  h += group(t.items.filter(it => !(plate && it.id === 'plate')).map(it => row({ title: it.title, a: 'go', p: { v: 'article', topic, id: it.id } })));
+  h += group(t.items.filter(it => !(plate && it.id === 'plate') && !(it.id === 'missed' && !FEATURES.missedHelp)).map(it => row({ title: it.title, a: 'go', p: { v: 'article', topic, id: it.id } })));
   return { chrome: chromeLearn(), html: h };
 };
 V.article = ({ topic, id }) => {

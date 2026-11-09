@@ -93,16 +93,22 @@ test('Đo 3 lần', () => {
   c('gFinish'); ok('Lưu số trung bình', last(P().bp).sys === 128 && last(P().bp).dia === 79);
   clearInterval(guideTimer);
 });
-test('Quên liều chống đông', () => {
+test('Quên liều chỉ ghi nhận', () => {
   load('an'); A.pMissLast(); render();
   ok('Có dòng thuốc tối qua chưa ghi', /Thuốc tối qua/.test(text()));
   c('go', { v: 'missed' });
   ok('Hỏi đúng buổi', /Tối qua bạn đã dùng thuốc chưa\?/.test(text()));
   ok('Không có lựa chọn dùng ngay', !/uống ngay|dùng ngay|uống bù ngay/i.test(text()));
-  c('missedAns', { v: 'no' });
-  ok('Không tự dùng bù, có gọi bác sĩ và dược sĩ', /Đừng tự dùng bù/.test(text()) && /thuốc chống đông/.test(text()) && /Gọi bác sĩ/.test(text()) && /Gọi dược sĩ/.test(text()));
-  ok('Ghi là bỏ lỡ', adherence(P(), 30, now(), times()).missed >= 1);
-  c('back'); ok('Dòng chưa ghi biến mất', !/Thuốc tối qua/.test(text()));
+  const t0 = taps; c('missedAns', { v: 'no' });
+  ok('Chưa dùng: ghi nhận rồi về Trang chủ, 1 chạm', screen() === 'home' && taps - t0 === 1 && adherence(P(), 30, now(), times()).missed >= 1);
+  ok('Không gợi ý dùng bù, không hướng dẫn, không nút gọi bác sĩ hay dược sĩ', !/dùng bù|gấp đôi|hỏi bác sĩ hoặc dược sĩ/i.test(text()) && !findBtn('call'));
+  ok('Dòng chưa ghi biến mất', !/Thuốc tối qua/.test(text()));
+  load('an'); A.pMissLast(); render(); c('go', { v: 'missed' }); c('missedAns', { v: 'yes' });
+  ok('Đã dùng thì hỏi dùng lúc nào', !!findBtn('missedTime', { v: '60' })); c('missedTime', { v: '60' });
+  ok('Ghi là đã dùng, muộn 1 giờ', screen() === 'home' && !/Thuốc tối qua/.test(text()) && Object.values(P().doses).some(d => d.s === 'taken'));
+  load('an'); openTile('meds'); ok('Thuốc không còn dòng Khi quên liều', !/Khi quên liều/.test(text()));
+  load('an'); openTile('learn'); c('go', { v: 'topic', topic: 'meds' }); ok('Dùng thuốc an toàn không còn bài Quên liều', !/Quên liều/.test(text()) && /Không tự ngừng thuốc/.test(text()));
+  withFlags({ missedHelp: true }, () => { load('an'); openTile('meds'); ok('Bật cờ thì có lại bài Khi quên liều', /Khi quên liều/.test(text())); });
 });
 test('Buổi chiều và bỏ app 5 ngày', () => {
   load('an'); A.pTime({ t: '17:02' }); render();
@@ -246,8 +252,8 @@ test('Học', () => {
   load('an'); openTile('learn'); c('go', { v: 'topic', topic: 'diet' });
   ok('Ăn uống có đĩa ăn mẫu', !!document.querySelector('#view .plate') && /Ăn nhạt/.test(text()));
   c('go', { v: 'article', topic: 'diet', id: 'salt' }); ok('Bài ăn nhạt', /5 g muối/.test(text()));
-  load('an'); A.go({ v: 'article', topic: 'meds', id: 'missed' }); render();
-  ok('Bài quên liều có gọi bác sĩ', /Gọi bác sĩ/.test(text()) && /Đừng tự dùng bù/.test(text()));
+  withFlags({ missedHelp: true }, () => { load('an'); A.go({ v: 'article', topic: 'meds', id: 'missed' }); render();
+  ok('Bật cờ: bài quên liều có gọi bác sĩ', /Gọi bác sĩ/.test(text()) && /Đừng tự dùng bù/.test(text())); });
   load('an'); openTile('learn');
   ok('Học: bài riêng đứng đầu', /Thuốc chống đông/.test(text()));
   load('mai'); openTile('learn'); ok('Người bệnh nằm giường: có bài khó nuốt', /Khó nuốt sau đột quỵ/.test(text()));

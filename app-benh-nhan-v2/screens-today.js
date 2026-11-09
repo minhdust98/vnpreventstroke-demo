@@ -82,27 +82,21 @@ A.weekly = ({ k, v }) => {
 };
 A.dismiss = ({ k }) => { D.dismissed[k] = true; };
 
-// ---- Liều chưa ghi của buổi đã qua: không có lựa chọn "dùng ngay", không nhắc dùng bù ----
+// ---- Liều chưa ghi của buổi đã qua. Bước 1 chỉ ghi nhận: không gợi ý dùng bù, không hướng dẫn, không nút gọi. ----
 V.missed = o => {
   const p = P(), day = Number(o.day), m = mo(o.mk), yesterday = dayKey(day) !== dayKey(now());
   const meds = o.ids ? o.ids.split(',').map(id => p.meds.find(x => x.id === id)) : medsActive(p, day).filter(x => x.moments.includes(o.mk) && !p.doses[doseKey(day, o.mk, x.id)]);
-  const anti = meds.filter(x => x.group === 'anticoag');
   let h = topBar({ close: true }) + h1(yesterday ? `${m.label} qua bạn đã dùng thuốc chưa?` : `Buổi ${m.word} bạn đã dùng thuốc chưa?`, 'q');
   h += group(meds.map(x => row({ icon: 'pill', title: esc(medName(x)), value: m.time })));
   h += chips([['yes', 'Đã dùng'], ['no', 'Chưa dùng']], o.ans, 'missedAns', {}, 'grid');
   if (o.ans === 'yes') h += `<section class="card"><p class="lead">Dùng lúc nào?</p>${chips([['0', `Khoảng ${m.time}`], ['60', 'Muộn khoảng 1 giờ'], ['180', 'Muộn hơn nữa']], null, 'missedTime')}</section>`;
-  if (o.ans === 'no') {
-    h += `<div class="warn">${icon('alert')}<span>Đừng tự dùng bù hay gấp đôi liều.</span></div>`;
-    h += `<p class="body">${anti.length ? `${anti.length < meds.length ? `${anti.map(x => esc(x.name)).join(', ')} là` : 'Đây là'} thuốc chống đông. ` : ''}Hãy hỏi bác sĩ hoặc dược sĩ bạn nên làm gì.</p>`;
-    h += `${btn(`${icon('phone')}Gọi bác sĩ`, 'call', { num: p.careTeam.phone, who: 'bác sĩ' })}${btn('Gọi dược sĩ', 'call', { num: p.careTeam.pharmacy, who: 'dược sĩ' }, 'soft')}${btn('Xong', 'back', {}, 'plain')}`;
-  }
   return { chrome: 'modal', html: h };
 };
 A.missedAns = ({ v }) => {
   const o = current().p, p = P(), day = Number(o.day);
   if (!o.ids) o.ids = medsActive(p, day).filter(x => x.moments.includes(o.mk) && !p.doses[doseKey(day, o.mk, x.id)]).map(x => x.id).join(',');
   o.ans = v;
-  if (v === 'no') o.ids.split(',').forEach(id => setDose(day, o.mk, id, 'missed', atTime(day, times()[o.mk])));
+  if (v === 'no') { o.ids.split(',').forEach(id => setDose(day, o.mk, id, 'missed', atTime(day, times()[o.mk]))); back(); toast('Đã ghi'); }
 };
 A.missedTime = ({ v }) => {
   const o = current().p, day = Number(o.day), t = atTime(day, times()[o.mk], Number(v));

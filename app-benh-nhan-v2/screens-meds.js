@@ -19,7 +19,7 @@ V.meds = () => {
   h += `<section class="card"><div class="dots" role="group" aria-label="7 ngày">${days.map(d => { const s = dayDoseState(p, d, ms, t); return `<div class="day"><span class="dot ${s}" role="img" aria-label="${ddmm(d)}: ${word[s]}">${s === 'full' ? icon('check') : ''}</span>${WD_S[new Date(d).getDay()]}</div>`; }).join('')}</div>`
     + (a.due ? `<p class="lead">30 ngày qua: ${a.taken}/${a.due} liều</p>` : '') + (k === 'none' ? '' : `<p class="body">${k === 'good' ? BRD.medGood : BRD.medImprove}</p>`) + '</section>';
   h += group(active.map(m => { const left = m.end ? daysLeft(m, ms) : 99; return row({ icon: 'pill', title: esc(medName(m)), value: left <= 7 ? `Còn ${left} ngày` : momentsText(m), tone2: left <= 7 ? 'amber' : '', a: 'go', p: { v: 'medDetail', id: m.id } }); }), { title: 'Đang dùng', action: { label: 'Thêm', icon: 'plus', a: 'medNew' } });
-  h += group([row({ icon: 'book', title: 'Khi quên liều', a: 'go', p: { v: 'article', topic: 'meds', id: 'missed' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } })]);
+  h += group([FEATURES.missedHelp ? row({ icon: 'book', title: 'Khi quên liều', a: 'go', p: { v: 'article', topic: 'meds', id: 'missed' } }) : '', row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } })]);
   const off = p.meds.filter(m => !active.includes(m));
   h += group(off.map(m => row({ title: esc(medName(m)), value: m.paused ? 'Tạm dừng' : `Hết ${ymd(m.end)}`, a: 'go', p: { v: 'medDetail', id: m.id } })), off.length ? { title: 'Đã ngừng' } : null);
   return { chrome: 'push', html: h };

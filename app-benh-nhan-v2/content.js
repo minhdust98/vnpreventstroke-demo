@@ -5,7 +5,8 @@
 // Cờ bật tắt. Bước 1 ẩn các phần chưa làm: code vẫn còn, đổi true để bật lại.
 // sos: nút 115 trên mọi màn, sheet 115 và thẻ cấp cứu. exercises: bài tập phục hồi và câu "Đi lại". plan: kế hoạch theo dõi tự đề xuất.
 // hba1c, egfr: hai xét nghiệm chưa theo dõi ở bước 1. deviceLink: máy đo huyết áp kết nối.
-const FEATURES = { sos: false, exercises: false, plan: false, hba1c: false, egfr: false, deviceLink: false };
+// missedHelp: hướng dẫn khi quên liều và nút gọi bác sĩ, dược sĩ. Bước 1 chỉ ghi nhận quên, chờ bác sĩ chốt việc xử lý.
+const FEATURES = { sos: false, exercises: false, plan: false, hba1c: false, egfr: false, deviceLink: false, missedHelp: false };
 
 const MOMENTS = [
   { key: 'sang', label: 'Sáng', time: '07:00' },
