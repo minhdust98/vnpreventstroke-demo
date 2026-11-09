@@ -47,7 +47,7 @@ function emptyProfile(id, name) {
     facts: {}, drugs: {}, otherConditions: '',
     habits: { smoke: null, alcohol: null, diet: null, activity: null }, habitLog: [],
     track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', steps: false, device: false },
-    appts: [], messages: [], contact: null, address: '', family: [],
+    appts: [], messages: [], visits: [], contact: null, address: '', family: [],
     careTeam: { doctor: 'BS. Demo', hospital: 'Bệnh viện mẫu A', phone: '0900 000 001', pharmacy: '0900 000 009' },
     hospitalLinked: false, recheckAt: null, intake: null,
   };
@@ -76,6 +76,8 @@ const SCENARIOS = {
       p.habits = { smoke: 'none', alcohol: 'none', diet: 'yes', activity: 'little' };
       p.facts = { prior: hosp('no'), pad: { v: null }, mi: hosp('no'), cvdother: hosp('yes'), chf: hosp('no'), smoke: { v: 'no', source: 'patient' }, htn: hosp('yes'), dm: hosp('no'), af: hosp('yes'), lipid: { v: 'yes', source: 'patient' }, kidney: { v: 'no', source: 'patient' }, family: { v: 'yes', source: 'patient', detail: { kinds: ['Đột quỵ', 'Tăng huyết áp'] } } };
       p.drugs = { anticoag: 'Có' }; p.intake = { t: DEMO_NOW - 90 * DAY, by: 'self', symptoms: [] };
+      p.facts.htn.detail = { year: 2019 }; p.facts.lipid.detail = { year: 2024 };
+      p.visits = [{ id: 'v1', t: date(2026, 8, 12), place: 'Bệnh viện mẫu A', dx: 'Nhồi máu não, tăng huyết áp', photo: null }, { id: 'v2', t: date(2026, 9, 28), place: 'Phòng khám mẫu B', dx: 'Mỡ máu cao', photo: null }];
       p.contact = { name: 'Trần Mai', rel: 'con', tel: '0900 000 000' };
       p.family = [{ name: 'Trần Mai', rel: 'con', canSee: true }];
       p.appts = [
@@ -181,7 +183,8 @@ const SCENARIOS = {
       p.doses = genDoses(51, 3, p.meds);
       p.labs = [lab('ldl', 4.9, date(2026, 10, 30)), lab('egfr', 28, date(2026, 10, 30)), lab('a1c', 9.8, date(2026, 10, 30)), lab('fpg', 12.4, date(2026, 10, 30)), lab('hdl', 0.7, date(2026, 10, 30))];
       p.track = Object.assign(p.track, { bp: true, bpMoments: ['sang', 'chieu'], glucose: true, gluMoments: ['sang'], weeklyHabits: true });
-      p.facts = { htn: hosp('yes'), dm: hosp('yes'), af: hosp('yes'), chf: hosp('yes') };
+      p.facts = { htn: Object.assign(hosp('yes'), { detail: { year: 1998 } }), dm: hosp('yes'), af: hosp('yes'), chf: hosp('yes') };
+      p.visits = [{ id: 'v1', t: date(2026, 10, 30), place: 'Bệnh viện Đa khoa Trung ương mẫu, Trung tâm Đột quỵ và Thần kinh can thiệp', dx: 'Nhồi máu não tái phát, tăng huyết áp, đái tháo đường typ 2, suy tim, rung nhĩ', photo: null }, { id: 'v2', t: date(2026, 9, 3), place: 'Phòng khám Nội tiết', dx: '', photo: null }];
       p.careTeam = { doctor: 'BS. Nguyễn Hoàng Bảo Ngọc', hospital: 'Bệnh viện Đa khoa Trung ương mẫu', phone: '0900 000 001', pharmacy: '0900 000 009' };
       p.contact = { name: 'Tôn Thất Minh Khôi Nguyên', rel: 'cháu nội', tel: '0900 000 000' };
       p.appts = [appt(2026, 11, 2, 7, 30, { place: 'Bệnh viện Đa khoa Trung ương mẫu, Trung tâm Đột quỵ và Thần kinh can thiệp, tòa nhà B, tầng 12, phòng 1208', prep: 'Mang toàn bộ thuốc đang dùng, sổ theo dõi huyết áp, kết quả xét nghiệm máu và phim chụp não gần nhất.' })];

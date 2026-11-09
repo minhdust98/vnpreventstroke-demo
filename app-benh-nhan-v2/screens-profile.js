@@ -8,7 +8,7 @@ V.settings = () => {
   const p = P(), ms = now(), ids = Object.keys(D.profiles);
   let h = topBar() + h1('Cài đặt');
   if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
-  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'doc', title: 'Bệnh nền', a: 'go', p: { v: 'conditions' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
+  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
   h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
   h += group([row({ icon: 'lock', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
   h += group([row({ icon: 'star', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);
@@ -44,22 +44,12 @@ A.contactOk = () => { const c = S.draft.contact, p = P(); if (c.name && c.tel) p
 V.strokeType = () => ({ chrome: 'modal', html: `${topBar({ close: true })}${h1('Bác sĩ nói bạn bị loại đột quỵ nào?', 'q')}${chips(STROKE_TYPES, P().strokeType, 'strokeTypeSet', {}, '')}` });
 A.strokeTypeSet = ({ v }) => { P().strokeType = v; back(); };
 
-// ---- Bệnh nền: danh mục BRD, chung kho câu trả lời với câu hỏi thang ----
-V.conditions = () => {
-  const p = P();
-  let h = topBar({ back: 'Cài đặt' }) + h1('Bệnh nền', 'sm');
-  h += group(CONDITIONS.map(c => row({ title: c.name, value: answerText(p, c.id), a: 'go', p: { v: 'condition', id: c.id } })));
-  h += group(DRUG_HISTORY.map(d => row({ title: d.name, value: esc(p.drugs[d.id] || ''), a: 'drugSheet', p: { id: d.id } })), { title: 'Thuốc đã dùng' });
-  h += group(row({ title: 'Triệu chứng 3 tháng qua', value: p.intake ? esc(p.intake.symptoms.length ? p.intake.symptoms.length + ' mục' : 'Không có') : '', a: 'symHist' }));
-  h += `<label class="label" for="oc">${OTHER_LABEL.cond}</label><input id="oc" class="input" maxlength="200" data-field="otherCond" value="${esc(p.otherConditions)}">`;
-  ['heart', 'life', 'family', 'symptoms'].forEach(k => { h += `<label class="label" for="o-${k}">${OTHER_LABEL[k]}</label><input id="o-${k}" class="input" maxlength="200" data-field="otherIntake" data-key="${k}" value="${esc(((p.intake && p.intake.other) || {})[k] || '')}">`; });
-  return { chrome: 'push', html: h };
-};
+// ---- Bệnh nền: danh mục BRD, chung kho câu trả lời với câu hỏi thang. Danh sách nằm ở Hồ sơ sức khỏe › Hồ sơ ban đầu. ----
 F.otherCond = v => { P().otherConditions = v; store.set(); };
 F.otherIntake = (v, el) => { const p = P(), i = p.intake || (p.intake = { t: now(), by: byWho() }); (i.other || (i.other = {}))[el.dataset.key] = v; store.set(); };
 V.condition = ({ id }) => {
   const p = P(), c = CONDITIONS.find(x => x.id === id), v = factOf(p, id), d = (p.facts[id] && p.facts[id].detail) || {};
-  let h = topBar({ back: 'Bệnh nền' }) + h1(c.name, 'sm') + chips(YES_NO_UNSURE, v, 'condSet', { id }, 'grid');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1(c.name, 'sm') + chips(YES_NO_UNSURE, v, 'condSet', { id }, 'grid');
   if (v === 'yes') c.qs.forEach(q => {
     h += `<h2 class="label">${q.t}</h2>`;
     if (q.type) h += group(row({ title: q.type === 'year' ? 'Năm' : q.unit, value: d[q.k] != null ? dec(d[q.k]) : '', a: 'condNum', p: { id, k: q.k } }));

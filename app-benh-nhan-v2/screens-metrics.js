@@ -6,19 +6,19 @@ const labNum = (test, v) => (test === 'egfr' ? `${Math.round(v)}` : fix1(v));
 const LAB_GOAL = { tc: 5.2, a1c: 5.7, fpg: 5.6, egfr: 60 };
 const SOURCE_WORD = { hospital: 'Bệnh viện', self: 'Tự nhập', photo: 'Ảnh chụp' };
 
-V.metrics = () => {
-  const p = P(), ms = now(), lb = last(p.bp), lg = last(p.glucose), lw = last(p.weights), bmi = bmiOf(p.height, p.weight);
-  let h = topBar({ back: 'Trang chủ' }) + h1('Hồ sơ sức khỏe');
+// Phần Theo dõi của Hồ sơ sức khỏe: số đo theo ngày, xét nghiệm, lối sống, triệu chứng
+function followBlock(p, ms) {
+  const lb = last(p.bp), lg = last(p.glucose), lw = last(p.weights), bmi = bmiOf(p.height, p.weight), sym = last(p.symptoms);
   const home = [row({ icon: 'heart', title: 'Huyết áp', value: lb ? `${lb.sys}/${lb.dia}` : '', status: lb ? bpStatus(lb.sys, lb.dia) : '', a: 'go', p: { v: 'bpDetail' } })];
   if (p.track.glucose || lg) home.push(row({ icon: 'drop', title: 'Đường huyết', value: lg ? gluNum(lg.v) : '', status: lg ? gluStatus(lg.v, lg.fasting) : '', a: 'go', p: { v: 'gluDetail' } }));
-  home.push(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }));
-  h += group(home);
+  home.push(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }));
+  let h = group(home);
   const labs = LABS.filter(labOn).map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
   h += group(labs.length ? labs.map(({ l, r }) => row({ icon: 'flask', title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms), a: 'go', p: { v: 'labDetail', test: l.id } })) : row({ icon: 'plus', title: 'Thêm kết quả', a: 'labAdd' }), { title: 'Xét nghiệm', action: labs.length ? { label: 'Thêm', icon: 'plus', a: 'labAdd' } : null });
-  h += group(Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }); }), { title: 'Thói quen' });
-  h += group([FEATURES.plan ? row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }) : '', row({ icon: 'share', title: 'Tóm tắt cho bác sĩ', a: 'go', p: { v: 'summary' } })]);
-  return { chrome: 'push', html: h };
-};
+  h += group(Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }); }), { title: 'Lối sống' });
+  h += group([row({ icon: 'pencil', title: 'Triệu chứng', value: sym ? ddmm(sym.t) : '', a: 'go', p: { v: 'symptoms' } }), FEATURES.plan ? row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }) : '']);
+  return h;
+}
 
 // ---- Kế hoạch theo nhóm tiên phát, thứ phát. Nguồn từng mục hiện ở bảng điều khiển demo. ----
 function planItems(p, ms) {
@@ -308,6 +308,7 @@ F.scanFile = (v, el, type) => {
 };
 function scanned(img) {
   if (S.draft.scanTarget === 'bp') { Object.assign(S.draft.bp, { sys: '126', dia: '78', focus: 'dia' }); return; }
+  if (S.draft.scanTarget === 'visit') { S.draft.visit.photo = img; return; }
   S.sheet = null;
   S.draft.scan = { img, date: SCAN_SAMPLE.date, items: Object.entries(SCAN_SAMPLE.values).filter(([test]) => labOn(labDef(test))).map(([test, v]) => ({ test, v, on: true })) };
   go('scanReview');

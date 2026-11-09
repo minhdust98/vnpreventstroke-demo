@@ -81,11 +81,12 @@ const h1 = (text, cls) => `<h1 class="title ${cls || ''}">${esc(text)}</h1>`;
 function statusIcon(key) { const s = STATUS_UI[key]; return s && s.icon ? `<span class="st ${s.tone}" role="img" aria-label="${s.word}">${icon(s.icon)}</span>` : ''; }
 function pill(key, word) { const s = STATUS_UI[key]; return s && s.word ? `<span class="pill ${s.tone}">${icon(s.icon)}${esc(word || s.word)}</span>` : ''; }
 // Một dòng trong danh sách: tên bên trái, giá trị bên phải. Không có dòng phụ.
-// o.tone chỉ nhận 'red' cho mục cấp cứu. Giá trị chưa tốt lấy màu mức độ, luôn đi cùng hình trạng thái.
+// o.wrap: tên dài, giá trị xuống dòng riêng khi không đủ chỗ. o.tone chỉ nhận 'red' cho mục cấp cứu. Giá trị chưa tốt lấy màu mức độ, luôn đi cùng hình trạng thái.
 function row(o) {
   const st = o.status && o.status !== 'good' && o.status !== 'none' ? STATUS_UI[o.status].tone : '';
-  const inner = `${o.icon ? tile(o.icon, o.tone) : ''}<span class="row-title">${o.title}</span>${o.value != null || o.status ? `<span class="row-value ${o.tone2 || st}">${o.status ? statusIcon(o.status) : ''}${o.value != null ? o.value : ''}</span>` : ''}${o.a ? icon('chev', 'chev') : ''}`;
-  return o.a ? `<button class="row" ${on(o.a, o.p)}${o.aria ? ` aria-label="${esc(o.aria)}"` : ''}>${inner}</button>` : `<div class="row">${inner}</div>`;
+  const inner = `${o.icon ? tile(o.icon, o.tone) : ''}<span class="row-title">${o.title}</span>${o.value != null || o.status ? `<span class="row-value ${o.tone2 || st}">${o.status ? statusIcon(o.status) : ''}${o.value != null ? o.value : ''}</span>` : ''}${o.a ? icon('chev', 'chev') : o.pad ? '<span class="chev"></span>' : ''}`;
+  const cls = o.wrap ? 'row wrap' : 'row';
+  return o.a ? `<button class="${cls}" ${on(o.a, o.p)}${o.aria ? ` aria-label="${esc(o.aria)}"` : ''}>${inner}</button>` : `<div class="${cls}">${inner}</div>`;
 }
 function group(rows, head) {
   const h = head ? `<div class="group-head"><h2>${esc(head.title)}</h2>${head.action ? `<button class="link" ${on(head.action.a, head.action.p)}>${head.action.icon ? icon(head.action.icon) : ''}${esc(head.action.label)}</button>` : ''}</div>` : '';
