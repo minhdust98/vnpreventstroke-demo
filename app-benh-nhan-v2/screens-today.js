@@ -24,13 +24,11 @@ function doneRow(m, it) {
   return row({ icon: k.icon, title: `${k.name} buổi ${m.word}`, value: it.kind === 'bp' ? `${r.sys}/${r.dia}` : gluNum(r.v), status: it.kind === 'bp' ? bpStatus(r.sys, r.dia) : gluStatus(r.v, r.fasting), a: 'go', p: { v: k.detail } });
 }
 
-// Hôm nay chỉ có việc của hôm nay. Thứ tự nói lên việc cần làm: việc còn lại, việc đã xong, rồi việc sắp tới.
-V.today = () => {
+// Hôm nay là một khối ở giữa Trang chủ, chỉ có việc của hôm nay. Thứ tự nói lên việc cần làm: việc còn lại, việc đã xong, rồi việc sắp tới.
+function todayBlock() {
   const p = P(), ms = now(), pl = plan(), cur = currentMoment(pl);
   const todo = cur ? cur.items.filter(x => !x.done) : [], done = cur ? cur.items.filter(x => x.done) : [];
-  let h = topBar();
-  if (isProxy()) h += `<div class="banner">Đang chăm: ${esc(p.name)}</div>`;
-  h += h1(`${WD[new Date(ms).getDay()]}, ${ddmm(ms)}`);
+  let h = '';
 
   if (p.recheckAt) h += `<section class="card"><div class="card-head">Đo lại huyết áp<span class="aside">${hhmm(p.recheckAt)}</span></div>${btn('Đo lại', 'startBP')}</section>`;
   h += group(overdueDoses(p, ms, times()).map(o => row({ icon: 'pill', title: o.yesterday ? `Thuốc ${mo(o.key).word} qua` : `Thuốc buổi ${mo(o.key).word}`, value: 'Chưa ghi', tone2: 'amber', a: 'go', p: { v: 'missed', day: o.day, mk: o.key } })));
@@ -54,12 +52,11 @@ V.today = () => {
     if (reply) h += `<section class="card"><div class="card-head">${statusIcon(reply.good ? 'good' : 'improve')}${reply.good ? 'Tốt' : 'Cần cải thiện'}</div><p class="body">${esc(reply.text)}</p></section>`;
     else if (wk) h += `<section class="card"><p class="lead">${WEEKLY[wk].q}</p>${chips(WEEKLY[wk].opts, null, 'weekly', { k: wk })}</section>`;
     if (remain.length && !D.dismissed[`risk${dayKey(ms)}`]) h += `<section class="card"><p class="lead">Còn ${remain.length} câu hỏi cho bác sĩ</p><div class="two">${btn('Trả lời', 'startRisk')}${btn('Để sau', 'dismiss', { k: `risk${dayKey(ms)}` }, 'soft')}</div></section>`;
-    if ((D.prompt7 || D.bpSaved >= 10) && !D.dismissed.feedback) h += `<section class="card"><p class="lead">Bạn thấy app thế nào?</p><div class="two">${btn('Đánh giá', 'go', { v: 'feedback' })}${btn('Để sau', 'dismiss', { k: 'feedback' }, 'soft')}</div></section>`;
   }
   if (p.stroke && !p.meds.length) h += `<section class="card"><div class="card-head">Thuốc</div>${btn('Thêm thuốc', 'medNew')}</section>`;
   if (!pl.length && !p.stroke) h += `<section class="card empty"><p class="lead">Hôm nay không có việc cần làm</p></section>` + group([row({ icon: 'alert', tone: 'red', title: 'Dấu hiệu đột quỵ', a: 'go', p: { v: 'befast' } }), row({ icon: 'heart', title: 'Nhắc đo huyết áp', a: 'go', p: { v: 'reminders' } })]);
-  return { chrome: 'tab', html: h };
-};
+  return h;
+}
 
 // ---- Ghi liều ----
 function setDose(day, mk, id, state, t) {
@@ -116,7 +113,7 @@ A.missedTime = ({ v }) => {
 // ---- Tái khám theo BRD: 1 tháng sau xuất viện, 3 tháng nếu tốt, 1 tháng nếu chưa tốt ----
 V.visit = () => {
   const p = P(), ap = nextAppt(p);
-  let h = topBar({ back: 'Hôm nay' }) + h1('Tái khám');
+  let h = topBar({ back: 'Quay lại' }) + h1('Tái khám');
   if (ap) {
     const state = ap.state === 'change' ? `<div class="banner">Đã gửi yêu cầu đổi lịch</div>` : ap.state === 'confirmed' ? `<div class="card-head">${statusIcon('good')}Bạn sẽ đến</div>${btn('Đổi lịch', 'go', { v: 'apptChange' }, 'soft')}` : `<div class="two">${btn('Tôi sẽ đến', 'apptConfirm')}${btn('Đổi lịch', 'go', { v: 'apptChange' }, 'soft')}</div>`;
     h += `<section class="card"><p class="hero sm">${WD[new Date(ap.t).getDay()]} ${ddmm(ap.t)}<br>${hhmm(ap.t)}</p><p class="body">${esc(ap.place)}</p><p class="body">${esc(ap.prep)}</p>${state}</section>`;

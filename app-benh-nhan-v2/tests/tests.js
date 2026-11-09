@@ -19,6 +19,7 @@ function c(a, prm) {
   if (!el) throw new Error(`Không thấy nút ${a} ${JSON.stringify(prm || {})} trên màn ${screen()}`);
   el.click(); taps++;
 }
+const openTile = v => { home(); render(); c('go', { v }); };
 const keys = s => [...String(s)].forEach(k => c('key', { k }));
 const missing = sc => SCALE_INPUTS[sc].filter(l => scaleValue(P(), l, now()) == null);
 function answerAll(val) {
@@ -48,7 +49,7 @@ bind();
 
 test('Buổi sáng', () => {
   load('an');
-  ok('Hôm nay: tiêu đề là ngày, thuốc rồi huyết áp', document.querySelector('#view h1').textContent === 'Thứ Bảy, 31/10' && (([a, b]) => a >= 0 && a < b)(order('dosesAll', 'startBP')));
+  ok('Trang chủ: thẻ chào, Hôm nay có ngày, thuốc rồi huyết áp, rồi năm ô', document.querySelector('#view h1').textContent === 'Trần An' && /Thứ Bảy, 31\/10/.test(text()) && (([a, b, t]) => a >= 0 && a < b && b < t)(order('dosesAll', 'startBP', 'go')));
   c('dosesAll', { mk: 'sang' });
   ok('Dùng thuốc 1 chạm', taps === 1, taps);
   ok('Thẻ cấp cứu có giờ liều hôm nay', Object.keys(P().doses).some(k => k.startsWith('2026-10-31|sang|apx')));
@@ -151,7 +152,7 @@ test('Hồ sơ ban đầu', () => {
   ok('Triệu chứng 3 tháng qua và ô Khác', p.intake.symptoms.length === 1 && p.intake.other.symptoms === 'Hay tê đầu ngón tay' && intakeSummary(p, now()).some(x => x.k === 'Triệu chứng khác'));
   ok('Đã trả lời thì không hỏi lại ở câu hỏi thang', !riskRemaining(p, now()).some(id => ['htn', 'dm', 'af', 'smoke'].includes(id)));
   ok('Bác sĩ thấy hồ sơ ban đầu và hai điều cần xem', intakeSummary(p, now()).length >= 5 && intakeFlags(p).length === 2);
-  c('tab', { t: 'metrics' }); c('go', { v: 'summary' });
+  openTile('metrics'); c('go', { v: 'summary' });
   ok('Tóm tắt cho bác sĩ có hồ sơ ban đầu', /Hồ sơ ban đầu/.test(text()) && /Tăng huyết áp/.test(text()) && !/điểm nguy cơ/i.test(text()));
   load('moi'); c('onStroke', { v: 1 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1950'); keys('160'); keys('60'); c('numSave'); c('onScan'); c('go', { v: 'onHist' });
   ok('Nối hồ sơ bệnh viện thì không hỏi lại tăng huyết áp, đái tháo đường, tim, rung nhĩ', !findBtn('onHistSet', { id: 'htn' }) && !findBtn('onHistSet', { id: 'dm' }));
@@ -186,7 +187,7 @@ test('Câu hỏi thang điểm', () => {
   ok('Sửa câu trả lời trong danh sách', P().facts.pad.v === 'no' && !S.sheet);
 });
 test('Theo dõi theo nhóm', () => {
-  const planText = k => { load(k); c('tab', { t: 'metrics' }); A.go({ v: 'plan' }); render(); return text(); };
+  const planText = k => { load(k); A.go({ v: 'plan' }); render(); return text(); };
   let t = planText('an');
   ok('Sau nhồi máu não', /Phòng đột quỵ tái phát/.test(t) && /Tái khám/.test(t) && /LDL/.test(t) && /Dưới 1,8/.test(t) && /Triệu chứng mới/.test(t));
   t = planText('lan');
@@ -196,7 +197,7 @@ test('Theo dõi theo nhóm', () => {
   t = planText('tu');
   ok('Dưới 55', /Phòng đột quỵ từ sớm/.test(t) && !/Mỗi ngày/.test(t) && !/Tái khám/.test(t));
   t = planText('binh'); ok('Đột quỵ lâu năm', /Tái khám/.test(t) && /Đang tắt/.test(t));
-  newUser(true, 1950, 'unknown'); c('tab', { t: 'metrics' }); A.go({ v: 'plan' }); render();
+  newUser(true, 1950, 'unknown'); A.go({ v: 'plan' }); render();
   ok('Không nhớ loại đột quỵ', /Hỏi bác sĩ loại đột quỵ/.test(text()) && !/1,8/.test(text()));
   ['an', 'lan', 'ha', 'tu', 'binh', 'mai'].forEach(k => { load(k); ok(`Mục nào cũng có nguồn: ${k}`, planItems(P(), now()).every(i => i.src && A[i.a])); });
 });
@@ -206,7 +207,7 @@ test('Bàn phím thật', () => {
   ok('Gõ số bằng bàn phím thật vào ô huyết áp', S.draft.bp.sys === '126' && S.draft.bp.dia === '78');
 });
 test('Xét nghiệm', () => {
-  load('an'); c('tab', { t: 'metrics' });
+  load('an'); openTile('metrics');
   ok('Chỉ số có LDL và đánh giá', /LDL/.test(text()) && /2,1\smmol\/L/.test(text()));
   c('go', { v: 'labDetail', test: 'ldl' });
   ok('Mục tiêu theo nhóm', /dưới 1,8/.test(text()) && !!document.querySelector('#view svg.chart'));
@@ -223,16 +224,16 @@ test('Xét nghiệm', () => {
   const n1 = P().labs.length; c('scanSave');
   const saved = P().labs.slice(n1);
   ok('Lưu 3 kết quả từ ảnh', saved.length === 3 && saved.every(x => x.source === 'photo' && dayKey(x.date) === '2026-10-28') && saved.find(x => x.test === 'ldl').v === 2.2);
-  ok('Về tab Chỉ số', S.tab === 'metrics' && screen() === 'metrics');
+  ok('Về Hồ sơ sức khỏe', S.stack.length === 1 && screen() === 'metrics');
   load('an'); c('startBP'); S.draft.scanTarget = 'bp'; scanned(null); render();
   ok('Chụp máy đo điền số, chờ bấm Lưu', S.draft.bp.sys === '126' && S.draft.bp.dia === '78' && screen() === 'bpEntry');
 });
 test('Học', () => {
-  load('an'); c('tab', { t: 'learn' }); c('go', { v: 'befast' });
+  load('an'); openTile('learn'); c('go', { v: 'befast' });
   ok('BE FAST đủ 6 chữ', document.querySelectorAll('#view .letter').length === 6);
   c('fastMode', { v: 'fast' });
   ok('FAST còn 4 chữ', [...document.querySelectorAll('#view .letter')].map(x => x.textContent).join('') === 'FAST');
-  load('an'); c('tab', { t: 'learn' });
+  load('an'); openTile('learn');
   ok('Bài tập phục hồi đang ẩn ở bước 1', !/Bài tập phục hồi/.test(text()));
   withFlags({ exercises: true }, () => { render(); ok('Bật cờ thì Học có bài tập đứng đầu', /Bài tập phục hồi/.test(text())); });
   withFlags({ exercises: true }, () => {
@@ -242,23 +243,23 @@ test('Học', () => {
   c('exLevel', { v: 'bed' }); c('go', { v: 'exercise', id: 'shoulder' });
   ok('Bài tập có các bước, cảnh báo dừng, người hỗ trợ', document.querySelectorAll('#view .steps li').length >= 3 && text().includes(EXERCISE_STOP) && /Cần người hỗ trợ/.test(text()));
   });
-  load('an'); c('tab', { t: 'learn' }); c('go', { v: 'topic', topic: 'diet' });
+  load('an'); openTile('learn'); c('go', { v: 'topic', topic: 'diet' });
   ok('Ăn uống có đĩa ăn mẫu', !!document.querySelector('#view .plate') && /Ăn nhạt/.test(text()));
   c('go', { v: 'article', topic: 'diet', id: 'salt' }); ok('Bài ăn nhạt', /5 g muối/.test(text()));
   load('an'); A.go({ v: 'article', topic: 'meds', id: 'missed' }); render();
   ok('Bài quên liều có gọi bác sĩ', /Gọi bác sĩ/.test(text()) && /Đừng tự dùng bù/.test(text()));
-  load('an'); c('tab', { t: 'learn' });
+  load('an'); openTile('learn');
   ok('Học: bài riêng đứng đầu', /Thuốc chống đông/.test(text()));
-  load('mai'); c('tab', { t: 'learn' }); ok('Người bệnh nằm giường: có bài khó nuốt', /Khó nuốt sau đột quỵ/.test(text()));
+  load('mai'); openTile('learn'); ok('Người bệnh nằm giường: có bài khó nuốt', /Khó nuốt sau đột quỵ/.test(text()));
   load('moi'); c('onGuest');
-  ok('Khách xem được, không có tab', /Học/.test(text()) && !document.querySelector('#tabs button'));
+  ok('Khách xem được, không có tab', /Giáo dục sức khỏe/.test(text()) && !document.querySelector('#tabs button'));
   c('go', { v: 'befast' }); c('back'); c('guestBack'); ok('Về lại câu hỏi đầu', /từng bị đột quỵ chưa/.test(text()));
 });
 test('Thuốc', () => {
-  load('tu'); c('tab', { t: 'meds' }); const t0 = taps;
+  load('tu'); openTile('meds'); const t0 = taps;
   c('medNew'); c('medPick'); c('medPicked', { g: 'bp', n: 'Amlodipine' }); c('medF', { k: 'strength', v: '5 mg' }); c('medM', { v: 'sang' }); c('medF', { k: 'days', v: '30' }); c('medSave');
   ok('Thêm thuốc 7 chạm', P().meds.length === 1 && taps - t0 === 7, taps - t0);
-  load('an'); c('tab', { t: 'meds' });
+  load('an'); openTile('meds');
   ok('Thuốc: 7 chấm, 30 ngày, câu BRD', document.querySelectorAll('#view .dot').length === 7 && /30 ngày qua: \d+\/\d+ liều/.test(text()) && text().includes(BRD.medGood));
   c('openMoment', { mk: 'sang' }); c('dose', { mk: 'sang', id: 'aml' });
   ok('Ghi liều từ tab Thuốc', !!P().doses[doseKey(now(), 'sang', 'aml')]);
@@ -297,23 +298,38 @@ test('Hồ sơ', () => {
   home(); render(); ok('Tắt nhắc đo thì Hôm nay không còn việc huyết áp', !/đo huyết áp/.test(text()));
   load('an'); A.go({ v: 'display' }); render(); c('setting', { k: 'lang', v: 'en' });
   ok('Đổi sang tiếng Anh', /Display/.test(text()));
-  c('back'); ok('Tab tiếng Anh', /Today/.test(document.getElementById('tabs').innerText));
+  c('tab', { t: 'settings' }); ok('Tab tiếng Anh', /Home/.test(document.getElementById('tabs').innerText));
   D.settings.lang = 'vi';
 });
 
+test('Trang chủ, Thông báo, Liên hệ, Cài đặt', () => {
+  load('an');
+  ok('Trang chủ không có thanh trên khi 115 ẩn, có thẻ chào và 5 ô', !document.querySelector('#view .top') && !!document.querySelector('.hello') && ['questions', 'meds', 'metrics', 'contact', 'learn'].every(v => !!findBtn('go', { v })));
+  ok('Hôm nay không có lời mời đánh giá app và không có avatar', !/Bạn thấy app thế nào/.test(text()) && !document.querySelector('.avatar'));
+  c('go', { v: 'meds' }); ok('Ô Thuốc mở màn Thuốc, quay về Trang chủ', /Đang dùng/.test(text()) && !!findBtn('back')); c('back'); ok('Về Trang chủ', screen() === 'home');
+  c('go', { v: 'metrics' }); ok('Ô Hồ sơ sức khỏe', /Hồ sơ sức khỏe/.test(document.querySelector('#view h1').textContent)); c('back');
+  c('go', { v: 'contact' }); ok('Liên hệ: bác sĩ, trợ lý AI, lịch hẹn', /Bác sĩ/.test(text()) && /Trợ lý AI/.test(text()) && /Lịch hẹn/.test(text()));
+  c('go', { v: 'visit' }); ok('Lịch hẹn mở tái khám', /Tái khám/.test(text())); c('back'); c('back');
+  c('tab', { t: 'notif' }); ok('Thông báo có tái khám trong 7 ngày hoặc báo chưa có', /Thông báo/.test(document.querySelector('#view h1').textContent));
+  c('tab', { t: 'settings' }); ok('Cài đặt: chia sẻ, nhắc nhở, hiển thị, phản hồi', ['sharing', 'reminders', 'display', 'feedback'].every(v => !!findBtn('go', { v })) && !findBtn('go', { v: 'messages' }));
+  A.pPrompt(); render(); c('tab', { t: 'notif' }); ok('Lời mời đánh giá app nằm ở Thông báo', /Bạn thấy app thế nào/.test(text()));
+  load('an'); A.pMsg(); c('tab', { t: 'notif' }); ok('Tin nhắn mới của bác sĩ hiện ở Thông báo', !!findBtn('go', { v: 'messages' }));
+  load('xau'); ok('Dữ liệu xấu nhất vẫn có Trang chủ', !!document.querySelector('.tiles'));
+});
 test('Phần ẩn ở bước 1', () => {
-  load('an'); ok('Cờ ẩn đúng', !FEATURES.sos && !FEATURES.exercises && !FEATURES.plan && !FEATURES.hba1c && !FEATURES.egfr);
+  load('an'); ok('Thanh dưới có 3 tab, năm ô chức năng', document.querySelectorAll('#tabs button').length === 3 && document.querySelectorAll('.tile-btn').length === 5);
+  ok('Cờ ẩn đúng', !FEATURES.sos && !FEATURES.exercises && !FEATURES.plan && !FEATURES.hba1c && !FEATURES.egfr);
   ok('Hôm nay không có nút 115', !document.querySelector('.sos') && !findBtn('open115'));
   A.open115({}); ok('Bấm 115 khi ẩn không mở sheet', !S.sheet);
-  c('go', { v: 'profile' }); ok('Hồ sơ không có Thẻ cấp cứu', !/Thẻ cấp cứu/.test(text()));
+  c('tab', { t: 'settings' }); ok('Cài đặt không có Thẻ cấp cứu', !/Thẻ cấp cứu/.test(text()));
   c('go', { v: 'info' }); ok('Thông tin cá nhân không có Đi lại', !/Đi lại/.test(text()));
-  load('an'); c('tab', { t: 'metrics' });
+  load('an'); openTile('metrics');
   ok('Chỉ số không có kế hoạch theo dõi, HbA1c, eGFR', !/Kế hoạch theo dõi/.test(text()) && !/HbA1c/.test(text()) && !/eGFR/.test(text()));
   c('labAdd'); ok('Thêm xét nghiệm chỉ còn 5 chỉ số mỡ máu và đường huyết', !/HbA1c/.test(text()) && !/eGFR/.test(text()) && /Đường huyết lúc đói/.test(text()) && document.querySelectorAll('#sheetLayer [data-a="labChoose"]').length === 5);
-  load('an'); c('tab', { t: 'metrics' }); c('go', { v: 'bpDetail' }); ok('Huyết áp không có máy đo kết nối', !/Máy đo có kết nối/.test(text()));
+  load('an'); openTile('metrics'); c('go', { v: 'bpDetail' }); ok('Huyết áp không có máy đo kết nối', !/Máy đo có kết nối/.test(text()));
   withFlags({ sos: true, plan: true, hba1c: true, egfr: true, deviceLink: true }, () => {
     load('an'); ok('Bật cờ thì có lại nút 115', !!document.querySelector('.sos'));
-    c('tab', { t: 'metrics' }); ok('Bật cờ thì có lại kế hoạch, HbA1c, eGFR', /Kế hoạch theo dõi/.test(text()) && /HbA1c/.test(text()) && /eGFR/.test(text()));
+    openTile('metrics'); ok('Bật cờ thì có lại kế hoạch, HbA1c, eGFR', /Kế hoạch theo dõi/.test(text()) && /HbA1c/.test(text()) && /eGFR/.test(text()));
     c('open115'); ok('Bật cờ thì sheet 115 mở được', S.sheet && S.sheet.v === 'sos' && /Thẻ cấp cứu/.test(text()));
   });
 });

@@ -3,12 +3,12 @@
 
 const topicOf = id => TOPICS.find(t => t.id === id);
 const chromeLearn = () => (P() ? 'push' : 'bare');
-const backLearn = () => topBar({ back: 'Học' });
+const backLearn = () => topBar({ back: 'Giáo dục sức khỏe' });
 
 V.learn = () => {
   const guest = !P();
-  let h = guest ? `<header class="top"><button class="nav" ${on('guestBack')}>${icon('back')}Quay lại</button>${sosBtn()}</header>` : topBar();
-  h += h1('Học');
+  let h = guest ? `<header class="top"><button class="nav" ${on('guestBack')}>${icon('back')}Quay lại</button>${sosBtn()}</header>` : topBar({ back: 'Trang chủ' });
+  h += h1('Giáo dục sức khỏe');
   h += `<button class="befast" ${on('go', { v: 'befast' })}><span class="row-letters">${BEFAST.map(s => `<span>${s.k}</span>`).join('')}</span><strong>Dấu hiệu đột quỵ</strong></button>`;
   // Một danh sách: bài riêng cho người này đứng đầu (thuốc chống đông, khó nuốt...), rồi các chủ đề, chủ đề hợp nhất lên trước
   const fy = guest ? [] : forYou(P()), keys = fy.map(x => (x.exercise ? 'ex' : x.topic)), rank = id => (keys.includes(id) ? keys.indexOf(id) : keys.length);
@@ -17,7 +17,7 @@ V.learn = () => {
   h += group(mine.concat(topics.map((t, i) => ({ t, k: rank(t.id) * 100 + i })).sort((a, b) => a.k - b.k).map(({ t }) => row({ icon: t.icon, title: t.title, a: 'go', p: t.p }))));
   h += group([row({ icon: 'pin', title: 'Trung tâm đột quỵ', a: 'go', p: { v: 'centers' } }), row({ icon: 'msg', title: 'Hỏi đáp', a: 'go', p: { v: 'faq' } }), row({ icon: 'doc', title: 'Nguồn tham khảo', a: 'go', p: { v: 'refs' } })]);
   if (guest) h += btn('Tạo hồ sơ', 'guestBack');
-  return { chrome: guest ? 'bare' : 'tab', html: h };
+  return { chrome: guest ? 'bare' : 'push', html: h };
 };
 A.guestBack = () => { S.stack = [{ v: 'welcome', p: {} }]; S.focus = true; };
 

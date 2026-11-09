@@ -8,7 +8,7 @@ const SOURCE_WORD = { hospital: 'Bệnh viện', self: 'Tự nhập', photo: '�
 
 V.metrics = () => {
   const p = P(), ms = now(), lb = last(p.bp), lg = last(p.glucose), lw = last(p.weights), bmi = bmiOf(p.height, p.weight);
-  let h = topBar() + h1('Chỉ số');
+  let h = topBar({ back: 'Trang chủ' }) + h1('Hồ sơ sức khỏe');
   const home = [row({ icon: 'heart', title: 'Huyết áp', value: lb ? `${lb.sys}/${lb.dia}` : '', status: lb ? bpStatus(lb.sys, lb.dia) : '', a: 'go', p: { v: 'bpDetail' } })];
   if (p.track.glucose || lg) home.push(row({ icon: 'drop', title: 'Đường huyết', value: lg ? gluNum(lg.v) : '', status: lg ? gluStatus(lg.v, lg.fasting) : '', a: 'go', p: { v: 'gluDetail' } }));
   home.push(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }));
@@ -17,7 +17,7 @@ V.metrics = () => {
   h += group(labs.length ? labs.map(({ l, r }) => row({ icon: 'flask', title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms), a: 'go', p: { v: 'labDetail', test: l.id } })) : row({ icon: 'plus', title: 'Thêm kết quả', a: 'labAdd' }), { title: 'Xét nghiệm', action: labs.length ? { label: 'Thêm', icon: 'plus', a: 'labAdd' } : null });
   h += group(Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }); }), { title: 'Thói quen' });
   h += group([FEATURES.plan ? row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }) : '', row({ icon: 'share', title: 'Tóm tắt cho bác sĩ', a: 'go', p: { v: 'summary' } })]);
-  return { chrome: 'tab', html: h };
+  return { chrome: 'push', html: h };
 };
 
 // ---- Kế hoạch theo nhóm tiên phát, thứ phát. Nguồn từng mục hiện ở bảng điều khiển demo. ----
@@ -25,7 +25,7 @@ function planItems(p, ms) {
   const g = careGroup(p, ms), sec = g.startsWith('sec'), ap = nextAppt(p), out = [];
   // Mục cảnh báo (icon alert) tô đỏ như nút 115; các mục khác không tô màu
   const add = (s, ic, title, value, a, q, src) => out.push({ s, ic, tone: ic === 'alert' ? 'red' : '', title, value, a, p: q, src });
-  if (p.meds.length || sec) add('Mỗi ngày', 'pill', 'Dùng thuốc đúng giờ', '', 'tab', { t: 'meds' }, sec ? 'BRD: Tuân thủ dùng thuốc' : 'BRD: Nhắc uống thuốc cho người nguy cơ cao hoặc huyết áp cao');
+  if (p.meds.length || sec) add('Mỗi ngày', 'pill', 'Dùng thuốc đúng giờ', '', 'go', { v: 'meds' }, sec ? 'BRD: Tuân thủ dùng thuốc' : 'BRD: Nhắc uống thuốc cho người nguy cơ cao hoặc huyết áp cao');
   if (g === 'priYoung') add('Khi cần', 'heart', 'Đo huyết áp', 'Dưới 130/80', 'go', { v: 'bpDetail' }, 'BRD: Chỉ số tốt của huyết áp. Tần suất do demo đề xuất');
   else add('Mỗi ngày', 'heart', 'Đo huyết áp', p.track.bp ? 'Dưới 130/80' : 'Đang tắt', 'go', { v: p.track.bp ? 'bpDetail' : 'reminders' }, sec ? 'BRD: Sáng và chiều, dưới 130/80. Nhận xét TestFlight: AHA/ASA 2021' : 'BRD: Sáng và chiều nếu chọn theo dõi, dưới 130/80');
   if (p.track.glucose || factOf(p, 'dm') === 'yes') add('Mỗi ngày', 'drop', 'Đo đường huyết', 'Lúc đói tới 5,6', 'go', { v: p.track.glucose ? 'gluDetail' : 'reminders' }, 'BRD: Đường huyết lúc đói');
@@ -45,7 +45,7 @@ function planItems(p, ms) {
 }
 V.plan = () => {
   const p = P(), ms = now(), items = planItems(p, ms), remain = riskRemaining(p, ms);
-  let h = topBar({ back: 'Chỉ số' }) + h1(CARE_TITLE[careGroup(p, ms)], 'sm');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1(CARE_TITLE[careGroup(p, ms)], 'sm');
   [...new Set(items.map(i => i.s))].forEach(s => { h += group(items.filter(i => i.s === s).map(i => row({ icon: i.ic, tone: i.tone, title: i.title, value: i.value, a: i.a, p: i.p })), { title: s }); });
   if (remain.length) h += `<section class="card"><p class="lead">Còn ${remain.length} câu hỏi cho bác sĩ</p>${btn('Trả lời', 'startRisk')}</section>`;
   return { chrome: 'push', html: h };
@@ -175,7 +175,7 @@ V.bpGuide = () => {
 V.bpDetail = () => {
   const p = P(), ms = now(), per = Number(S.draft.bpPer || 7);
   const list = p.bp.filter(r => r.t > ms - per * DAY && r.t <= ms).sort((a, b) => b.t - a.t);
-  let h = topBar({ back: 'Chỉ số' }) + h1('Huyết áp', 'sm') + (p.bp.length ? seg([[7, 'Tuần'], [30, 'Tháng'], [90, '3 tháng']], per, 'bpPer') : '');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1('Huyết áp', 'sm') + (p.bp.length ? seg([[7, 'Tuần'], [30, 'Tháng'], [90, '3 tháng']], per, 'bpPer') : '');
   if (!list.length) h += `<section class="card empty"><p class="hero">–/–</p><p class="lead">${p.bp.length ? 'Không có lần đo' : 'Chưa có lần đo'}</p></section>`;
   if (list.length) {
     const s = Math.round(mean(list.map(r => r.sys))), d = Math.round(mean(list.map(r => r.dia)));
@@ -230,7 +230,7 @@ V.gluResult = ({ id }) => {
 };
 V.gluDetail = () => {
   const p = P(), ms = now(), list = p.glucose.slice().sort((a, b) => b.t - a.t), f = list.filter(r => r.fasting).slice(0, 7);
-  let h = topBar({ back: 'Chỉ số' }) + h1('Đường huyết', 'sm');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1('Đường huyết', 'sm');
   if (f.length) { const m = mean(f.map(r => r.v)); h += `<section class="card"><div class="center"><p class="hero-label">Lúc đói, ${f.length} lần gần nhất</p><p class="hero">${gluNum(m)}<small>${gluUnit()}</small></p>${pill(gluStatus(m, true))}</div>${list.length >= 2 ? chart({ h: 150, label: 'Đường huyết các lần đo', xMin: list[list.length - 1].t, xMax: ms, yMin: 3, yMax: Math.max(10, ...list.map(r => r.v)) + 1, lines: [{ v: 5.6, t: '5,6' }], series: [{ pts: list.slice().reverse().map(r => [r.t, r.v]), color: 'var(--tint)' }] }) : ''}</section>`; }
   else h += `<section class="card empty"><p class="hero">–</p><p class="lead">Chưa có lần đo</p></section>`;
   h += btn('Ghi số đo', 'startGlu');
@@ -277,7 +277,7 @@ A.numForce = () => { const n = S.draft.num; S.dialog = null; S.draft.keys = S.dr
 // ---- Xét nghiệm: bệnh viện nhập, người bệnh tự thêm bằng tay hoặc chụp phiếu ----
 V.labDetail = ({ test }) => {
   const p = P(), ms = now(), l = labDef(test), list = labResults(p, test), latest = list[0];
-  let h = topBar({ back: 'Chỉ số' }) + h1(l.name, 'sm');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1(l.name, 'sm');
   if (latest) {
     const goal = test === 'ldl' ? ldlGoal(p, ms) : LAB_GOAL[test], asc = list.slice().reverse();
     h += `<section class="card"><div class="center"><p class="hero-label">${ddmmyy(latest.date)}</p><p class="hero">${labNum(test, latest.v)}<small>${l.unit}</small></p>${pill(labStatus(test, latest.v, p, ms))}${labGoalText(test, p, ms) ? `<p class="hero-label mt">Mục tiêu ${labGoalText(test, p, ms).toLowerCase()}</p>` : ''}</div>`;
@@ -327,13 +327,13 @@ A.scanEdited = v => { S.draft.scan.items.find(x => x.test === S.draft.scanEdit).
 A.scanSave = () => {
   const sc = S.draft.scan, d = new Date(`${sc.date}T12:00:00`).getTime(), items = sc.items.filter(i => i.on);
   items.forEach(i => P().labs.push({ id: `l${Date.now()}${i.test}`, test: i.test, v: i.v, date: d, source: 'photo', by: byWho() }));
-  S.draft.scan = null; back(); A.tab({ t: 'metrics' }); toast(`Đã lưu ${items.length} kết quả`);
+  S.draft.scan = null; openRoot('metrics'); toast(`Đã lưu ${items.length} kết quả`);
 };
 
 // ---- Thói quen ----
 V.habit = ({ k }) => {
   const p = P(), H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown';
-  let h = topBar({ back: 'Chỉ số' }) + h1(H.name, 'sm');
+  let h = topBar({ back: 'Hồ sơ sức khỏe' }) + h1(H.name, 'sm');
   if (known) h += `<section class="card"><div class="card-head">${statusIcon(H.good(v) ? 'good' : 'improve')}${H.good(v) ? 'Tốt' : 'Cần cải thiện'}</div><p class="body">${esc(H.good(v) ? H.okText : H.badText)}</p></section>`;
   h += chips(H.opts, v, 'habitSet', { k });
   if (k === 'diet' && known) { const list = v === 'yes' ? DIET_GOOD : DIET_BAD; h += chips(list.map(x => [x, x]), p.habits.dietItems || [], 'dietItem'); }

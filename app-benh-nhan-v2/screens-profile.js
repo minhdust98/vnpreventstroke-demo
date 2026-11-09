@@ -4,22 +4,22 @@
 const ANSWER = { yes: 'Có', no: 'Không', unknown: 'Chưa rõ', male: 'Nam', female: 'Nữ', other: 'Khác' };
 const answerText = (p, id) => { const v = factOf(p, id); if (id === 'sbp' && v) { const x = p.facts.sbp, l = last(p.bp); return v === 'unknown' ? 'Chưa đo' : l ? `${l.sys}/${l.dia}` : `${x.sys}/${x.dia}`; } return v ? ANSWER[v] || v : ''; };
 
-V.profile = () => {
-  const p = P(), ms = now(), ids = Object.keys(D.profiles), unread = p.messages.filter(m => !m.read).length, remain = riskRemaining(p, ms).length;
-  let h = topBar({ back: tabLabel() }) + h1(p.name, 'sm');
+V.settings = () => {
+  const p = P(), ms = now(), ids = Object.keys(D.profiles);
+  let h = topBar() + h1('Cài đặt');
   if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
-  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'doc', title: 'Bệnh nền', a: 'go', p: { v: 'conditions' } }), riskPlan(p, ms).ids.length ? row({ icon: 'msg', title: 'Câu hỏi cho bác sĩ', value: remain ? `Còn ${remain}` : '', a: 'go', p: { v: 'questions' } }) : '', FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
-  h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'msg', title: 'Tin nhắn', value: unread ? `${unread} mới` : '', a: 'go', p: { v: 'messages' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
+  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'doc', title: 'Bệnh nền', a: 'go', p: { v: 'conditions' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
+  h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
   h += group([row({ icon: 'lock', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
   h += group([row({ icon: 'star', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);
-  return { chrome: 'push', html: h };
+  return { chrome: 'tab', html: h };
 };
 A.switchProfile = ({ id }) => { D.active = id; S.draft = {}; home(); };
 
 // ---- Thông tin cá nhân ----
 V.info = () => {
   const p = P(), bmi = bmiOf(p.height, p.weight);
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Thông tin cá nhân', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Thông tin cá nhân', 'sm');
   h += group([row({ title: 'Tên', value: esc(p.name), a: 'editName' }), row({ title: 'Năm sinh', value: p.birthYear || '', a: 'editYear' }), row({ title: 'Chiều cao', value: p.height ? `${p.height} cm` : '', a: 'editHeight' }), row({ title: 'Cân nặng', value: p.weight ? `${dec(p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' })]);
   h += group([row({ title: 'Giới tính', value: ANSWER[p.sex] || '', a: 'pickSheet', p: { kind: 'sex' } }), p.stroke ? row({ title: 'Loại đột quỵ', value: (STROKE_TYPES.find(s => s[0] === p.strokeType) || [0, ''])[1], a: 'go', p: { v: 'strokeType' } }) : '', FEATURES.exercises ? row({ title: 'Đi lại', value: (MOBILITY.find(m => m[0] === p.mobility) || [0, ''])[1], a: 'pickSheet', p: { kind: 'mobility' } }) : '', row({ title: 'Người nhà', value: p.contact ? esc(p.contact.name) : '', a: 'editContact' })]);
   h += `<label class="label" for="addr">Địa chỉ</label><input id="addr" class="input" data-field="address" value="${esc(p.address)}" autocomplete="street-address">`;
@@ -47,7 +47,7 @@ A.strokeTypeSet = ({ v }) => { P().strokeType = v; back(); };
 // ---- Bệnh nền: danh mục BRD, chung kho câu trả lời với câu hỏi thang ----
 V.conditions = () => {
   const p = P();
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Bệnh nền', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Bệnh nền', 'sm');
   h += group(CONDITIONS.map(c => row({ title: c.name, value: answerText(p, c.id), a: 'go', p: { v: 'condition', id: c.id } })));
   h += group(DRUG_HISTORY.map(d => row({ title: d.name, value: esc(p.drugs[d.id] || ''), a: 'drugSheet', p: { id: d.id } })), { title: 'Thuốc đã dùng' });
   h += group(row({ title: 'Triệu chứng 3 tháng qua', value: p.intake ? esc(p.intake.symptoms.length ? p.intake.symptoms.length + ' mục' : 'Không có') : '', a: 'symHist' }));
@@ -83,7 +83,7 @@ A.drugSet = ({ id, v }) => { P().drugs[id] = v; S.sheet = null; };
 // ---- Câu hỏi cho bác sĩ: bộ câu của thang áp dụng cho người này ----
 V.questions = () => {
   const p = P(), ms = now(), pl = riskPlan(p, ms), remain = riskRemaining(p, ms);
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Câu hỏi cho bác sĩ', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Câu hỏi cho bác sĩ', 'sm');
   h += group(pl.ids.map(id => row({ title: RISK_Q[id].short, value: answerText(p, id), a: 'qSheet', p: { id } })));
   if (remain.length) h += btn(`Trả lời ${remain.length} câu còn lại`, 'startRisk');
   return { chrome: 'push', html: h };
@@ -119,7 +119,7 @@ A.riskAns = ({ id, v, close }) => {
 const CONSENTS = [['doctor', 'Cho bác sĩ điều trị xem số đo và thuốc?'], ['research', 'Cho dùng dữ liệu cho nghiên cứu về đột quỵ?'], ['family', 'Cho người nhà xem và nhập hộ?']];
 V.sharing = () => {
   const c = P().consents;
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Chia sẻ dữ liệu', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Chia sẻ dữ liệu', 'sm');
   h += CONSENTS.map(([k, q]) => `<section class="card"><p class="lead">${q}</p>${chips([['1', 'Đồng ý'], ['0', 'Không']], c[k] == null ? null : c[k] ? '1' : '0', 'consentSet', { k }, 'grid')}</section>`).join('');
   return { chrome: 'push', html: h + group(row({ title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })) };
 };
@@ -127,7 +127,7 @@ A.consentSet = ({ k, v }) => { const p = P(); p.consents[k] = v === '1'; if (k =
 
 V.family = () => {
   const p = P();
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Người nhà', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Người nhà', 'sm');
   if (isProxy()) h += `<div class="banner">Bạn đang chăm ${esc(p.name)}</div>`;
   h += group(p.family.map(f => row({ icon: 'user', title: `${esc(f.name)} (${esc(f.rel)})`, value: f.canSee ? 'Xem, nhập hộ' : 'Đã tắt' })), p.family.length ? { title: 'Được xem hồ sơ này' } : null);
   h += btn(`${icon('plus')}Mời người nhà`, 'familyInvite');
@@ -142,7 +142,7 @@ A.profileAddGo = () => { const n = (S.draft.name || '').trim(); if (!n) return f
 // ---- Nhắc nhở: giờ từng buổi, nhắc gì, âm thanh ----
 V.reminders = () => {
   const p = P(), st = D.settings, t = p.track;
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Nhắc nhở', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Nhắc nhở', 'sm');
   h += group(MOMENTS.map(m => `<div class="row"><span class="row-title">${m.label}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: -15 })} aria-label="Sớm hơn 15 phút">${icon('minus')}</button><span class="row-value ink time">${st.times[m.key]}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: 15 })} aria-label="Muộn hơn 15 phút">${icon('plus')}</button></div>`), { title: 'Giờ' });
   h += group([toggle('Thuốc', st.notif.meds, 'notifToggle', { k: 'meds' }), toggle('Đo huyết áp', t.bp, 'trackToggle', { k: 'bp' }), toggle('Đo đường huyết', t.glucose, 'trackToggle', { k: 'glucose' }), toggle('Câu hỏi mỗi tuần', t.weeklyHabits, 'trackToggle', { k: 'weeklyHabits' }), toggle('Tái khám', st.notif.appt, 'notifToggle', { k: 'appt' })], { title: 'Nhắc' });
   if (t.bp) h += `<h2 class="label">Đo huyết áp lúc</h2>${chips(MOMENTS.map(m => [m.key, m.label]), t.bpMoments, 'trackMoment', { k: 'bpMoments' }, 'wrap')}`;
@@ -159,7 +159,7 @@ A.notifRepeat = ({ v }) => { D.settings.notif.repeat = Number(v); };
 
 V.display = () => {
   const s = D.settings;
-  let h = topBar({ back: 'Hồ sơ' }) + h1('Hiển thị', 'sm');
+  let h = topBar({ back: 'Cài đặt' }) + h1('Hiển thị', 'sm');
   h += `<h2 class="label">Cỡ chữ</h2>${seg([['m', 'Vừa'], ['l', 'Lớn'], ['xl', 'Rất lớn']], s.size, 'setting', { k: 'size' })}`;
   h += `<h2 class="label">Giao diện</h2>${seg([['light', 'Sáng'], ['dark', 'Tối'], ['auto', 'Theo máy']], s.theme, 'setting', { k: 'theme' })}`;
   h += `<h2 class="label">Ngôn ngữ</h2>${seg([['vi', 'Tiếng Việt'], ['en', 'English']], s.lang, 'setting', { k: 'lang' })}`;
@@ -171,11 +171,11 @@ A.setting = ({ k, v }) => { D.settings[k] = v; };
 V.messages = () => {
   const p = P();
   p.messages.forEach(m => { m.read = true; });
-  let h = topBar({ back: 'Quay lại' }) + h1('Tin nhắn', 'sm');
+  let h = topBar({ back: 'Quay lại' }) + h1('Bác sĩ', 'sm');
   h += p.messages.length ? p.messages.map(m => `<section class="card"><div class="card-head">${esc(m.from)}<span class="aside">${ddmm(m.t)}</span></div><p class="body">${esc(m.text)}</p></section>`).join('') : '<section class="card"><p class="lead">Chưa có tin nhắn</p></section>';
   return { chrome: 'push', html: h };
 };
-V.support = () => ({ chrome: 'push', html: `${topBar({ back: 'Hồ sơ' })}${h1('Nhờ nhập giúp', 'sm')}<p class="body">Bác sĩ hoặc nhân viên y tế nhập thuốc và tiền sử bệnh giúp bạn khi đi khám.</p>${btn('Gửi yêu cầu', 'supportReq')}${group(row({ icon: 'group', title: 'Nhờ người nhà', a: 'go', p: { v: 'family' } }))}` });
+V.support = () => ({ chrome: 'push', html: `${topBar({ back: 'Cài đặt' })}${h1('Nhờ nhập giúp', 'sm')}<p class="body">Bác sĩ hoặc nhân viên y tế nhập thuốc và tiền sử bệnh giúp bạn khi đi khám.</p>${btn('Gửi yêu cầu', 'supportReq')}${group(row({ icon: 'group', title: 'Nhờ người nhà', a: 'go', p: { v: 'family' } }))}` });
 A.supportReq = () => { back(); toast('Đã gửi. Nhân viên y tế sẽ liên hệ.'); };
 
 // ---- Phản hồi theo BRD: ngắn, được bỏ qua, luôn cảm ơn ----

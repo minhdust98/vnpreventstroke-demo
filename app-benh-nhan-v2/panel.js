@@ -63,7 +63,7 @@ A.pMissLast = () => {
   home(); closePanel();
 };
 A.pBP = ({ s, d }) => { home(); A.startBP({}); Object.assign(S.draft.bp, { sys: s, dia: d, focus: 'dia' }); closePanel(); };
-A.pScan = () => { home(); S.tab = 'metrics'; S.draft.scanTarget = 'lab'; scanned(null); closePanel(); };
+A.pScan = () => { home(); openRoot('metrics'); S.draft.scanTarget = 'lab'; scanned(null); closePanel(); };
 A.pPrompt = () => { D.prompt7 = true; D.dismissed.feedback = false; home(); closePanel(); };
 A.pDoc = ({ k }) => {
   const p = P(), cur = p.appts.filter(a => a.state !== 'done').sort((a, b) => a.t - b.t)[0], d = new Date(now());

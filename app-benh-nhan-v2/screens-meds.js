@@ -6,8 +6,8 @@ const groupLabel = g => (MED_CATALOG.find(x => x.group === g) || { label: 'Thu�
 
 V.meds = () => {
   const p = P(), ms = now(), t = times(), active = medsActive(p, ms);
-  let h = topBar() + h1('Thuốc');
-  if (!p.meds.length) return { chrome: 'tab', html: `${h}<section class="card"><p class="lead">Chưa có thuốc</p>${btn(`${icon('plus')}Thêm thuốc`, 'medNew')}</section>` };
+  let h = topBar({ back: 'Trang chủ' }) + h1('Thuốc');
+  if (!p.meds.length) return { chrome: 'push', html: `${h}<section class="card"><p class="lead">Chưa có thuốc</p>${btn(`${icon('plus')}Thêm thuốc`, 'medNew')}</section>` };
   const today = plan().filter(m => m.items.some(i => i.kind === 'meds')).map(m => {
     const it = m.items.find(i => i.kind === 'meds');
     return row({ icon: 'pill', title: `${m.label} · ${m.time}`, value: `${it.taken}/${it.total}`, status: it.filled ? 'good' : '', a: 'openMoment', p: { mk: m.key }, aria: `Thuốc buổi ${m.word}, đã dùng ${it.taken} trên ${it.total}` });
@@ -22,7 +22,7 @@ V.meds = () => {
   h += group([row({ icon: 'book', title: 'Khi quên liều', a: 'go', p: { v: 'article', topic: 'meds', id: 'missed' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } })]);
   const off = p.meds.filter(m => !active.includes(m));
   h += group(off.map(m => row({ title: esc(medName(m)), value: m.paused ? 'Tạm dừng' : `Hết ${ymd(m.end)}`, a: 'go', p: { v: 'medDetail', id: m.id } })), off.length ? { title: 'Đã ngừng' } : null);
-  return { chrome: 'tab', html: h };
+  return { chrome: 'push', html: h };
 };
 A.openMoment = ({ mk }) => sheet('moment', { mk });
 

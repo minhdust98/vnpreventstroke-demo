@@ -7,7 +7,7 @@
 const V = {}, A = {}, F = {};
 const STORE_KEY = 'vnps-v4-demo';
 let D = null; // dữ liệu demo, được lưu lại
-const S = { tab: 'today', stack: [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true, meter: { taps: 0, start: 0, running: false, sec: 0 } };
+const S = { tab: 'home', stack: [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true, meter: { taps: 0, start: 0, running: false, sec: 0 } };
 
 const store = {
   get() { if (window.__TEST__) return null; try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return null; } },
@@ -19,7 +19,7 @@ const defaultSettings = () => ({ size: 'l', theme: 'light', lang: 'vi', gluUnit:
 function loadScenario(key) {
   const settings = D ? D.settings : defaultSettings();
   D = Object.assign({ scenario: key, now: DEMO_NOW, settings, prompt7: false, bpSaved: 0, dismissed: {} }, SCENARIOS[key].build());
-  Object.assign(S, { tab: 'today', stack: D.onboarding ? [{ v: 'welcome', p: {} }] : [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true });
+  Object.assign(S, { tab: 'home', stack: D.onboarding ? [{ v: 'welcome', p: {} }] : [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true });
   store.set();
 }
 
@@ -72,8 +72,10 @@ function topBar(o) {
   let left;
   if (x.close) left = x.close === true ? `<button class="nav" ${on(x.closeA || 'back')}>Đóng</button>` : '<span></span>';
   else if (x.back) left = `<button class="nav" ${on('back')} aria-label="Quay lại ${esc(x.back)}">${icon('back')}${esc(x.back)}</button>`;
-  else left = P() ? `<button class="avatar" ${on('go', { v: 'profile' })} aria-label="Hồ sơ của ${esc(P().name)}">${esc(initials(P().name))}</button>` : '<span></span>';
-  return `<header class="top">${left}${sosBtn()}</header>`;
+  else left = '';
+  const sos = sosBtn();
+  // Màn gốc không có gì để đặt ở thanh trên (115 đang ẩn) thì bỏ luôn thanh
+  return left || sos ? `<header class="top">${left || '<span></span>'}${sos}</header>` : '';
 }
 const h1 = (text, cls) => `<h1 class="title ${cls || ''}">${esc(text)}</h1>`;
 function statusIcon(key) { const s = STATUS_UI[key]; return s && s.icon ? `<span class="st ${s.tone}" role="img" aria-label="${s.word}">${icon(s.icon)}</span>` : ''; }
@@ -128,14 +130,16 @@ function chart(o) {
 }
 
 // ---- Điều hướng ----
-const TABS = [['today', 'today', 'Hôm nay'], ['meds', 'pill', 'Thuốc'], ['metrics', 'wave', 'Chỉ số'], ['learn', 'book', 'Học']];
+const TABS = [['home', 'home', 'Trang chủ'], ['notif', 'bell', 'Thông báo'], ['settings', 'gear', 'Cài đặt']];
 const tabLabel = () => TABS.find(t => t[0] === S.tab)[2];
 const current = () => S.stack[S.stack.length - 1] || { v: S.tab, p: {} };
 function keepScroll() { const t = S.stack[S.stack.length - 1], y = document.getElementById('view').scrollTop; if (t) t.y = y; else S.rootY = y; }
 function go(v, p) { keepScroll(); S.stack.push({ v, p: p || {} }); S.scrollTo = 0; S.focus = true; }
+// Mở một màn làm gốc của Trang chủ, không để lại các màn nhập phía sau
+function openRoot(v, p) { S.tab = 'home'; S.stack = [{ v, p: p || {} }]; S.scrollTo = 0; S.focus = true; }
 function replace(v, p) { S.stack[S.stack.length - 1] = { v, p: p || {} }; S.scrollTo = 0; S.focus = true; }
 function back() { S.stack.pop(); const t = S.stack[S.stack.length - 1]; S.scrollTo = (t ? t.y : S.rootY) || 0; S.focus = true; }
-function home() { S.stack = []; S.tab = 'today'; S.sheet = null; S.scrollTo = 0; S.focus = true; }
+function home() { S.stack = []; S.tab = 'home'; S.sheet = null; S.scrollTo = 0; S.focus = true; }
 function sheet(v, p) { S.sheet = { v, p: p || {} }; S.focus = true; }
 function dialog(o) { S.dialog = o; S.focus = true; }
 function toast(msg) {
@@ -179,9 +183,9 @@ function render() {
   view.scrollTop = S.scrollTo != null ? S.scrollTo : keep;
   S.scrollTo = null;
 
-  const tabs = document.getElementById('tabs'), inProfile = S.stack.length && S.stack[0].v === 'profile';
+  const tabs = document.getElementById('tabs');
   tabs.innerHTML = r.chrome === 'modal' || r.chrome === 'bare' || !P() ? '' : TABS
-    .map(([k, i, l]) => `<button ${on('tab', { t: k })} ${S.tab === k && !inProfile ? 'aria-current="page"' : ''}>${icon(i)}<span>${l}</span></button>`).join('');
+    .map(([k, i, l]) => `<button ${on('tab', { t: k })} ${S.tab === k ? 'aria-current="page"' : ''}>${icon(i)}<span>${l}</span></button>`).join('');
 
   const sl = document.getElementById('sheetLayer');
   if (S.sheet) { const s = V[S.sheet.v](S.sheet.p || {}); sl.innerHTML = `<div class="scrim" aria-hidden="true" ${on('closeSheet')}></div><div class="sheet" role="dialog" aria-modal="true" tabindex="-1" aria-label="${esc(s.title || '')}">${s.html}</div>`; } else sl.innerHTML = '';

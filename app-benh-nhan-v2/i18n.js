@@ -5,6 +5,7 @@
 const EN = {
   // Khung
   'Hôm nay': 'Today', 'Thuốc': 'Medicines', 'Chỉ số': 'Health', 'Học': 'Learn', 'BẢN DEMO': 'DEMO',
+  'Trang chủ': 'Home', 'Thông báo': 'Notifications', 'Cài đặt': 'Settings', 'Chào mừng': 'Welcome', 'Dự đoán nguy cơ': 'Risk prediction', 'Hồ sơ sức khỏe': 'Health record', 'Liên hệ': 'Contact', 'Giáo dục sức khỏe': 'Health education', 'Bác sĩ': 'Doctor', 'Trợ lý AI': 'AI assistant', 'Lịch hẹn': 'Appointments', 'Thêm bác sĩ': 'Add a doctor', 'Chưa có thông báo': 'No notifications', 'Trợ lý AI chưa có trong bản này': 'The AI assistant is not in this version', 'Thêm bác sĩ chưa có trong bản này': 'Adding a doctor is not in this version',
   'Đóng': 'Close', 'Xong': 'Done', 'Lưu': 'Save', 'Hủy': 'Cancel', 'Tiếp': 'Next', 'Quay lại': 'Back', 'Có': 'Yes', 'Không': 'No', 'Chưa rõ': 'Not sure', 'Để sau': 'Later', 'Đồng ý': 'Agree', 'Thêm': 'Add', 'Sửa': 'Edit', 'Sửa số': 'Edit', 'Xóa': 'Delete', 'Giữ lại': 'Keep', 'Chưa': 'Not yet', 'Rồi': 'Yes',
   'Tốt': 'Good', 'Cần cải thiện': 'Could improve', 'Rất cao': 'Very high', 'Thấp': 'Low', 'Sáng': 'Morning', 'Trưa': 'Noon', 'Chiều': 'Afternoon', 'Tối': 'Evening',
   'Ghi số đo': 'Log a reading', 'Khi quên liều': 'If you miss a dose', 'Kế hoạch theo dõi': 'Care plan', 'Chưa đủ': 'Not enough', 'Minh họa': 'Illustration',
