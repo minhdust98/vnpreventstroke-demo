@@ -70,10 +70,22 @@ A.drugSheet = ({ id }) => sheet('drugPick', { id });
 V.drugPick = ({ id }) => { const d = DRUG_HISTORY.find(x => x.id === id); return { title: d.name, html: `${sheetHead(d.name)}${chips(d.opts.map(o => [o, o]), P().drugs[id], 'drugSet', { id })}` }; };
 A.drugSet = ({ id, v }) => { P().drugs[id] = v; S.sheet = null; };
 
-// ---- Câu hỏi cho bác sĩ: bộ câu của thang áp dụng cho người này ----
+// ---- Dự đoán nguy cơ: chỉ hiện mức và một lời khuyên chung. Câu hỏi là đầu vào của FSRP (từ 55 tuổi, chưa đột quỵ) và ESRS (sau nhồi máu não hoặc TIA). ----
+V.risk = () => {
+  const p = P(), ms = now(), r = riskResult(p, ms);
+  let h = topBar({ back: 'Trang chủ' }) + h1('Dự đoán nguy cơ');
+  if (r.state === 'level') {
+    const u = RISK_UI[r.key];
+    h += `<section class="card"><div class="center">${pill(u.pill, u.word)}</div><p class="lead center">${u.advice}</p><div class="center"><span class="badge">Minh họa</span></div></section>`;
+  } else if (r.state === 'need') {
+    h += `<section class="card empty"><p class="lead">Còn ${r.remain.length} câu hỏi</p>${btn('Trả lời', 'startRisk')}</section>`;
+  } else h += `<section class="card empty"><p class="lead">${RISK_EMPTY[r.state]}</p></section>`;
+  h += group([riskPlan(p, ms).ids.length ? row({ icon: 'msg', title: 'Câu trả lời của bạn', a: 'go', p: { v: 'questions' } }) : '', row({ icon: 'group', title: 'Đánh giá cho người thân', a: 'profileAdd' })]);
+  return { chrome: 'push', html: h };
+};
 V.questions = () => {
   const p = P(), ms = now(), pl = riskPlan(p, ms), remain = riskRemaining(p, ms);
-  let h = topBar({ back: 'Cài đặt' }) + h1('Câu hỏi cho bác sĩ', 'sm');
+  let h = topBar({ back: 'Dự đoán nguy cơ' }) + h1('Câu trả lời', 'sm');
   h += group(pl.ids.map(id => row({ title: RISK_Q[id].short, value: answerText(p, id), a: 'qSheet', p: { id } })));
   if (remain.length) h += btn(`Trả lời ${remain.length} câu còn lại`, 'startRisk');
   return { chrome: 'push', html: h };

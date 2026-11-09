@@ -292,3 +292,29 @@ function intakeFlags(p) {
   if (factOf(p, 'af') === 'yes' && !hasMedGroup(p, 'anticoag') && p.drugs.anticoag !== 'Có') out.push('Rung nhĩ, chưa thấy thuốc chống đông (người bệnh khai)');
   return out;
 }
+
+// ---- Mức nguy cơ cho người bệnh: chỉ hiện mức Thấp / Trung bình / Cao, không hiện điểm. ----
+// Ngưỡng từng mức là [Đề xuất], chờ bác sĩ chốt, và chỉ nằm ở đây. Điểm và công thức không đổi.
+// esrs: điểm ESRS (bảng điểm của phía bác sĩ). fsrp: ước tính % trong 10 năm do phía bác sĩ tính; app chưa có hệ số FSRP nên chỉ đọc số này.
+const RISK_LEVEL = { esrs: [[0, 'low'], [3, 'mid'], [7, 'high']], fsrp: [[0, 'low'], [5, 'mid'], [10, 'high']] };
+const riskLevelOf = (scale, v) => RISK_LEVEL[scale].reduce((k, [from, key]) => (v >= from ? key : k), 'low');
+// ESRS: tuổi dưới 65 là 0, đến 75 là 1, trên 75 là 2; mỗi yếu tố sau 1 điểm. Tim khác tính cả suy tim.
+function esrsScore(p, ms) {
+  const a = ageOf(p, ms), yes = id => factOf(p, id) === 'yes', known = id => ['yes', 'no'].includes(factOf(p, id));
+  const ids = ['htn', 'dm', 'pad', 'mi', 'smoke', 'prior'], need = ids.filter(id => !known(id));
+  const heart = yes('cvdother') || yes('chf') ? 1 : known('cvdother') && known('chf') ? 0 : null;
+  if (heart == null) need.push('cvdother');
+  if (need.length) return { need };
+  return { score: (a < 65 ? 0 : a <= 75 ? 1 : 2) + ids.filter(yes).length + heart };
+}
+// Kết quả để vẽ màn: level (có mức), need (còn câu hỏi), wait (chờ phía bác sĩ), na (chưa có thang)
+function riskResult(p, ms) {
+  const pl = riskPlan(p, ms);
+  if (!pl.ids.length) return { state: 'na', why: pl.reason };
+  const remain = riskRemaining(p, ms);
+  if (remain.length) return { state: 'need', remain };
+  if (p.stroke === false) return p.fsrp == null ? { state: 'wait' } : { state: 'level', scale: 'fsrp', key: riskLevelOf('fsrp', p.fsrp) };
+  const e = esrsScore(p, ms);
+  // Còn câu trả lời "chưa rõ": chờ phía bác sĩ xem, giống FSRP chưa có số
+  return e.need ? { state: 'wait' } : { state: 'level', scale: 'esrs', key: riskLevelOf('esrs', e.score) };
+}

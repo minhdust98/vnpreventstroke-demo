@@ -48,10 +48,9 @@ function todayBlock() {
 
   // Câu hỏi và lời mời chỉ hiện khi việc của buổi đã xong
   if (!todo.length) {
-    const wk = weeklyKind(p, ms), reply = S.draft.weekReply, remain = riskRemaining(p, ms);
+    const wk = weeklyKind(p, ms), reply = S.draft.weekReply;
     if (reply) h += `<section class="card"><div class="card-head">${statusIcon(reply.good ? 'good' : 'improve')}${reply.good ? 'Tốt' : 'Cần cải thiện'}</div><p class="body">${esc(reply.text)}</p></section>`;
     else if (wk) h += `<section class="card"><p class="lead">${WEEKLY[wk].q}</p>${chips(WEEKLY[wk].opts, null, 'weekly', { k: wk })}</section>`;
-    if (remain.length && !D.dismissed[`risk${dayKey(ms)}`]) h += `<section class="card"><p class="lead">Còn ${remain.length} câu hỏi cho bác sĩ</p><div class="two">${btn('Trả lời', 'startRisk')}${btn('Để sau', 'dismiss', { k: `risk${dayKey(ms)}` }, 'soft')}</div></section>`;
   }
   if (p.stroke && !p.meds.length) h += `<section class="card"><div class="card-head">Thuốc</div>${btn('Thêm thuốc', 'medNew')}</section>`;
   if (!pl.length && !p.stroke) h += `<section class="card empty"><p class="lead">Hôm nay không có việc cần làm</p></section>` + group([row({ icon: 'alert', tone: 'red', title: 'Dấu hiệu đột quỵ', a: 'go', p: { v: 'befast' } }), row({ icon: 'heart', title: 'Nhắc đo huyết áp', a: 'go', p: { v: 'reminders' } })]);

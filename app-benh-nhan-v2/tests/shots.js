@@ -15,6 +15,10 @@ const ONLY = process.argv[3] ? process.argv[3].split(',') : null;
 // Màn: [kịch bản dữ liệu, lệnh dựng màn chạy trong trang]
 const SCREENS = {
   home: ['an', ''],
+  risk: ['binh', "go('risk')"],
+  riskHigh: ['binh', "go('risk'); ['htn', 'dm', 'pad', 'mi'].forEach(id => A.riskAns({ id, v: 'yes' }))"],
+  riskNeed: ['an', "go('risk')"],
+  riskNa: ['lan', "go('risk')"],
   notif: ['an', "S.tab = 'notif'"],
   settings: ['an', "S.tab = 'settings'"],
   contact: ['an', "go('contact')"],

@@ -49,7 +49,7 @@ function emptyProfile(id, name) {
     track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', steps: false, device: false },
     appts: [], messages: [], visits: [], contact: null, address: '', family: [],
     careTeam: { doctor: 'BS. Demo', hospital: 'Bệnh viện mẫu A', phone: '0900 000 001', pharmacy: '0900 000 009' },
-    hospitalLinked: false, recheckAt: null, intake: null,
+    hospitalLinked: false, recheckAt: null, intake: null, fsrp: null,
   };
 }
 function appt(y, mo, d, hh, mm, extra) {
@@ -93,7 +93,7 @@ const SCENARIOS = {
     label: 'Chưa đột quỵ, từ 55 tuổi', who: 'Lê Hà, 60 tuổi',
     build() {
       const p = emptyProfile('ha', 'Lê Hà');
-      Object.assign(p, { birthYear: 1966, height: 158, weight: 64, stroke: false });
+      Object.assign(p, { birthYear: 1966, height: 158, weight: 64, stroke: false, fsrp: 9 }); // fsrp: số minh họa do phía bác sĩ tính
       p.consents = { doctor: true, research: true, family: null };
       p.meds = [med('met', 'Metformin', 'dm', '1 viên', '500 mg', ['sang'], { source: 'self', note: 'Sau ăn', end: '2027-03-01' })];
       p.doses = genDoses(23, 30, p.meds);

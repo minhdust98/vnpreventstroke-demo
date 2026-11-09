@@ -167,6 +167,33 @@ test('Hồ sơ ban đầu', () => {
   load('moi'); c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1962'); keys('160'); keys('60'); c('numSave'); c('onHistDone'); c('onFinish');
   ok('Bỏ qua thì hồ sơ không có câu nào, không bị hiểu là Không', Object.keys(P().facts).length === 0 && !P().intake);
 });
+test('Dự đoán nguy cơ', () => {
+  ok('Ngưỡng ESRS: 2 thấp, 3 và 6 trung bình, 7 cao', ['low', 'mid', 'mid', 'high'].join() === [2, 3, 6, 7].map(v => riskLevelOf('esrs', v)).join());
+  ok('Ngưỡng FSRP: 4,9 thấp, 5 và 9,9 trung bình, 10 cao', ['low', 'mid', 'mid', 'high'].join() === [4.9, 5, 9.9, 10].map(v => riskLevelOf('fsrp', v)).join());
+  load('ha'); openTile('risk');
+  ok('Người từ 55 tuổi chưa đột quỵ, còn câu hỏi: hỏi tiếp, chưa hiện mức', riskRemaining(P(), now()).length > 0 ? (/Còn \d+ câu hỏi/.test(text()) && !!findBtn('startRisk') && !/Trung bình|Thấp|Cao/.test(text())) : true);
+  answerAll('no'); A.go({ v: 'risk' }); render();
+  ok('Trả lời đủ thì hiện mức từ số minh họa của FSRP, một lời khuyên, nhãn Minh họa, không điểm', riskResult(P(), now()).key === 'mid' && /Trung bình/.test(text()) && /bác sĩ ở lần khám tới/.test(text()) && /Minh họa/.test(text()) && !/\d+\s*(điểm|%)/.test(text()));
+  ok('Mức có hình đi kèm', !!document.querySelector('#view .pill svg'));
+  load('binh'); openTile('risk');
+  const e = esrsScore(P(), now()), key = riskLevelOf('esrs', e.score);
+  ok('Sau nhồi máu não, đã trả lời đủ: mức theo ESRS', e.score != null && riskResult(P(), now()).key === key && text().includes(RISK_UI[key].word) && text().includes(RISK_UI[key].advice));
+  ok('Màn không có điểm, không tên thang', !/\d+\s*(điểm|%)|ESRS|FSRP|SPI/.test(text()));
+  const before = riskResult(P(), now()).key, rank = { low: 1, mid: 2, high: 3 };
+  ['htn', 'dm', 'pad', 'mi'].forEach(id => A.riskAns({ id, v: 'yes' })); render();
+  ok('Đổi câu trả lời thì mức tự cập nhật, không hỏi lại', rank[riskResult(P(), now()).key] >= rank[before] && riskResult(P(), now()).key === 'high' && !findBtn('startRisk'));
+  A.riskAns({ id: 'pad', v: 'unknown' }); render();
+  ok('Còn câu chưa rõ thì chờ bác sĩ', /bác sĩ xem câu trả lời/.test(text()));
+  load('lan'); openTile('risk'); ok('Sau chảy máu não: chưa có đánh giá', /Chưa có đánh giá cho trường hợp này/.test(text()));
+  load('tu'); openTile('risk'); ok('Dưới 55 tuổi: chưa có đánh giá', /Chưa có đánh giá cho trường hợp này/.test(text()));
+  load('an'); openTile('risk'); ok('An còn 1 câu', /Còn 1 câu hỏi/.test(text()));
+  c('startRisk'); const id = riskRemaining(P(), now())[0]; c('riskAns', { id, v: 'no' }); c('back');
+  ok('Trả lời xong về màn mức', screen() === 'risk' && /Thấp|Trung bình|Cao/.test(document.querySelector('#view .pill').textContent));
+  c('go', { v: 'questions' }); ok('Xem và sửa câu trả lời, quay lại Dự đoán nguy cơ', /Câu trả lời/.test(document.querySelector('#view h1').textContent) && !!findBtn('back'));
+  c('back'); c('profileAdd'); ok('Đánh giá cho người thân', S.dialog && /Hồ sơ người thân/.test(text()));
+  load('an'); ok('Hôm nay không còn lời mời câu hỏi cho bác sĩ', !/câu hỏi cho bác sĩ/i.test(text()));
+  load('xau'); openTile('risk'); ok('Dữ liệu xấu nhất: Dự đoán nguy cơ vẫn hiện', !!document.querySelector('#view h1'));
+});
 test('Câu hỏi thang điểm', () => {
   newUser(false, 1960);
   ok('Nhóm tiên phát từ 55', careGroup(P(), now()) === 'pri55');
@@ -333,7 +360,7 @@ test('Hồ sơ sức khỏe: ba phần', () => {
 });
 test('Trang chủ, Thông báo, Liên hệ, Cài đặt', () => {
   load('an');
-  ok('Trang chủ không có thanh trên khi 115 ẩn, có thẻ chào và 5 ô', !document.querySelector('#view .top') && !!document.querySelector('.hello') && ['questions', 'meds', 'metrics', 'contact', 'learn'].every(v => !!findBtn('go', { v })));
+  ok('Trang chủ không có thanh trên khi 115 ẩn, có thẻ chào và 5 ô', !document.querySelector('#view .top') && !!document.querySelector('.hello') && ['risk', 'meds', 'metrics', 'contact', 'learn'].every(v => !!findBtn('go', { v })));
   ok('Hôm nay không có lời mời đánh giá app và không có avatar', !/Bạn thấy app thế nào/.test(text()) && !document.querySelector('.avatar'));
   c('go', { v: 'meds' }); ok('Ô Thuốc mở màn Thuốc, quay về Trang chủ', /Đang dùng/.test(text()) && !!findBtn('back')); c('back'); ok('Về Trang chủ', screen() === 'home');
   c('go', { v: 'metrics' }); ok('Ô Hồ sơ sức khỏe', /Hồ sơ sức khỏe/.test(document.querySelector('#view h1').textContent)); c('back');
@@ -382,7 +409,8 @@ function crawl(k, setup) {
     if (view.scrollWidth > view.clientWidth + 1) issues.add(`Tràn ngang: ${s}`);
     if (/undefined|NaN|\[object|null\b/.test(txt)) issues.add(`Chữ lỗi: ${s}`);
     if (/\b(AM|PM)\b/.test(txt)) issues.add(`Giờ AM/PM: ${s}`);
-    if (current().v !== 'faq' && /mức nguy cơ|nguy cơ (thấp|trung bình|cao)|điểm nguy cơ/i.test(txt)) issues.add(`Hiện nguy cơ: ${s}`);
+    if (!['faq', 'risk'].includes(current().v) && /mức nguy cơ|nguy cơ (thấp|trung bình|cao)|điểm nguy cơ/i.test(txt)) issues.add(`Hiện nguy cơ: ${s}`);
+    if (current().v === 'risk' && /\d+\s*(điểm|%)|điểm nguy cơ|\bESRS\b|\bFSRP\b/i.test(txt)) issues.add(`Hiện điểm hoặc tên thang: ${s}`);
     if (document.querySelector('#phone .sub, #phone .note, #phone .d, #phone .legend')) issues.add(`Còn chữ phụ kiểu cũ: ${s}`);
     if (FEATURES.sos && !S.sheet && !S.lock && !document.querySelector('#view .sos')) issues.add(`Thiếu nút 115: ${current().v}`);
     if (!FEATURES.sos && document.querySelector('#phone .sos')) issues.add(`115 phải ẩn: ${current().v}`);

@@ -190,9 +190,16 @@ const TOPICS = [
   ] },
 ];
 
+// Lời khuyên chung theo mức. [Đề xuất], chờ bác sĩ chốt. Không hiện điểm.
+const RISK_UI = {
+  low: { word: 'Thấp', pill: 'good', advice: 'Hãy tiếp tục duy trì lối sống lành mạnh.' },
+  mid: { word: 'Trung bình', pill: 'improve', advice: 'Hãy trao đổi với bác sĩ ở lần khám tới để được hướng dẫn thêm.' },
+  high: { word: 'Cao', pill: 'critical', advice: 'Hãy liên hệ bác sĩ để được hướng dẫn chi tiết.' },
+};
+const RISK_EMPTY = { na: 'Chưa có đánh giá cho trường hợp này', wait: 'Mức nguy cơ sẽ hiện sau khi bác sĩ xem câu trả lời' };
 const FAQ = [
   ['App có thay thế bác sĩ không?', 'Không. App chỉ để tham khảo. Hãy luôn theo chỉ định của bác sĩ đang điều trị cho bạn.'],
-  ['Sao app không cho biết điểm nguy cơ?', 'Kết quả đánh giá nguy cơ được bác sĩ xem và giải thích khi khám. App cho bạn thấy các chỉ số đang tốt và cần cải thiện.'],
+  ['Sao app không cho biết điểm nguy cơ?', 'App chỉ cho biết mức nguy cơ: Thấp, Trung bình hoặc Cao. Điểm và cách tính do bác sĩ xem và giải thích khi khám.'],
   ['Quên ghi vài ngày thì sao?', 'Không sao. Không cần nhập bù, cứ tiếp tục từ hôm nay.'],
   ['Ai xem được dữ liệu của tôi?', 'Chỉ những người bạn đã đồng ý. Bạn đổi ý được bất cứ lúc nào trong Hồ sơ.'],
   ['Người nhà nhập hộ được không?', 'Được. Mời người nhà trong Hồ sơ. App ghi rõ ai đã nhập.'],

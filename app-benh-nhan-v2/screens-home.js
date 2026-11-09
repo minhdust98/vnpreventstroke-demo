@@ -3,7 +3,7 @@
 // Nhập ở Hôm nay thì sau khi lưu số liệu nằm ở ô chức năng tương ứng; xem lại lịch sử và biểu đồ thì vào ô đó.
 
 const TILES = [
-  ['gauge', 'Dự đoán nguy cơ', { v: 'questions' }],
+  ['gauge', 'Dự đoán nguy cơ', { v: 'risk' }],
   ['pill', 'Thuốc', { v: 'meds' }],
   ['doc', 'Hồ sơ sức khỏe', { v: 'metrics' }],
   ['msg', 'Liên hệ', { v: 'contact' }],
@@ -27,7 +27,7 @@ V.notif = () => {
   if (p.recheckAt) rows.push(row({ icon: 'heart', title: 'Đo lại huyết áp', value: hhmm(p.recheckAt), a: 'startBP' }));
   if (ap && ap.t >= ms && daysBetween(ms, ap.t) <= 7) rows.push(row({ icon: 'cal', title: 'Tái khám', value: `${WD_S[new Date(ap.t).getDay()]} ${ddmm(ap.t)}`, a: 'go', p: { v: 'visit' } }));
   medsEnding(p, ms, 5).forEach(m => rows.push(row({ icon: 'pill', title: esc(m.name), value: `Còn ${daysLeft(m, ms)} ngày`, tone2: 'amber', a: 'go', p: { v: 'medDetail', id: m.id } })));
-  if (remain.length) rows.push(row({ icon: 'gauge', title: `Còn ${remain.length} câu hỏi`, a: 'go', p: { v: 'questions' } }));
+  if (remain.length) rows.push(row({ icon: 'gauge', title: `Còn ${remain.length} câu hỏi`, a: 'go', p: { v: 'risk' } }));
   if ((D.prompt7 || D.bpSaved >= 10) && !D.dismissed.feedback) rows.push(row({ icon: 'star', title: 'Bạn thấy app thế nào?', a: 'go', p: { v: 'feedback' } }));
   return { chrome: 'tab', html: topBar() + h1('Thông báo') + (rows.length ? group(rows) : '<section class="card empty"><p class="lead">Chưa có thông báo</p></section>') };
 };
