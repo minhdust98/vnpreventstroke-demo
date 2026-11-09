@@ -318,3 +318,9 @@ function riskResult(p, ms) {
   // Còn câu trả lời "chưa rõ": chờ phía bác sĩ xem, giống FSRP chưa có số
   return e.need ? { state: 'wait' } : { state: 'level', scale: 'esrs', key: riskLevelOf('esrs', e.score) };
 }
+
+// ---- Tỷ lệ chưa dùng = số lần chưa dùng ÷ số lần cần dùng trong kỳ (7, 30 ngày). Tính chung hoặc cho một thuốc. ----
+function missRate(p, days, ms, times, medId) {
+  const a = adherence(medId ? { meds: p.meds.filter(m => m.id === medId), doses: p.doses } : p, days, ms, times);
+  return { due: a.due, not: a.due - a.taken };
+}

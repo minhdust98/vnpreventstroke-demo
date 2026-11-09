@@ -23,6 +23,7 @@ const SCREENS = {
   settings: ['an', "S.tab = 'settings'"],
   contact: ['an', "go('contact')"],
   meds: ['an', "go('meds')"],
+  rxReview: ['an', "go('meds'); A.medNew({}); A.rxQr()"],
   moment: ['an', "go('meds'); A.openMoment({ mk: 'toi' })"],
   medForm: ['an', "go('meds'); A.medNew({})"],
   metrics: ['an', "go('metrics')"],

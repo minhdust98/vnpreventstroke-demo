@@ -309,6 +309,7 @@ F.scanFile = (v, el, type) => {
 function scanned(img) {
   if (S.draft.scanTarget === 'bp') { Object.assign(S.draft.bp, { sys: '126', dia: '78', focus: 'dia' }); return; }
   if (S.draft.scanTarget === 'visit') { S.draft.visit.photo = img; return; }
+  if (S.draft.scanTarget === 'rx') { rxStart(img); return; }
   S.sheet = null;
   S.draft.scan = { img, date: SCAN_SAMPLE.date, items: Object.entries(SCAN_SAMPLE.values).filter(([test]) => labOn(labDef(test))).map(([test, v]) => ({ test, v, on: true })) };
   go('scanReview');

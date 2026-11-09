@@ -40,6 +40,12 @@ const MED_CATALOG = [
   { group: 'epilepsy', label: 'Thuốc chống động kinh', items: [['Valproat', ['500 mg']], ['Phenytoin', ['100 mg']], ['Phenobarbital', ['100 mg']], ['Oxcarbazepine', ['300 mg']]] },
   { group: 'anxiety', label: 'Thuốc chống lo âu', items: [['Alprazolam', ['0,25 mg']], ['Diazepam', ['5 mg']], ['Clonazepam', ['0,5 mg']], ['Lorazepam', ['1 mg']]] },
 ];
+// Kết quả mô phỏng khi chụp đơn thuốc hoặc quét mã QR đơn. Người dùng luôn phải xem lại từng thuốc trước khi lưu.
+const RX_SAMPLE = [
+  { name: 'Clopidogrel', group: 'antiplatelet', strength: '75 mg', dose: '1 viên', moments: ['sang'], note: '' },
+  { name: 'Amlodipine', group: 'bp', strength: '5 mg', dose: '1 viên', moments: ['sang'], note: '' },
+  { name: 'Atorvastatin', group: 'lipid', strength: '20 mg', dose: '1 viên', moments: ['toi'], note: 'Sau ăn' },
+];
 const DOSES = ['½ viên', '1 viên', '2 viên', '1 mũi tiêm'];
 const DURATIONS = [[7, '7 ngày'], [30, '30 ngày'], [90, '90 ngày'], [0, 'Dài hạn']];
 const MED_NOTES = ['Trước ăn', 'Sau ăn', 'Khi đói'];

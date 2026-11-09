@@ -293,7 +293,7 @@ test('Thuốc', () => {
   c('medNew'); c('medPick'); c('medPicked', { g: 'bp', n: 'Amlodipine' }); c('medF', { k: 'strength', v: '5 mg' }); c('medM', { v: 'sang' }); c('medF', { k: 'days', v: '30' }); c('medSave');
   ok('Thêm thuốc 7 chạm', P().meds.length === 1 && taps - t0 === 7, taps - t0);
   load('an'); openTile('meds');
-  ok('Thuốc: 7 chấm, 30 ngày, câu BRD', document.querySelectorAll('#view .dot').length === 7 && /30 ngày qua: \d+\/\d+ liều/.test(text()) && text().includes(BRD.medGood));
+  ok('Thuốc: 7 chấm, chưa dùng X/Y lần, câu BRD', document.querySelectorAll('#view .dot').length === 7 && /Chưa dùng: \d+\/\d+ lần/.test(text()) && text().includes(BRD.medGood));
   c('openMoment', { mk: 'sang' }); c('dose', { mk: 'sang', id: 'aml' });
   ok('Ghi liều từ tab Thuốc', !!P().doses[doseKey(now(), 'sang', 'aml')]);
   load('an'); A.go({ v: 'medDetail', id: 'apx' }); render(); c('medPause', { id: 'apx' });
@@ -301,6 +301,22 @@ test('Thuốc', () => {
   load('an'); ok('Tổng liều khớp', (() => { const a = adherence(P(), 30, now(), times()); return a.taken + a.missed + a.none === a.due; })());
   load('an'); A.pNotif({ kind: 'meds', mk: 'sang' }); render(); const t1 = taps; c('lockTaken', { mk: 'sang' });
   ok('Bấm trên thông báo là xong', !S.lock && !!P().doses[doseKey(now(), 'sang', 'apx')] && taps - t1 === 1);
+});
+test('Tỷ lệ chưa dùng và chụp đơn thuốc', () => {
+  load('an'); const a30 = adherence(P(), 30, now(), times()), m30 = missRate(P(), 30, now(), times()), m7 = missRate(P(), 7, now(), times());
+  ok('Chưa dùng = số lần cần dùng trừ số lần đã dùng', m30.due === a30.due && m30.not === a30.due - a30.taken && m7.due < m30.due && m7.not <= m7.due);
+  const one = missRate(P(), 30, now(), times(), 'apx'), all = P().meds.map(m => missRate(P(), 30, now(), times(), m.id));
+  ok('Từng thuốc cộng lại bằng chung', all.reduce((s, x) => s + x.due, 0) === m30.due && all.reduce((s, x) => s + x.not, 0) === m30.not && one.due > 0);
+  openTile('meds'); ok('Thẻ có tỷ lệ chưa dùng 30 ngày', new RegExp(`Chưa dùng: ${m30.not}/${m30.due} lần`).test(text()));
+  c('missDays', { v: 7 }); ok('Chuyển sang 7 ngày', new RegExp(`Chưa dùng: ${m7.not}/${m7.due} lần`).test(text()));
+  c('go', { v: 'medDetail', id: 'apx' }); ok('Chi tiết thuốc có tỷ lệ chưa dùng của thuốc đó', new RegExp(`Chưa dùng 30 ngày[\\s\\S]*${one.not}/${one.due} lần`).test(text()));
+  load('tu'); openTile('meds'); c('medNew'); ok('Thêm thuốc có Chụp đơn thuốc và Quét mã QR', !!findBtn('scan', { target: 'rx' }) && !!findBtn('rxQr'));
+  load('an'); openTile('meds'); const n0 = P().meds.length; c('medNew'); c('rxQr');
+  ok('Quét mã: danh sách thuốc đọc được, thuốc đã có không tick sẵn', screen() === 'rxReview' && /Lưu 1 thuốc/.test(text()) && /Clopidogrel/.test(text()) && !!document.querySelector('#view [aria-label="Lưu Amlodipine"][aria-checked="false"]'));
+  c('rxToggle', { i: 1 }); ok('Tick thêm một thuốc', /Lưu 2 thuốc/.test(text()));
+  c('rxSave'); ok('Lưu thuốc: về danh sách, thuốc mới đúng buổi', P().meds.length === n0 + 2 && screen() === 'meds' && /Clopidogrel/.test(text()) && P().meds[n0].moments[0] === 'sang' && P().meds[n0].source === 'photo');
+  load('tu'); openTile('meds'); c('medNew'); S.draft.scanTarget = 'rx'; scanned('data:image/gif;base64,R0lGODlhAQABAAAAACw='); render();
+  ok('Chụp đơn: ảnh và danh sách', screen() === 'rxReview' && !!document.querySelector('#view img.thumb') && /Lưu 3 thuốc/.test(text()));
 });
 test('Người nhà, chảy máu não, tái khám, triệu chứng', () => {
   load('mai'); ok('Dải đang chăm', /Đang chăm: Trần An/.test(text()));

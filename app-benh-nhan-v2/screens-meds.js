@@ -13,11 +13,12 @@ V.meds = () => {
     return row({ icon: 'pill', title: `${m.label} · ${m.time}`, value: `${it.taken}/${it.total}`, status: it.filled ? 'good' : '', a: 'openMoment', p: { mk: m.key }, aria: `Thuốc buổi ${m.word}, đã dùng ${it.taken} trên ${it.total}` });
   });
   h += group(today, { title: 'Hôm nay' });
-  // Một thẻ tuân thủ: 7 chấm cho 7 ngày, một dòng cho 30 ngày, câu khích lệ theo BRD
+  // Một thẻ: 7 chấm cho 7 ngày, tỷ lệ chưa dùng (7 hoặc 30 ngày), câu khích lệ theo BRD
   const days = [6, 5, 4, 3, 2, 1, 0].map(i => ms - i * DAY), word = { full: 'đủ', partial: 'một phần', missed: 'bỏ lỡ', none: 'không có ghi nhận', ongoing: 'đang diễn ra', nodoses: 'không có thuốc' };
-  const a = adherence(p, 30, ms, t), k = adherenceKey(a);
+  const per = S.draft.missDays || 30, mr = missRate(p, per, ms, t), k = adherenceKey(adherence(p, 30, ms, t));
   h += `<section class="card"><div class="dots" role="group" aria-label="7 ngày">${days.map(d => { const s = dayDoseState(p, d, ms, t); return `<div class="day"><span class="dot ${s}" role="img" aria-label="${ddmm(d)}: ${word[s]}">${s === 'full' ? icon('check') : ''}</span>${WD_S[new Date(d).getDay()]}</div>`; }).join('')}</div>`
-    + (a.due ? `<p class="lead">30 ngày qua: ${a.taken}/${a.due} liều</p>` : '') + (k === 'none' ? '' : `<p class="body">${k === 'good' ? BRD.medGood : BRD.medImprove}</p>`) + '</section>';
+    + seg([[7, '7 ngày'], [30, '30 ngày']], per, 'missDays')
+    + (mr.due ? `<p class="lead">Chưa dùng: ${mr.not}/${mr.due} lần</p>` : '') + (k === 'none' ? '' : `<p class="body">${k === 'good' ? BRD.medGood : BRD.medImprove}</p>`) + '</section>';
   h += group(active.map(m => { const left = m.end ? daysLeft(m, ms) : 99; return row({ icon: 'pill', title: esc(medName(m)), value: left <= 7 ? `Còn ${left} ngày` : momentsText(m), tone2: left <= 7 ? 'amber' : '', a: 'go', p: { v: 'medDetail', id: m.id } }); }), { title: 'Đang dùng', action: { label: 'Thêm', icon: 'plus', a: 'medNew' } });
   h += group([FEATURES.missedHelp ? row({ icon: 'book', title: 'Khi quên liều', a: 'go', p: { v: 'article', topic: 'meds', id: 'missed' } }) : '', row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } })]);
   const off = p.meds.filter(m => !active.includes(m));
@@ -25,6 +26,7 @@ V.meds = () => {
   return { chrome: 'push', html: h };
 };
 A.openMoment = ({ mk }) => sheet('moment', { mk });
+A.missDays = ({ v }) => { S.draft.missDays = Number(v); };
 
 V.medDetail = ({ id }) => {
   const m = P().meds.find(x => x.id === id);
@@ -38,6 +40,8 @@ V.medDetail = ({ id }) => {
     row({ title: 'Đến ngày', value: m.end ? ymd(m.end) : 'Dài hạn' }),
     m.note ? row({ title: 'Lưu ý', value: esc(m.note) }) : '',
   ]);
+  const r7 = missRate(P(), 7, now(), times(), id), r30 = missRate(P(), 30, now(), times(), id);
+  if (r30.due) h += group([r7.due ? row({ title: 'Chưa dùng 7 ngày', value: `${r7.not}/${r7.due} lần` }) : '', row({ title: 'Chưa dùng 30 ngày', value: `${r30.not}/${r30.due} lần` })]);
   h += btn('Sửa', 'medEdit', { id }, 'soft') + btn(m.paused ? 'Nhắc lại' : 'Tạm dừng nhắc', 'medPause', { id }, 'soft') + btn('Xóa thuốc', 'medDel', { id }, 'plain');
   return { chrome: 'push', html: h };
 };
@@ -56,6 +60,7 @@ A.medEdit = ({ id }) => { const m = P().meds.find(x => x.id === id); S.draft.med
 V.medForm = () => {
   const f = S.draft.med, cat = MED_CATALOG.find(g => g.group === f.group), item = cat && cat.items.find(i => i[0] === f.name);
   let h = topBar({ close: true }) + h1(f.editId ? 'Sửa thuốc' : 'Thêm thuốc', 'sm');
+  if (!f.editId) h += `<div class="two">${btn(`${icon('camera')}Chụp đơn thuốc`, 'scan', { target: 'rx' }, 'soft')}${btn(`${icon('qr')}Quét mã QR`, 'rxQr', {}, 'soft')}</div>`;
   h += group(row({ icon: 'pill', title: f.name ? esc(f.name) : 'Chọn tên thuốc', a: 'medPick' }));
   if (item) h += `<h2 class="label">Hàm lượng</h2>${chips(item[1].map(s => [s, s]), f.strength, 'medF', { k: 'strength' }, 'wrap')}`;
   else if (f.name) h += `<label class="label" for="fStr">Hàm lượng</label><input id="fStr" class="input" data-field="medStrength" value="${esc(f.strength)}">`;
@@ -90,4 +95,24 @@ A.medSave = () => {
   if (f.editId) Object.assign(p.meds.find(x => x.id === f.editId), { name: f.name, group: f.group, strength: f.strength, dose: f.dose, moments: f.moments, note: f.note, route: f.route });
   else p.meds.push({ id: `m${Date.now()}`, name: f.name, group: f.group, strength: f.strength, dose: f.dose, moments: f.moments.slice(), start: dayKey(now()), end: f.days ? dayKey(now() + f.days * DAY) : null, note: f.note, route: f.route, source: 'self' });
   back(); toast(f.editId ? 'Đã cập nhật' : 'Đã thêm. App sẽ nhắc đúng buổi.');
+};
+
+// ---- Chụp đơn thuốc hoặc quét mã QR đơn: đọc ra danh sách, người dùng tick từng thuốc trước khi lưu ----
+function rxStart(img) {
+  const p = P(), active = medsActive(p, now()).map(m => m.name.toLowerCase());
+  S.draft.rx = { img, items: RX_SAMPLE.map(m => Object.assign({}, m, { on: !active.includes(m.name.toLowerCase()) })) };
+  go('rxReview');
+}
+A.rxQr = () => rxStart(null);
+V.rxReview = () => {
+  const rx = S.draft.rx, n = rx.items.filter(i => i.on).length;
+  let h = topBar({ close: true }) + h1('Thuốc đọc được', 'sm') + (rx.img ? `<img class="thumb" src="${rx.img}" alt="Ảnh đơn thuốc">` : '');
+  h += group(rx.items.map((i, k) => `<div class="row"><button class="check-btn" role="checkbox" aria-checked="${i.on}" aria-label="Lưu ${esc(i.name)}" ${on('rxToggle', { i: k })}><span class="check">${icon('check')}</span></button><span class="row-title">${esc(medName(i))}</span><span class="row-value">${momentsText(i)}</span></div>`));
+  return { chrome: 'modal', html: h + btn(`Lưu ${n} thuốc`, 'rxSave', {}, '', n ? '' : 'disabled') };
+};
+A.rxToggle = ({ i }) => { const it = S.draft.rx.items[Number(i)]; it.on = !it.on; };
+A.rxSave = () => {
+  const p = P(), items = S.draft.rx.items.filter(i => i.on);
+  items.forEach((i, k) => p.meds.push({ id: `m${Date.now()}${k}`, name: i.name, group: i.group, strength: i.strength, dose: i.dose, moments: i.moments.slice(), start: dayKey(now()), end: dayKey(now() + 30 * DAY), note: i.note, route: 'Uống', source: 'photo' }));
+  S.draft.rx = null; S.draft.med = null; openRoot('meds'); toast(`Đã thêm ${items.length} thuốc`);
 };
