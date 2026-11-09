@@ -228,5 +228,12 @@ const PRIVACY = [
   'Bạn có quyền xem, sửa hoặc yêu cầu xóa thông tin của mình.',
   'Thông tin trong app chỉ để tham khảo, không thay thế lời khuyên, chẩn đoán hay điều trị của bác sĩ.',
 ];
+const TERMS = [
+  'Thông tin trong app chỉ để tham khảo, không thay thế bác sĩ.',
+  'Dữ liệu chỉ được chia sẻ khi bạn chọn Đồng ý, và bạn đổi ý được bất cứ lúc nào.',
+  'Bạn có quyền xem, sửa hoặc yêu cầu xóa thông tin của mình.',
+];
+// Kết quả mô phỏng khi quét mã bệnh viện: tên bệnh viện và các đợt chẩn đoán
+const HOSPITAL_SAMPLE = { name: 'Bệnh viện mẫu A', dx: [{ id: 'htn', name: 'Tăng huyết áp', year: 2019 }] };
 const FEEDBACK_HELPED = ['Theo dõi các chỉ số sức khỏe', 'Có động lực cải thiện chỉ số và thói quen', 'Có thông tin để trao đổi với bác sĩ', 'Hiểu rõ hơn về phòng chống đột quỵ'];
 const FEEDBACK_WHY_NOT = ['Giao diện khó sử dụng', 'Thông tin chưa hữu ích', 'Tính năng không hoạt động tốt', 'Nhắc nhở không phù hợp'];

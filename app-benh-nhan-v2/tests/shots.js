@@ -45,6 +45,11 @@ const SCREENS = {
   befast: ['an', "go('learn'); go('befast')"],
   diet: ['an', "go('learn'); go('topic', { topic: 'diet' })"],
   
+  login: ['dn', ''],
+  register: ['dn', "A.accGo({ v: 'register', mode: 'register' })"],
+  otp: ['dn', "acc().phone = '0912 345 678'; go('otp')"],
+  account: ['an', "S.tab = 'settings'; go('account')"],
+  onLink: ['moi', "S.draft.on = { stroke: true, linked: true }; S.stack = [{ v: 'onLink', p: {} }]"],
   welcome: ['moi', ''],
   lock: ['an', "A.pNotif({ kind: 'meds', mk: 'sang' })"],
   empty: ['tu', ''],

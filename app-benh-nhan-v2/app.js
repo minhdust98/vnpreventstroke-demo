@@ -18,8 +18,8 @@ const defaultSettings = () => ({ size: 'l', theme: 'light', lang: 'vi', gluUnit:
 
 function loadScenario(key) {
   const settings = D ? D.settings : defaultSettings();
-  D = Object.assign({ scenario: key, now: DEMO_NOW, settings, prompt7: false, bpSaved: 0, dismissed: {} }, SCENARIOS[key].build());
-  Object.assign(S, { tab: 'home', stack: D.onboarding ? [{ v: 'welcome', p: {} }] : [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true });
+  D = Object.assign({ scenario: key, now: DEMO_NOW, settings, prompt7: false, bpSaved: 0, dismissed: {}, account: { phone: '0900 000 000' } }, SCENARIOS[key].build());
+  Object.assign(S, { tab: 'home', stack: D.account === null ? [{ v: 'login', p: {} }] : D.onboarding ? [{ v: 'welcome', p: {} }] : [], sheet: null, dialog: null, lock: null, draft: {}, scrollTo: 0, focus: true });
   store.set();
 }
 
@@ -248,7 +248,8 @@ function boot() {
   const saved = store.get();
   if (saved && saved.scenario && SCENARIOS[saved.scenario]) {
     D = saved; D.settings = Object.assign(defaultSettings(), D.settings);
-    if (D.onboarding && !D.active) S.stack = [{ v: 'welcome', p: {} }];
+    if (D.account === null) S.stack = [{ v: 'login', p: {} }];
+    else if (D.onboarding && !D.active) S.stack = [{ v: 'welcome', p: {} }];
   } else loadScenario('an');
   bind();
   render();

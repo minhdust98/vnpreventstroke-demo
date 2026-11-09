@@ -192,6 +192,10 @@ const SCENARIOS = {
       return { profiles: { xau: p }, active: 'xau', owner: 'xau' };
     },
   },
+  dn: {
+    label: 'Chưa đăng nhập', who: 'Màn đăng nhập',
+    build() { return { profiles: {}, active: null, owner: null, onboarding: true, account: null }; },
+  },
   moi: {
     label: 'Mở app lần đầu', who: 'Chưa có hồ sơ',
     build() { return { profiles: {}, active: null, owner: null, onboarding: true }; },

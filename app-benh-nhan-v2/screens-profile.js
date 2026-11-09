@@ -8,7 +8,7 @@ V.settings = () => {
   const p = P(), ms = now(), ids = Object.keys(D.profiles);
   let h = topBar() + h1('Cài đặt');
   if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
-  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
+  h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'lock', title: 'Tài khoản', value: esc((D.account && D.account.phone) || ''), a: 'go', p: { v: 'account' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
   h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
   h += group([row({ icon: 'lock', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
   h += group([row({ icon: 'star', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);

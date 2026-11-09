@@ -43,6 +43,7 @@ function newUser(stroke, year, type) {
 }
 // Chạy một đoạn với cờ tính năng đã bật, rồi trả lại. Phần bị ẩn ở bước 1 vẫn được kiểm tra khi bật.
 function withFlags(f, fn) { const keep = Object.assign({}, FEATURES); Object.assign(FEATURES, f); try { fn(); } finally { Object.assign(FEATURES, keep); } }
+const setField = (f, v) => { const el = document.querySelector(`#view [data-field="${f}"]`); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
 function test(name, fn) { try { fn(); } catch (e) { results.push({ name: `${name} (lỗi)`, pass: false, extra: e.message }); } }
 
 bind();
@@ -126,8 +127,8 @@ test('Lần đầu mở app', () => {
   ok('Chưa chọn đồng ý thì không đi tiếp', !findBtn('onAsk', { step: 'year' }));
   c('onConsent', { k: 'doctor', v: 1 });
   ok('Một câu vẫn chưa đủ', !findBtn('onAsk', { step: 'year' }));
-  c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1958'); keys('165'); keys('62'); c('numSave'); c('onScan'); c('go', { v: 'onHist' }); c('onHistDone'); c('onFinish');
-  ok('Sau đột quỵ, quét mã bệnh viện', P() && P().meds.length === 3 && P().appts.length === 1, `${taps} chạm`);
+  c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1958'); keys('165'); keys('62'); c('numSave'); c('onScan'); ok('Quét mã hiện tên bệnh viện và đợt chẩn đoán', /Bệnh viện mẫu A/.test(text()) && /Tăng huyết áp/.test(text()) && /từ 2019/.test(text())); c('go', { v: 'onHist' }); c('onHistDone'); c('onFinish');
+  ok('Sau đột quỵ, quét mã bệnh viện', P() && P().meds.length === 3 && P().appts.length === 1 && P().careTeam.hospital === HOSPITAL_SAMPLE.name && P().facts.htn.detail.year === 2019, `${taps} chạm`);
   ok('Tái khám tự lên lịch 1 tháng', daysBetween(now(), P().appts[0].t) >= 28);
   ok('Đồng ý đúng lựa chọn', P().consents.doctor === true && P().consents.research === false);
   load('moi'); taps = 0; c('onStroke', { v: 0 }); c('onConsent', { k: 'doctor', v: 0 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1984'); keys('170'); keys('68'); c('numSave'); c('onHistDone'); c('onFinish');
@@ -373,6 +374,29 @@ test('Hồ sơ sức khỏe: ba phần', () => {
   load('tu'); openTile('metrics'); c('hPart', { v: 'visits' }); ok('Chưa có lần khám', /Chưa có lần khám/.test(text()));
   load('an'); c('go', { v: 'metrics' }); c('go', { v: 'symptoms' }); ok('Triệu chứng ghi được từ Theo dõi', /Có điều gì khác thường/.test(text()));
   load('xau'); openTile('metrics'); c('hPart', { v: 'visits' }); ok('Dữ liệu xấu nhất: Khám bệnh vẫn hiện', /Thêm lần khám/.test(text()));
+});
+test('Đăng nhập, đăng ký, quên và đổi mật khẩu, đăng xuất', () => {
+  load('dn');
+  ok('Mở app: màn đăng nhập, chưa có thanh dưới', screen() === 'login' && !document.querySelector('#tabs button') && !!document.getElementById('ph') && !!document.getElementById('pw'));
+  c('accLogin'); ok('Thiếu số điện thoại thì ở lại', screen() === 'login');
+  setField('accPhone', '0912345678'); setField('accPw', '123'); c('accLogin'); ok('Mật khẩu ngắn thì ở lại', screen() === 'login');
+  setField('accPw', 'abcdef'); c('accLogin'); ok('Sang nhập mã OTP', screen() === 'otp');
+  c('accOtp'); ok('Chưa đủ 6 số thì ở lại', screen() === 'otp');
+  setField('accCode', '123456'); c('accOtp');
+  ok('Đăng nhập xong, chưa có hồ sơ thì bắt đầu khai báo', screen() === 'welcome' && D.account.phone === '0912345678' && JSON.stringify(D).indexOf('abcdef') < 0);
+  load('dn'); c('accGo', { v: 'register', mode: 'register' });
+  ok('Đăng ký: điều khoản không chọn sẵn, nút tạo tài khoản chưa bấm được', !findBtn('accRegister') && !!findBtn('accAgree') && document.querySelector('#view [role="checkbox"]').getAttribute('aria-checked') === 'false');
+  c('go', { v: 'terms' }); ok('Xem điều khoản', /không thay thế bác sĩ/.test(text())); c('back');
+  setField('accPhone', '0912345678'); setField('accPw', 'abcdef'); setField('accPw2', 'abcdeg'); c('accAgree'); ok('Chọn đồng ý thì bấm được', !!findBtn('accRegister'));
+  c('accRegister'); ok('Hai mật khẩu khác nhau thì ở lại', screen() === 'register');
+  setField('accPw2', 'abcdef'); c('accRegister'); setField('accCode', '654321'); c('accOtp'); ok('Đăng ký xong vào phần bắt đầu', screen() === 'welcome');
+  load('dn'); c('accGo', { v: 'forgot', mode: 'forgot' }); setField('accPhone', '0912345678'); c('accForgot'); setField('accCode', '111111'); c('accOtp');
+  ok('Quên mật khẩu: sau mã OTP đặt mật khẩu mới', screen() === 'newPw');
+  setField('accPw', 'newpass1'); setField('accPw2', 'newpass1'); c('accNewPw'); ok('Đặt xong về đăng nhập', screen() === 'login' && D.account === null);
+  load('an'); c('tab', { t: 'settings' }); c('go', { v: 'account' }); ok('Cài đặt › Tài khoản: số điện thoại, đổi mật khẩu, đăng xuất', /Đổi mật khẩu/.test(text()) && /Đăng xuất/.test(text()) && /0900 000 000/.test(text()));
+  c('go', { v: 'changePw' }); setField('accOld', 'abcdef'); setField('accPw', 'newpass1'); setField('accPw2', 'newpass1'); c('accChange'); ok('Đổi mật khẩu xong quay lại', screen() === 'account');
+  c('accLogout'); ok('Đăng xuất hỏi lại', S.dialog && /Đăng xuất\?/.test(text())); c('accLogoutYes'); ok('Đăng xuất về màn đăng nhập, dữ liệu còn', screen() === 'login' && D.account === null && !!D.profiles.an);
+  setField('accPhone', '0900000000'); setField('accPw', 'abcdef'); c('accLogin'); setField('accCode', '123456'); c('accOtp'); ok('Đăng nhập lại vào thẳng Trang chủ', screen() === 'home' && !!document.querySelector('.tiles'));
 });
 test('Trang chủ, Thông báo, Liên hệ, Cài đặt', () => {
   load('an');

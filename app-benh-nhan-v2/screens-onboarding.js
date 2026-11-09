@@ -57,7 +57,7 @@ A.onSaved = v => {
 V.onLink = () => {
   const o = onb();
   let h = onTop() + h1('Lấy thông tin từ bệnh viện?', 'q');
-  if (o.linked) h += group([row({ icon: 'pill', title: 'Thuốc', value: '3' }), row({ icon: 'cal', title: 'Tái khám', value: 'Sau 1 tháng' }), row({ icon: 'doc', title: 'Đột quỵ', value: 'Nhồi máu não' })]) + '<div class="spacer"></div>' + btn('Tiếp tục', 'go', { v: 'onHist', step: 0 });
+  if (o.linked) h += group(row({ icon: 'hospital', title: 'Bệnh viện', value: esc(HOSPITAL_SAMPLE.name), wrap: true })) + group([row({ icon: 'doc', title: 'Đột quỵ', value: 'Nhồi máu não, 10/2026' })].concat(HOSPITAL_SAMPLE.dx.map(d => row({ icon: 'doc', title: d.name, value: `từ ${d.year}` }))), { title: 'Chẩn đoán' }) + group([row({ icon: 'pill', title: 'Thuốc', value: '3' }), row({ icon: 'cal', title: 'Tái khám', value: 'Sau 1 tháng' })]) + '<div class="spacer"></div>' + btn('Tiếp tục', 'go', { v: 'onHist', step: 0 });
   else h += `<div class="spacer"></div>${btn(`${icon('qr')}Quét mã trên giấy ra viện`, 'onScan')}${btn('Nhập tay', 'go', { v: 'onType' }, 'soft')}`;
   return { chrome: 'modal', html: h };
 };
@@ -141,7 +141,8 @@ A.onFinish = () => {
     p.meds = [med('c1', 'Clopidogrel', 'antiplatelet', '1 viên', '75 mg', ['sang'], { start, end }), med('c2', 'Amlodipine', 'bp', '1 viên', '5 mg', ['sang'], { start, end }), med('c3', 'Atorvastatin', 'lipid', '1 viên', '40 mg', ['toi'], { start, end, note: 'Sau ăn' })];
     d.setMonth(d.getMonth() + 1); d.setHours(8, 0, 0, 0);
     p.appts = [{ id: 'a1', t: d.getTime(), place: 'Bệnh viện mẫu A, khoa Đột quỵ, tầng 3', prep: 'Mang thuốc đang dùng và giấy ra viện.', state: 'upcoming' }];
-    p.facts = { htn: { v: 'yes', source: 'hospital' }, dm: { v: 'no', source: 'hospital' }, mi: { v: 'no', source: 'hospital' }, prior: { v: 'no', source: 'hospital' }, cvdother: { v: 'no', source: 'hospital' }, chf: { v: 'no', source: 'hospital' } };
+    p.careTeam = Object.assign({}, p.careTeam, { hospital: HOSPITAL_SAMPLE.name });
+    p.facts = { htn: { v: 'yes', source: 'hospital', detail: { year: HOSPITAL_SAMPLE.dx[0].year } }, dm: { v: 'no', source: 'hospital' }, mi: { v: 'no', source: 'hospital' }, prior: { v: 'no', source: 'hospital' }, cvdother: { v: 'no', source: 'hospital' }, chf: { v: 'no', source: 'hospital' } };
   }
   applyIntake(p, o);
   D.profiles[id] = p;
