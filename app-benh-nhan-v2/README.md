@@ -12,14 +12,14 @@ Thanh dưới: **Trang chủ**, **Thông báo**, **Cài đặt**. Ảnh đại d
 |---|---|
 | Trang chủ | Thẻ chào. Khối **Hôm nay** ở giữa: việc còn lại của buổi (thuốc "Đã dùng", "Ghi số đo"), việc đã xong thu thành một dòng, rồi Sắp tới. Bên dưới là năm ô có hình |
 | Ô Dự đoán nguy cơ | Mức Thấp, Trung bình hoặc Cao kèm một lời khuyên chung, không hiện điểm. Còn câu hỏi thì hỏi tiếp; sửa câu trả lời; đánh giá cho người thân |
-| Ô Thuốc | Liều theo buổi, thẻ tuân thủ (7 chấm, tỷ lệ chưa dùng 7 hoặc 30 ngày: số lần chưa dùng ÷ số lần cần dùng; từng thuốc có tỷ lệ riêng ở chi tiết thuốc), danh sách thuốc, nhắc nhở. Thêm thuốc: chụp đơn thuốc, quét mã QR đơn hoặc chọn từ danh mục; đọc ra danh sách để tick từng thuốc trước khi lưu |
-| Ô Hồ sơ sức khỏe | Ba phần chuyển bằng thanh chọn: **Theo dõi** (huyết áp, đường huyết, cân nặng, xét nghiệm LDL, cholesterol, HDL, triglyceride, đường huyết lúc đói, lối sống gồm Vận động, Hút thuốc, Rượu bia, Giấc ngủ, Ăn uống mỗi thói quen một màn có biểu đồ và bộ câu hỏi 7 ngày qua, triệu chứng), **Hồ sơ ban đầu** (đột quỵ, bệnh viện, bệnh nền theo từng đợt chẩn đoán, thuốc đã dùng, ô Khác), **Khám bệnh** (các lần khám: ngày, bệnh viện, chẩn đoán, ảnh phiếu; tóm tắt cho bác sĩ) |
+| Ô Thuốc | Liều theo buổi, thẻ tuân thủ (7 chấm, tỷ lệ chưa dùng 7 hoặc 30 ngày: số lần chưa dùng ÷ số lần cần dùng; từng thuốc có tỷ lệ riêng ở chi tiết thuốc), danh sách thuốc, nhắc nhở. Thêm thuốc theo thiết kế cũ: gõ tên (có gợi ý từ danh mục), hàm lượng, liều, thời điểm uống (trước, trong, sau ăn), số lần dùng, giờ từng lần kèm bật nhắc, ngày bắt đầu và kết thúc; hoặc chụp đơn thuốc, quét mã QR đơn; đọc ra danh sách để tick từng thuốc trước khi lưu |
+| Ô Hồ sơ sức khỏe | Hai phần chuyển bằng thanh chọn: **Theo dõi** (mỗi chỉ số có biểu đồ nhỏ thay đổi theo thời gian; huyết áp, đường huyết, cân nặng, xét nghiệm LDL, cholesterol, HDL, triglyceride, đường huyết lúc đói, lối sống gồm Vận động, Hút thuốc, Rượu bia, Giấc ngủ, Ăn uống mỗi thói quen một màn có biểu đồ và bộ câu hỏi 7 ngày qua, triệu chứng), **Hồ sơ** (hồ sơ ban đầu gồm đột quỵ, bệnh viện, cơ sở đăng ký khám chữa bệnh theo bảo hiểm, bệnh nền theo từng đợt chẩn đoán, thuốc đã dùng, ô Khác; rồi các lần khám: ngày, bệnh viện, chẩn đoán, ảnh phiếu; tóm tắt cho bác sĩ) |
 | Ô Liên hệ | **Bác sĩ**: chat hai chiều. **Trợ lý AI**: trả lời các câu có trong tài liệu (câu hỏi thường gặp, bài học); câu về liều thuốc, dấu hiệu đột quỵ hoặc không có trong tài liệu thì chuyển bác sĩ hoặc bảo gọi 115. **Lịch hẹn**: bác sĩ đặt cho bệnh nhân, bệnh nhân cũng đặt (chờ bác sĩ nhận). **Thêm bác sĩ**: nhập hoặc quét mã, chờ bác sĩ đồng ý |
-| Ô Giáo dục sức khỏe | BE FAST và FAST, ăn uống phòng đột quỵ, dùng thuốc an toàn, huyết áp, trung tâm đột quỵ, hỏi đáp. Mọi bài có nút Đọc to |
-| Thông báo | Tin nhắn mới, đo lại huyết áp, tái khám trong 7 ngày, thuốc sắp hết, câu hỏi còn lại, mời đánh giá. Không lưu riêng, lấy từ dữ liệu có sẵn |
-| Cài đặt | Thông tin cá nhân, tài khoản (đổi mật khẩu, đăng xuất), hồ sơ người thân, người nhà, nhờ nhập giúp, chia sẻ dữ liệu, nhắc nhở, hiển thị, phản hồi, bảo mật |
+| Ô Giáo dục sức khỏe | BE FAST và FAST, ăn uống phòng đột quỵ, dùng thuốc an toàn, huyết áp. Mọi bài có nút Đọc to. Trung tâm đột quỵ và Câu hỏi thường gặp nằm ở Liên hệ; không còn mục tài liệu tham khảo |
+| Thông báo | Ba phần: **Tin nhắn** (tin mới, tái khám trong 7 ngày, câu hỏi còn lại, mời đánh giá; Đọc tất cả), **Nhắc thuốc** (từng buổi: tên thuốc, hàm lượng, số lượng theo thuốc và giờ đã cài; thuốc sắp hết), **Chỉ số** (việc đo trong ngày). Không lưu riêng, lấy từ dữ liệu có sẵn |
+| Cài đặt | Thông tin cá nhân (địa chỉ chỉ có phường hoặc xã và tỉnh hoặc thành phố), tài khoản (đổi mật khẩu, đăng xuất), người nhà (liên kết tài khoản bằng họ tên, số điện thoại, quan hệ, quyền Chỉ xem hoặc Xem và sửa; lời mời, hủy liên kết; có cả nhờ nhân viên y tế nhập giúp), chia sẻ dữ liệu (nội dung đã đồng ý và các tài khoản đã liên kết), nhắc nhở (từng chỉ số có giờ nhắc và tần suất), hiển thị, phản hồi, bảo mật |
 
-Trước Bắt đầu có Đăng nhập, Đăng ký (điều khoản không chọn sẵn), mã OTP, Quên mật khẩu; chỉ mô phỏng, mật khẩu không được lưu, OTP nhận 6 số bất kỳ. Quét mã bệnh viện hiện tên bệnh viện và các đợt chẩn đoán.
+Trước Bắt đầu có Đăng nhập (có Ghi nhớ đăng nhập), Đăng ký (giới tính, hai câu đồng ý dữ liệu và điều khoản, đều không chọn sẵn), mã OTP, Quên mật khẩu; chỉ mô phỏng, mật khẩu không được lưu, OTP nhận 6 số bất kỳ. Quét mã bệnh viện hiện tên bệnh viện và các đợt chẩn đoán. Phần khai báo có 5 nhóm: Bệnh nền (hiện chẩn đoán đã có, chụp giấy chẩn đoán, cơ sở đăng ký khám chữa bệnh theo bảo hiểm; tạm bỏ bệnh thận, cờ `FEATURES.kidney`), Gia đình (chỉ hỏi người thân có bị đột quỵ không và lúc bao nhiêu tuổi), Tim mạch, Sinh hoạt (mở đúng bộ câu hỏi lối sống), Triệu chứng (hai câu của thiết kế cũ). Cuối cùng là "Muốn được nhắc đo gì?": huyết áp tự bật nếu có tăng huyết áp hoặc từng đột quỵ, đường huyết tự bật nếu có đái tháo đường; mỗi chỉ số có giờ nhắc và tần suất.
 
 Nhập ở Hôm nay thì sau khi lưu, số liệu nằm ở Hồ sơ sức khỏe › Theo dõi; xem lại lịch sử và biểu đồ thì vào mục đó.
 
@@ -130,6 +130,9 @@ Cần Node 22 trở lên. Đặt biến `BROWSER` nếu trình duyệt nằm ch�
 - Thông báo và màn khóa: dựng trong app, không phải thông báo thật của máy.
 - Gọi điện (115, bác sĩ, dược sĩ, bệnh viện): hiện hộp thoại, không gọi thật.
 - Đăng nhập, mã OTP, chat, trợ lý AI, đặt lịch, thêm bác sĩ: không có máy chủ, chỉ lưu trong máy. Trợ lý AI chỉ khớp từ khóa với tài liệu có sẵn.
+- Giờ uống từng lần của một thuốc được lưu và hiển thị, nhưng việc nhắc vẫn theo bốn buổi chung (sáng, trưa, chiều, tối): giờ gõ vào được gán về buổi gần nhất.
+- Tần suất mỗi tuần và mỗi tháng tạm đặt vào thứ Hai và ngày 1 (`freqDue` trong `rules.js`), chờ chốt.
+- Liên kết người nhà: lời mời, đồng ý và hủy chỉ mô phỏng, bảng điều khiển demo có nút giả lập người nhà.
 - Chụp đơn thuốc và quét mã QR đơn: đọc ra danh sách thuốc mẫu, người dùng tick từng thuốc.
 - Chụp phiếu xét nghiệm: mở camera hoặc thư viện ảnh thật, nhưng phần đọc chữ trả về kết quả mẫu. Người dùng luôn phải xem lại và bấm Lưu.
 - Chụp số trên máy đo huyết áp: điền số mẫu.
