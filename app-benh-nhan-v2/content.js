@@ -47,8 +47,6 @@ const RX_SAMPLE = [
   { name: 'Atorvastatin', group: 'lipid', strength: '20 mg', dose: '1 viên', moments: ['toi'], note: 'Sau ăn' },
 ];
 const DOSES = ['½ viên', '1 viên', '2 viên', '1 mũi tiêm'];
-const DURATIONS = [[7, '7 ngày'], [30, '30 ngày'], [90, '90 ngày'], [0, 'Dài hạn']];
-const MED_NOTES = ['Trước ăn', 'Sau ăn', 'Khi đói'];
 const ROUTES = ['Uống', 'Tiêm', 'Ngậm dưới lưỡi', 'Khác'];
 
 // Xét nghiệm. Ngưỡng đánh giá nằm trong rules.js (labStatus).

@@ -292,8 +292,22 @@ test('Học', () => {
 });
 test('Thuốc', () => {
   load('tu'); openTile('meds'); const t0 = taps;
-  c('medNew'); c('medPick'); c('medPicked', { g: 'bp', n: 'Amlodipine' }); c('medF', { k: 'strength', v: '5 mg' }); c('medM', { v: 'sang' }); c('medF', { k: 'days', v: '30' }); c('medSave');
-  ok('Thêm thuốc 7 chạm', P().meds.length === 1 && taps - t0 === 7, taps - t0);
+  c('medNew');
+  ok('Form thêm thuốc theo thiết kế: tên, hàm lượng, liều, thời điểm uống, số lần dùng, giờ uống, ngày bắt đầu và kết thúc', ['medName', 'medStrength', 'medDose', 'medTime', 'medStart', 'medEnd'].every(f => !!document.querySelector(`#view [data-field="${f}"]`)) && !!findBtn('medNote', { v: 'after' }) && !!findBtn('medTimes', { v: '2' }) && !!findBtn('medRemind', { i: 0 }));
+  setField('medName', 'amlo');
+  ok('Gõ tên thì gợi ý từ danh mục', !!findBtn('medSuggestPick', { n: 'Amlodipine' }));
+  c('medSuggestPick', { g: 'bp', n: 'Amlodipine' }); c('medF', { k: 'strength', v: '5 mg' }); c('medSave');
+  ok('Thêm thuốc 4 chạm: gợi ý, hàm lượng, lưu', P().meds.length === 1 && taps - t0 === 4 && P().meds[0].name === 'Amlodipine' && P().meds[0].strength === '5 mg' && P().meds[0].group === 'bp' && P().meds[0].moments[0] === 'sang', taps - t0);
+  c('medNew'); setField('medName', 'Thuốc lạ'); setField('medStrength', '250mg/viên'); setField('medDose', '2 viên'); c('medNote', { v: 'mid' }); c('medTimes', { v: '3' });
+  ok('3 lần mỗi ngày có 3 ô giờ, giờ mẫu theo 3 buổi', document.querySelectorAll('#view [data-field="medTime"]').length === 3 && S.draft.med.slots.map(x => x.time).join() === '07:00,12:00,20:00');
+  setField('medTime', '08:30'); document.querySelectorAll('#view [data-field="medTime"]')[2].value = '21:15'; document.querySelectorAll('#view [data-field="medTime"]')[2].dispatchEvent(new Event('input', { bubbles: true }));
+  c('medRemind', { i: 1 }); c('medLong'); c('medSave');
+  const nm = P().meds[1];
+  ok('Thuốc nhập tay: tên ngoài danh mục, giờ gõ vào, nhắc từng lần, dài hạn, lưu ý uống', nm.name === 'Thuốc lạ' && nm.group === 'other' && nm.strength === '250mg/viên' && nm.dose === '2 viên' && nm.note === 'Trong bữa ăn' && nm.moments.join() === 'sang,trua,toi' && nm.times.sang === '08:30' && nm.times.toi === '21:15' && nm.remind.trua === false && nm.end === null);
+  c('go', { v: 'medDetail', id: nm.id }); ok('Chi tiết thuốc hiện giờ đã nhập', /Sáng 08:30/.test(text()) && /Tối 21:15/.test(text()) && /Dài hạn/.test(text()) && /Trong bữa ăn/.test(text()));
+  c('medEdit', { id: nm.id }); ok('Sửa thuốc: điền lại đủ, 3 lần mỗi ngày', document.getElementById('mn').value === 'Thuốc lạ' && S.draft.med.slots.length === 3 && S.draft.med.slots[0].time === '08:30' && S.draft.med.slots[1].on === false);
+  c('medSave'); ok('Sửa xong lưu lại', P().meds[1].times.sang === '08:30' && screen() === 'medDetail');
+  load('tu'); openTile('meds'); c('medNew'); c('medSave'); ok('Chưa nhập tên thì không lưu', P().meds.length === 0 && screen() === 'medForm');
   load('an'); openTile('meds');
   ok('Thuốc: 7 chấm, chưa dùng X/Y lần, câu BRD', document.querySelectorAll('#view .dot').length === 7 && /Chưa dùng: \d+\/\d+ lần/.test(text()) && text().includes(BRD.medGood));
   c('openMoment', { mk: 'sang' }); c('dose', { mk: 'sang', id: 'aml' });

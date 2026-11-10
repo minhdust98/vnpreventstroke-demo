@@ -229,6 +229,7 @@ function bind() {
   const onField = e => {
     const el = e.target, f = el.dataset && el.dataset.field;
     if (!f || !F[f]) return;
+    if (el.type === 'time') { if (!el.value) return; el.previousElementSibling.textContent = el.value; }
     if (el.type === 'date') { if (!el.value || (el.max && el.value > el.max) || (el.min && el.value < el.min)) return; el.previousElementSibling.textContent = dmy(el.value); }
     F[f](el.value, el, e.type);
   };
