@@ -48,8 +48,8 @@ function emptyProfile(id, name) {
     meds: [], doses: {}, bp: [], glucose: [], weights: [], labs: [], symptoms: [],
     facts: {}, drugs: {}, otherConditions: '',
     habits: { smoke: null, alcohol: null, diet: null, activity: null, sleep: null }, habitLog: [], lifestyle: {}, lifestyleLog: [],
-    track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', steps: false, sleep: false, device: false },
-    appts: [], messages: [], visits: [], doctors: [], aiLog: [], contact: null, address: '', family: [],
+    track: { bp: false, bpMoments: ['sang', 'chieu'], glucose: false, gluMoments: ['sang'], weeklyHabits: false, habitEvery: 'tuan', bpFreq: 'day', gluFreq: 'day', weight: false, weightMoments: ['sang'], weightFreq: 'month', steps: false, sleep: false, device: false },
+    appts: [], messages: [], visits: [], doctors: [], aiLog: [], contact: null, address: '', ward: '', province: '', family: [], invites: [],
     careTeam: { doctor: 'BS. Demo', hospital: 'Bệnh viện mẫu A', phone: '0900 000 001', pharmacy: '0900 000 009' },
     hospitalLinked: false, recheckAt: null, intake: null, fsrp: null,
   };
@@ -82,7 +82,8 @@ const SCENARIOS = {
       p.facts.htn.detail = { year: 2019 }; p.facts.lipid.detail = { year: 2024 };
       p.visits = [{ id: 'v1', t: date(2026, 8, 12), place: 'Bệnh viện mẫu A', dx: 'Nhồi máu não, tăng huyết áp', photo: null }, { id: 'v2', t: date(2026, 9, 28), place: 'Phòng khám mẫu B', dx: 'Mỡ máu cao', photo: null }];
       p.contact = { name: 'Trần Mai', rel: 'con', tel: '0900 000 000' };
-      p.family = [{ name: 'Trần Mai', rel: 'con', canSee: true }];
+      p.family = [{ id: 'f1', name: 'Trần Mai', rel: 'Con', phone: '0900 000 002', canSee: true, canEdit: true, state: 'linked' }];
+      p.ward = 'Phường Mẫu Một'; p.province = 'Thành phố Mẫu';
       p.appts = [
         appt(2026, 8, 28, 8, 0, { state: 'done', result: 'Chưa tốt, hẹn 1 tháng' }),
         appt(2026, 9, 28, 8, 0, { state: 'done', result: 'Chưa tốt, hẹn 1 tháng' }),

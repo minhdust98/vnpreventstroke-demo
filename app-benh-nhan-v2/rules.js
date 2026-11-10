@@ -107,7 +107,9 @@ function medsActive(p, ms) {
   const dk = dayKey(ms);
   return p.meds.filter(m => !m.paused && (!m.start || m.start <= dk) && (!m.end || m.end >= dk));
 }
-// Gom việc theo buổi: thuốc, đo huyết áp, đo đường huyết
+// Tần suất nhắc: hằng ngày, mỗi tuần (thứ Hai), mỗi tháng (ngày 1). Ngày cụ thể là [Đề xuất].
+const freqDue = (f, ms) => !f || f === 'day' || (f === 'week' && new Date(ms).getDay() === 1) || (f === 'month' && new Date(ms).getDate() === 1);
+// Gom việc theo buổi: thuốc, đo huyết áp, đo đường huyết, cân nặng
 function dayPlan(p, ms, times) {
   const t = times || timesDefault(), dk = dayKey(ms), meds = medsActive(p, ms), out = [];
   for (const m of MOMENTS) {
@@ -119,8 +121,9 @@ function dayPlan(p, ms, times) {
       const missed = logs.filter(l => l && l.s === 'missed').length;
       items.push({ kind: 'meds', meds: mm, taken: taken.length, missed, total: mm.length, lastT: taken.map(l => l.t).sort().pop(), done: taken.length + missed === mm.length, filled: taken.length === mm.length });
     }
-    if (p.track.bp && p.track.bpMoments.includes(m.key)) { const r = p.bp.find(x => dayKey(x.t) === dk && x.moment === m.key); items.push({ kind: 'bp', reading: r, done: !!r, filled: !!r }); }
-    if (p.track.glucose && p.track.gluMoments.includes(m.key)) { const r = p.glucose.find(x => dayKey(x.t) === dk && x.moment === m.key); items.push({ kind: 'glu', reading: r, done: !!r, filled: !!r }); }
+    if (p.track.bp && p.track.bpMoments.includes(m.key) && freqDue(p.track.bpFreq, ms)) { const r = p.bp.find(x => dayKey(x.t) === dk && x.moment === m.key); items.push({ kind: 'bp', reading: r, done: !!r, filled: !!r }); }
+    if (p.track.glucose && p.track.gluMoments.includes(m.key) && freqDue(p.track.gluFreq, ms)) { const r = p.glucose.find(x => dayKey(x.t) === dk && x.moment === m.key); items.push({ kind: 'glu', reading: r, done: !!r, filled: !!r }); }
+    if (p.track.weight && (p.track.weightMoments || ['sang']).includes(m.key) && freqDue(p.track.weightFreq || 'month', ms)) { const r = p.weights.find(x => dayKey(x.t) === dk); items.push({ kind: 'weight', reading: r, done: !!r, filled: !!r }); }
     if (items.length) out.push({ key: m.key, label: m.label, word: m.label.toLowerCase(), time: t[m.key], due, items, reached: due <= ms });
   }
   return out;
@@ -244,6 +247,7 @@ const pendingConfirm = (p, ms) => riskPlan(p, ms).ids.filter(id => NEEDS_CONFIRM
 const weekIdx = ms => Math.floor((ms - new Date(2026, 0, 4).getTime()) / (7 * DAY));
 function weeklyKind(p, ms) {
   if (!p.track.weeklyHabits) return null;
+  if (p.track.habitEvery === 'thang' && new Date(ms).getDate() > 7) return null;
   const w = weekIdx(ms);
   if (p.habitLog.some(x => x.w === w)) return null;
   return ['activity', 'diet', 'sleep', 'alcohol'][w % 4];

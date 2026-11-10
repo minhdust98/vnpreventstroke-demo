@@ -21,6 +21,8 @@ function renderPanel() {
     h += pb('pMsg', {}, 'Bác sĩ gửi tin nhắn');
     if (p.appts.some(a => a.state === 'pending')) h += pb('pApptOk', {}, 'Bác sĩ nhận lịch bệnh nhân đặt');
     if ((p.doctors || []).some(d => d.state === 'pending')) h += pb('pDocOk', {}, 'Bác sĩ đồng ý liên kết');
+    h += pb('pInvite', {}, 'Người nhà gửi lời mời liên kết');
+    if (p.family.some(f => f.state === 'pending')) h += pb('pFamOk', {}, 'Người nhà đồng ý liên kết');
     h += doctorView();
   }
   h += `<h3>Đo thao tác</h3><div id="meter">${meterHtml()}</div><div class="g2">${pb('pMeter', { v: 'start' }, 'Bắt đầu')}${pb('pMeter', { v: 'stop' }, 'Dừng')}</div>`;
@@ -78,6 +80,8 @@ A.pDoc = ({ k }) => {
 A.pMsg = () => { P().messages.unshift({ id: `m${Date.now()}`, from: P().careTeam.doctor, t: now(), text: 'Huyết áp tuần này khá ổn. Tiếp tục dùng thuốc đều nhé.', read: false }); home(); closePanel(); };
 A.pApptOk = () => { const a = P().appts.find(x => x.state === 'pending'); if (a) a.state = 'upcoming'; home(); closePanel(); };
 A.pDocOk = () => { const d = (P().doctors || []).find(x => x.state === 'pending'); if (d) Object.assign(d, { state: 'linked', name: 'BS. Mẫu B', hospital: 'Bệnh viện mẫu B' }); home(); closePanel(); };
+A.pInvite = () => { const p = P(); p.invites = (p.invites || []).concat([{ id: `i${Date.now()}`, name: 'Nguyễn Văn E', rel: 'Con', phone: '0900 000 005' }]); home(); closePanel(); };
+A.pFamOk = () => { const f = P().family.find(x => x.state === 'pending'); if (f) f.state = 'linked'; home(); closePanel(); };
 A.pConfirm = () => {
   const p = P();
   Object.keys(p.facts).forEach(id => { const x = p.facts[id]; if (NEEDS_CONFIRM.includes(id) && x.source === 'patient' && x.v !== 'unknown') x.source = 'doctor'; });

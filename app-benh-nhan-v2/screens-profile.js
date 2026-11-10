@@ -9,7 +9,7 @@ V.settings = () => {
   let h = topBar() + h1('Cài đặt');
   if (ids.length > 1) h += group(ids.map(id => row({ icon: 'user', title: esc(D.profiles[id].name), value: id === D.active ? 'Đang xem' : '', a: id === D.active ? '' : 'switchProfile', p: { id } })), { title: 'Hồ sơ' });
   h += group([row({ icon: 'user', title: 'Thông tin cá nhân', a: 'go', p: { v: 'info' } }), row({ icon: 'lock', title: 'Tài khoản', value: esc((D.account && D.account.phone) || ''), a: 'go', p: { v: 'account' } }), FEATURES.sos ? row({ icon: 'card', tone: 'red', title: 'Thẻ cấp cứu', a: 'go', p: { v: 'card' } }) : '']);
-  h += group([row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }), row({ icon: 'pencil', title: 'Nhờ nhập giúp', a: 'go', p: { v: 'support' } })]);
+  h += group(row({ icon: 'group', title: 'Người nhà', a: 'go', p: { v: 'family' } }));
   h += group([row({ icon: 'lock', title: 'Chia sẻ dữ liệu', a: 'go', p: { v: 'sharing' } }), row({ icon: 'bell', title: 'Nhắc nhở', a: 'go', p: { v: 'reminders' } }), row({ icon: 'text', title: 'Hiển thị', a: 'go', p: { v: 'display' } })]);
   h += group([row({ icon: 'star', title: 'Gửi phản hồi', a: 'go', p: { v: 'feedback' } }), row({ icon: 'doc', title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })]);
   return { chrome: 'tab', html: h };
@@ -22,10 +22,11 @@ V.info = () => {
   let h = topBar({ back: 'Cài đặt' }) + h1('Thông tin cá nhân', 'sm');
   h += group([row({ title: 'Tên', value: esc(p.name), a: 'editName' }), row({ title: 'Năm sinh', value: p.birthYear || '', a: 'editYear' }), row({ title: 'Chiều cao', value: p.height ? `${p.height} cm` : '', a: 'editHeight' }), row({ title: 'Cân nặng', value: p.weight ? `${dec(p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' })]);
   h += group([row({ title: 'Giới tính', value: ANSWER[p.sex] || '', a: 'pickSheet', p: { kind: 'sex' } }), p.stroke ? row({ title: 'Loại đột quỵ', value: (STROKE_TYPES.find(s => s[0] === p.strokeType) || [0, ''])[1], a: 'go', p: { v: 'strokeType' } }) : '', FEATURES.exercises ? row({ title: 'Đi lại', value: (MOBILITY.find(m => m[0] === p.mobility) || [0, ''])[1], a: 'pickSheet', p: { kind: 'mobility' } }) : '', row({ title: 'Người nhà', value: p.contact ? esc(p.contact.name) : '', a: 'editContact' })]);
-  h += `<label class="label" for="addr">Địa chỉ</label><input id="addr" class="input" data-field="address" value="${esc(p.address)}" autocomplete="street-address">`;
+  h += `<div><label class="label" for="ward">Phường hoặc xã</label><input id="ward" class="input" data-field="ward" value="${esc(p.ward || '')}" autocomplete="address-level3"></div><div><label class="label" for="prov">Tỉnh hoặc thành phố</label><input id="prov" class="input" data-field="province" value="${esc(p.province || '')}" autocomplete="address-level1"></div>`;
   return { chrome: 'push', html: h };
 };
-F.address = v => { P().address = v; store.set(); };
+F.ward = v => { P().ward = v; store.set(); };
+F.province = v => { P().province = v; store.set(); };
 A.editName = () => { S.draft.name = P().name; dialog({ title: 'Tên', body: `<input class="input" data-field="name" value="${esc(P().name)}" aria-label="Tên" autocomplete="name">`, buttons: [{ label: 'Lưu', a: 'nameOk' }, { label: 'Hủy', a: 'closeDialog', cls: 'soft' }] }); };
 F.name = v => { S.draft.name = v; };
 A.nameOk = () => { const n = (S.draft.name || '').trim(); if (n) P().name = n; S.dialog = null; };
@@ -117,45 +118,40 @@ A.riskAns = ({ id, v, close }) => {
   S.scrollTo = 0;
 };
 
-// ---- Chia sẻ dữ liệu: luôn là lựa chọn rõ ràng ----
+// ---- Chia sẻ dữ liệu và Người nhà: xem screens-family.js ----
 const CONSENTS = [['doctor', 'Cho bác sĩ điều trị xem số đo và thuốc?'], ['research', 'Cho dùng dữ liệu cho nghiên cứu về đột quỵ?'], ['family', 'Cho người nhà xem và nhập hộ?']];
-V.sharing = () => {
-  const c = P().consents;
-  let h = topBar({ back: 'Cài đặt' }) + h1('Chia sẻ dữ liệu', 'sm');
-  h += CONSENTS.map(([k, q]) => `<section class="card"><p class="lead">${q}</p>${chips([['1', 'Đồng ý'], ['0', 'Không']], c[k] == null ? null : c[k] ? '1' : '0', 'consentSet', { k }, 'grid')}</section>`).join('');
-  return { chrome: 'push', html: h + group(row({ title: 'Bảo mật', a: 'go', p: { v: 'privacy' } })) };
-};
 A.consentSet = ({ k, v }) => { const p = P(); p.consents[k] = v === '1'; if (k === 'family' && v === '0') p.family.forEach(f => { f.canSee = false; }); };
 
-V.family = () => {
-  const p = P();
-  let h = topBar({ back: 'Cài đặt' }) + h1('Người nhà', 'sm');
-  if (isProxy()) h += `<div class="banner">Bạn đang chăm ${esc(p.name)}</div>`;
-  h += group(p.family.map(f => row({ icon: 'user', title: `${esc(f.name)} (${esc(f.rel)})`, value: f.canSee ? 'Xem, nhập hộ' : 'Đã tắt' })), p.family.length ? { title: 'Được xem hồ sơ này' } : null);
-  h += btn(`${icon('plus')}Mời người nhà`, 'familyInvite');
-  h += group(row({ icon: 'plus', title: 'Thêm hồ sơ người thân', a: 'profileAdd' }));
-  return { chrome: 'push', html: h };
-};
-A.familyInvite = () => dialog({ title: 'Mời người nhà?', body: '<p class="body">Người nhà sẽ xem được số đo, thuốc, lịch khám và nhập hộ được. Tắt được bất cứ lúc nào.</p>', buttons: [{ label: 'Đồng ý, gửi lời mời', a: 'familyYes' }, { label: 'Không', a: 'closeDialog', cls: 'soft' }] });
-A.familyYes = () => { const p = P(); p.consents.family = true; p.family.push({ name: 'Người nhà mẫu', rel: 'người nhà', canSee: true }); S.dialog = null; toast('Đã gửi lời mời'); };
 A.profileAdd = () => { S.draft.name = ''; dialog({ title: 'Hồ sơ người thân', body: '<input class="input" data-field="name" aria-label="Tên người thân">', buttons: [{ label: 'Tiếp', a: 'profileAddGo' }, { label: 'Hủy', a: 'closeDialog', cls: 'soft' }] }); };
 A.profileAddGo = () => { const n = (S.draft.name || '').trim(); if (!n) return false; S.dialog = null; S.draft.on = { name: n, forOther: true }; D.proxyName = D.profiles[D.owner].name; go('welcome'); };
 
-// ---- Nhắc nhở: giờ từng buổi, nhắc gì, âm thanh ----
+// ---- Nhắc nhở: liệt kê từng chỉ số, mỗi chỉ số có giờ nhắc và tần suất. Dùng chung với câu "Muốn được nhắc đo gì?" lúc khai báo (ctx 'onb'). ----
+const FREQ = [['day', 'Hằng ngày'], ['week', 'Mỗi tuần'], ['month', 'Mỗi tháng']];
+const trackOf = ctx => (ctx === 'onb' ? onb().trackObj : P().track);
+function trackCards(t, ctx) {
+  const c = ctx ? { ctx } : {}, tm = D.settings.times;
+  const card = (name, onv, tk, inner) => `<section class="card"><div class="list">${toggle(name, onv, 'trackToggle', Object.assign({ k: tk }, c))}</div>${onv ? inner : ''}</section>`;
+  const when = (k, sel) => `<h2 class="label">Giờ nhắc</h2>${chips(MOMENTS.map(m => [m.key, `${m.label} ${tm[m.key]}`]), sel, 'trackMoment', Object.assign({ k }, c), 'wrap')}`;
+  const freq = (k, cur, opts) => `<h2 class="label">Tần suất</h2>${seg(opts || FREQ, cur, 'trackFreq', Object.assign({ k }, c))}`;
+  return card('Huyết áp', t.bp, 'bp', when('bpMoments', t.bpMoments) + freq('bpFreq', t.bpFreq || 'day'))
+    + card('Đường huyết', t.glucose, 'glucose', when('gluMoments', t.gluMoments) + freq('gluFreq', t.gluFreq || 'day'))
+    + card('Cân nặng', t.weight, 'weight', when('weightMoments', t.weightMoments || ['sang']) + freq('weightFreq', t.weightFreq || 'month'))
+    + card('Lối sống', t.weeklyHabits, 'weeklyHabits', freq('habitEvery', t.habitEvery || 'tuan', [['tuan', 'Mỗi tuần'], ['thang', 'Mỗi tháng']]));
+}
 V.reminders = () => {
-  const p = P(), st = D.settings, t = p.track;
+  const st = D.settings, t = P().track;
   let h = topBar({ back: 'Cài đặt' }) + h1('Nhắc nhở', 'sm');
-  h += group(MOMENTS.map(m => `<div class="row"><span class="row-title">${m.label}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: -15 })} aria-label="Sớm hơn 15 phút">${icon('minus')}</button><span class="row-value ink time">${st.times[m.key]}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: 15 })} aria-label="Muộn hơn 15 phút">${icon('plus')}</button></div>`), { title: 'Giờ' });
-  h += group([toggle('Thuốc', st.notif.meds, 'notifToggle', { k: 'meds' }), toggle('Đo huyết áp', t.bp, 'trackToggle', { k: 'bp' }), toggle('Đo đường huyết', t.glucose, 'trackToggle', { k: 'glucose' }), toggle('Câu hỏi mỗi tuần', t.weeklyHabits, 'trackToggle', { k: 'weeklyHabits' }), toggle('Tái khám', st.notif.appt, 'notifToggle', { k: 'appt' })], { title: 'Nhắc' });
-  if (t.bp) h += `<h2 class="label">Đo huyết áp lúc</h2>${chips(MOMENTS.map(m => [m.key, m.label]), t.bpMoments, 'trackMoment', { k: 'bpMoments' }, 'wrap')}`;
-  if (t.glucose) h += `<h2 class="label">Đo đường huyết lúc</h2>${chips(MOMENTS.map(m => [m.key, m.label]), t.gluMoments, 'trackMoment', { k: 'gluMoments' }, 'wrap')}`;
+  h += group(MOMENTS.map(m => `<div class="row"><span class="row-title">${m.label}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: -15 })} aria-label="Sớm hơn 15 phút">${icon('minus')}</button><span class="row-value ink time">${st.times[m.key]}</span><button class="key time-key" ${on('timeStep', { k: m.key, d: 15 })} aria-label="Muộn hơn 15 phút">${icon('plus')}</button></div>`), { title: 'Giờ các buổi' });
+  h += group([toggle('Thuốc', st.notif.meds, 'notifToggle', { k: 'meds' }), toggle('Tái khám', st.notif.appt, 'notifToggle', { k: 'appt' })], { title: 'Nhắc' });
+  h += trackCards(t, '');
   h += group([toggle('Chuông', st.notif.sound, 'notifToggle', { k: 'sound' }), toggle('Rung', st.notif.vibrate, 'notifToggle', { k: 'vibrate' })], { title: 'Âm thanh' });
   h += `<h2 class="label">Nhắc lại sau</h2>${seg([[5, '5 phút'], [15, '15 phút'], [30, '30 phút']], st.notif.repeat, 'notifRepeat')}`;
   return { chrome: 'push', html: h };
 };
 A.timeStep = ({ k, d }) => { const [hh, mm] = D.settings.times[k].split(':').map(Number), t = (hh * 60 + mm + Number(d) + 1440) % 1440; D.settings.times[k] = `${pad2(Math.floor(t / 60))}:${pad2(t % 60)}`; };
-A.trackToggle = ({ k }) => { P().track[k] = !P().track[k]; };
-A.trackMoment = ({ k, v }) => { const l = P().track[k], i = l.indexOf(v); if (i >= 0) { if (l.length > 1) l.splice(i, 1); } else l.push(v); };
+A.trackToggle = ({ k, ctx }) => { const t = trackOf(ctx); t[k] = !t[k]; };
+A.trackMoment = ({ k, v, ctx }) => { const t = trackOf(ctx), l = t[k] || (t[k] = ['sang']), i = l.indexOf(v); if (i >= 0) { if (l.length > 1) l.splice(i, 1); } else l.push(v); };
+A.trackFreq = ({ k, v, ctx }) => { trackOf(ctx)[k] = v; };
 A.notifToggle = ({ k }) => { D.settings.notif[k] = !D.settings.notif[k]; };
 A.notifRepeat = ({ v }) => { D.settings.notif.repeat = Number(v); };
 

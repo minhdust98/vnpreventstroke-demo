@@ -1,7 +1,7 @@
 'use strict';
 // Tab Hôm nay: việc của buổi hiện tại, sắp tới, quên liều, tái khám, nút 115, thẻ cấp cứu, thông báo màn khóa.
 
-const KIND = { meds: { icon: 'pill' }, bp: { icon: 'heart', name: 'Huyết áp', start: 'startBP', detail: 'bpDetail' }, glu: { icon: 'drop', name: 'Đường huyết', start: 'startGlu', detail: 'gluDetail' } };
+const KIND = { meds: { icon: 'pill' }, bp: { icon: 'heart', name: 'Huyết áp', start: 'startBP', detail: 'bpDetail' }, glu: { icon: 'drop', name: 'Đường huyết', start: 'startGlu', detail: 'gluDetail' }, weight: { icon: 'scale', name: 'Cân nặng', start: 'startWeight', detail: 'metrics' } };
 const isProxy = () => D.proxyName && D.owner !== D.active;
 
 // Danh sách thuốc của một buổi. Buổi chưa tới thì chỉ xem, không đánh dấu trước được.
@@ -21,7 +21,9 @@ function taskCard(m, it) {
 function doneRow(m, it) {
   if (it.kind === 'meds') return row({ icon: 'pill', title: `Thuốc buổi ${m.word}`, value: it.lastT ? hhmm(it.lastT) : '', status: 'good', a: 'openMoment', p: { mk: m.key } });
   const k = KIND[it.kind], r = it.reading;
-  return row({ icon: k.icon, title: `${k.name} buổi ${m.word}`, value: it.kind === 'bp' ? `${r.sys}/${r.dia}` : gluNum(r.v), status: it.kind === 'bp' ? bpStatus(r.sys, r.dia) : gluStatus(r.v, r.fasting), a: 'go', p: { v: k.detail } });
+  const val = it.kind === 'bp' ? `${r.sys}/${r.dia}` : it.kind === 'weight' ? `${dec(r.v)} kg` : gluNum(r.v);
+  const st = it.kind === 'bp' ? bpStatus(r.sys, r.dia) : it.kind === 'weight' ? bmiStatus(bmiOf(P().height, r.v)).key : gluStatus(r.v, r.fasting);
+  return row({ icon: k.icon, title: it.kind === 'weight' ? k.name : `${k.name} buổi ${m.word}`, value: val, status: st, a: 'go', p: { v: k.detail } });
 }
 
 // Hôm nay là một khối ở giữa Trang chủ, chỉ có việc của hôm nay. Thứ tự nói lên việc cần làm: việc còn lại, việc đã xong, rồi việc sắp tới.
