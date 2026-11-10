@@ -6,16 +6,23 @@ const labNum = (test, v) => (test === 'egfr' ? `${Math.round(v)}` : fix1(v));
 const LAB_GOAL = { tc: 5.2, a1c: 5.7, fpg: 5.6, egfr: 60 };
 const SOURCE_WORD = { hospital: 'Bệnh viện', self: 'Tự nhập', photo: 'Ảnh chụp' };
 
-// Phần Theo dõi của Hồ sơ sức khỏe: số đo theo ngày, xét nghiệm, lối sống, triệu chứng
+// Phần Theo dõi của Hồ sơ sức khỏe: mỗi chỉ số một dòng kèm biểu đồ nhỏ thay đổi theo thời gian
+function spark(pts, o) {
+  if (pts.length < 2) return '';
+  const vs = pts.map(x => x[1]), lo = Math.min(...vs, o.goal == null ? Infinity : o.goal), hi = Math.max(...vs, o.goal == null ? -Infinity : o.goal), pad = (hi - lo || 1) * 0.2;
+  return `<div class="spark">${chart({ h: 84, label: o.label, xMin: pts[0][0], xMax: now(), yMin: lo - pad, yMax: hi + pad, lines: o.goal == null ? [] : [{ v: o.goal, t: dec(o.goal) }], series: [{ pts, color: 'var(--tint)', dots: pts.length <= 12 }] })}</div>`;
+}
+const indicator = (r, pts, o) => `<section class="group"><div class="list">${r}${spark(pts, o || {})}</div></section>`;
 function followBlock(p, ms) {
   const lb = last(p.bp), lg = last(p.glucose), lw = last(p.weights), bmi = bmiOf(p.height, p.weight), sym = last(p.symptoms);
-  const home = [row({ icon: 'heart', title: 'Huyết áp', value: lb ? `${lb.sys}/${lb.dia}` : '', status: lb ? bpStatus(lb.sys, lb.dia) : '', a: 'go', p: { v: 'bpDetail' } })];
-  if (p.track.glucose || lg) home.push(row({ icon: 'drop', title: 'Đường huyết', value: lg ? gluNum(lg.v) : '', status: lg ? gluStatus(lg.v, lg.fasting) : '', a: 'go', p: { v: 'gluDetail' } }));
-  home.push(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }));
-  let h = group(home);
+  const asc = (arr, f) => arr.slice().sort((a, b) => a.t - b.t).map(f);
+  let h = indicator(row({ icon: 'heart', title: 'Huyết áp', value: lb ? `${lb.sys}/${lb.dia}` : '', status: lb ? bpStatus(lb.sys, lb.dia) : '', a: 'go', p: { v: 'bpDetail' } }), asc(p.bp.filter(r => r.t > ms - 30 * DAY && r.t <= ms), r => [r.t, r.sys]), { label: 'Số trên 30 ngày', goal: TH.bp.goodSys });
+  if (p.track.glucose || lg) h += indicator(row({ icon: 'drop', title: 'Đường huyết', value: lg ? gluNum(lg.v) : '', status: lg ? gluStatus(lg.v, lg.fasting) : '', a: 'go', p: { v: 'gluDetail' } }), asc(p.glucose.filter(r => r.t > ms - 30 * DAY), r => [r.t, r.v]), { label: 'Đường huyết 30 ngày' });
+  h += indicator(row({ icon: 'scale', title: 'Cân nặng', value: lw || p.weight ? `${dec(lw ? lw.v : p.weight)} kg` : '', status: bmi ? bmiStatus(bmi).key : '', a: 'startWeight' }), asc(p.weights, r => [r.t, r.v]), { label: 'Cân nặng theo thời gian' });
   const labs = LABS.filter(labOn).map(l => ({ l, r: labResults(p, l.id)[0] })).filter(x => x.r);
-  h += group(labs.length ? labs.map(({ l, r }) => row({ icon: 'flask', title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms), a: 'go', p: { v: 'labDetail', test: l.id } })) : row({ icon: 'plus', title: 'Thêm kết quả', a: 'labAdd' }), { title: 'Xét nghiệm', action: labs.length ? { label: 'Thêm', icon: 'plus', a: 'labAdd' } : null });
-  h += group(Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }); }), { title: 'Lối sống' });
+  h += `<div class="group-head"><h2>Xét nghiệm</h2>${labs.length ? `<button class="link" ${on('labAdd')}>${icon('plus')}Thêm</button>` : ''}</div>`;
+  h += labs.length ? labs.map(({ l, r }) => indicator(row({ icon: 'flask', title: l.name, value: `${labNum(l.id, r.v)} ${l.unit}`, status: labStatus(l.id, r.v, p, ms), a: 'go', p: { v: 'labDetail', test: l.id } }), labResults(p, l.id).slice().reverse().map(x => [x.date, x.v]), { label: `${l.name} các lần xét nghiệm`, goal: l.id === 'ldl' ? ldlGoal(p, ms) : LAB_GOAL[l.id] })).join('') : group(row({ icon: 'plus', title: 'Thêm kết quả', a: 'labAdd' }));
+  h += `<div class="group-head"><h2>Lối sống</h2></div>` + Object.keys(HABITS).map(k => { const H = HABITS[k], v = p.habits[k], known = v && v !== 'unknown'; return indicator(row({ icon: H.icon, title: H.name, value: known ? H.words[H.good(v) ? 0 : 1] : '', status: known ? (H.good(v) ? 'good' : 'improve') : '', a: 'go', p: { v: 'habit', k } }), lsSeries(p, k).map(x => [x.t, x.m]), { label: `${LS_METRIC[k][0]}, các lần trả lời` }); }).join('');
   h += group([row({ icon: 'pencil', title: 'Triệu chứng', value: sym ? ddmm(sym.t) : '', a: 'go', p: { v: 'symptoms' } }), FEATURES.plan ? row({ icon: 'today', title: 'Kế hoạch theo dõi', a: 'go', p: { v: 'plan' } }) : '']);
   return h;
 }

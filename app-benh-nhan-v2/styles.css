@@ -126,6 +126,9 @@ button.row:active { background: var(--fill); }
 .tile-btn:active { background: var(--fill); }
 .tile-btn:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 5rem; }
 
+.spark { padding: 0 1rem .6rem; border-top: 1px solid var(--sep); }
+.spark svg.chart { width: 100%; height: auto; display: block; }
+
 /* Thẻ */
 .card { background: var(--card); border-radius: var(--r-m); padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
 .scr.white .card, .sheet .card { background: var(--bg); }

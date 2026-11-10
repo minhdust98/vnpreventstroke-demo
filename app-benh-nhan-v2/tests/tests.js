@@ -120,7 +120,8 @@ test('Buổi chiều và bỏ app 5 ngày', () => {
   ok('Không trách', !/bỏ lỡ|quên|lười/i.test(text()));
   const after = adherence(P(), 30, now(), times());
   ok('Không có ghi nhận tăng, bỏ lỡ không tăng', after.none > before.none && after.missed <= before.missed);
-  ok('Hỏi đã đi khám chưa', /Bạn đã đi khám ngày 03\/11 chưa\?/.test(text()));
+  ok('Hôm nay không hỏi đã đi khám, việc đó nằm ở Lịch hẹn', !/đã đi khám/.test(text()));
+  openTile('contact'); c('go', { v: 'appts' }); ok('Lịch hẹn hỏi đã đi khám chưa', /Bạn đã đi khám ngày 03\/11 chưa\?/.test(text()));
 });
 test('Lần đầu mở app', () => {
   load('moi'); taps = 0; c('onStroke', { v: 1 });
@@ -159,7 +160,7 @@ test('Hồ sơ ban đầu', () => {
   ok('Triệu chứng 3 tháng qua và ô Khác', p.intake.symptoms.length === 1 && p.intake.other.symptoms === 'Hay tê đầu ngón tay' && intakeSummary(p, now()).some(x => x.k === 'Triệu chứng khác'));
   ok('Đã trả lời thì không hỏi lại ở câu hỏi thang', !riskRemaining(p, now()).some(id => ['htn', 'dm', 'af', 'smoke'].includes(id)));
   ok('Bác sĩ thấy hồ sơ ban đầu và hai điều cần xem', intakeSummary(p, now()).length >= 5 && intakeFlags(p).length === 2);
-  openTile('metrics'); c('hPart', { v: 'visits' }); c('go', { v: 'summary' });
+  openTile('metrics'); c('hPart', { v: 'record' }); c('go', { v: 'summary' });
   ok('Tóm tắt cho bác sĩ có hồ sơ ban đầu', /Hồ sơ ban đầu/.test(text()) && /Tăng huyết áp/.test(text()) && !/điểm nguy cơ/i.test(text()));
   load('moi'); c('onStroke', { v: 1 }); c('onConsent', { k: 'doctor', v: 1 }); c('onConsent', { k: 'research', v: 0 }); c('onAsk', { step: 'year' }); keys('1950'); keys('160'); keys('60'); c('numSave'); c('onScan'); c('go', { v: 'onHist' });
   ok('Nối hồ sơ bệnh viện thì không hỏi lại tăng huyết áp, đái tháo đường, tim, rung nhĩ', !findBtn('onHistSet', { id: 'htn' }) && !findBtn('onHistSet', { id: 'dm' }));
@@ -324,8 +325,8 @@ test('Người nhà, chảy máu não, tái khám, triệu chứng', () => {
   c('startBP'); keys('126'); keys('78'); c('bpSave'); ok('Ghi do người nhà nhập', last(P().bp).by === 'Trần Mai');
   load('lan'); ok('Chảy máu não không có câu thang', !riskPlan(P(), now()).ids.length);
   withFlags({ sos: true }, () => { render(); c('open115'); c('sosTo', { v: 'card' }); ok('Thẻ cấp cứu không ghi chống đông', !/CHỐNG ĐÔNG/.test(text())); });
-  load('an'); ok('Sắp tới có tái khám', /Tái khám/.test(text()) && /T3 03\/11/.test(text()));
-  c('go', { v: 'visit' }); ok('Lịch đủ nơi khám và việc chuẩn bị', /tầng 3/.test(text()) && /Mang thuốc/.test(text()));
+  load('an'); ok('Hôm nay không còn tái khám và tin nhắn, chỉ còn việc cần làm', !/Tái khám/.test(text()) && !/BS\. Demo/.test(text()) && /Sắp tới/.test(text()));
+  openTile('contact'); c('go', { v: 'appts' }); c('go', { v: 'visit' }); ok('Lịch đủ nơi khám và việc chuẩn bị', /tầng 3/.test(text()) && /Mang thuốc/.test(text()));
   c('apptConfirm'); ok('Xác nhận sẽ đến', /Bạn sẽ đến/.test(text()));
   load('an'); A.pDoc({ k: 'good' }); ok('Tốt thì hẹn 3 tháng', daysBetween(now(), nextAppt(P()).t) > 85);
   load('an'); A.pDoc({ k: 'bad' }); ok('Chưa tốt thì hẹn 1 tháng', daysBetween(now(), nextAppt(P()).t) < 32);
@@ -339,7 +340,7 @@ test('Người nhà, chảy máu não, tái khám, triệu chứng', () => {
   load('tu'); A.go({ v: 'summary' }); render(); ok('Chưa đồng ý thì không gửi', /Chưa chia sẻ với bác sĩ/.test(text()) && !/Gửi cho bác sĩ/.test(text()));
 });
 test('Hồ sơ', () => {
-  load('an'); openTile('metrics'); c('hPart', { v: 'intake' });
+  load('an'); openTile('metrics'); c('hPart', { v: 'record' });
   ok('Bệnh nền lấy chung câu trả lời, hiện đợt chẩn đoán', /Tăng huyết áp/.test(text()) && /Có, từ 2019/.test(text()));
   c('go', { v: 'condition', id: 'lipid' }); c('condSet', { id: 'lipid', v: 'yes' }); c('condNum', { id: 'lipid', k: 'ldl' }); keys('3'); c('key', { k: ',' }); keys('2'); c('numSave');
   ok('Câu chi tiết theo BRD', P().facts.lipid.v === 'yes' && P().facts.lipid.detail.ldl === 3.2);
@@ -352,15 +353,15 @@ test('Hồ sơ', () => {
   D.settings.lang = 'vi';
 });
 
-test('Hồ sơ sức khỏe: ba phần', () => {
+test('Hồ sơ sức khỏe: hai phần, biểu đồ cho mỗi chỉ số', () => {
   load('an'); openTile('metrics');
-  ok('Ba phần, mặc định Theo dõi', document.querySelectorAll('#view .seg button').length === 3 && /Huyết áp/.test(text()) && /Lối sống/.test(text()) && /Triệu chứng/.test(text()) && !/Tóm tắt cho bác sĩ/.test(text()));
+  ok('Hai phần, mặc định Theo dõi', document.querySelectorAll('#view .seg button').length === 2 && /Huyết áp/.test(text()) && /Lối sống/.test(text()) && /Triệu chứng/.test(text()) && !/Tóm tắt cho bác sĩ/.test(text()));
   c('go', { v: 'bpDetail' }); c('back'); ok('Từ mục quay lại đúng phần', /Huyết áp/.test(text()) && screen() === 'metrics');
-  c('hPart', { v: 'intake' });
-  ok('Hồ sơ ban đầu: đột quỵ, bệnh viện, bệnh nền, thuốc đã dùng, ô Khác', /Nhồi máu não/.test(text()) && /Bệnh viện mẫu A/.test(text()) && /Rối loạn mỡ máu/.test(text()) && /Thuốc chống đông/.test(text()) && !!document.getElementById('oc'));
-  c('go', { v: 'condition', id: 'htn' }); ok('Bệnh nền sửa ở màn con, quay lại Hồ sơ ban đầu', /Tăng huyết áp/.test(document.querySelector('#view h1').textContent)); c('back'); ok('Về đúng phần Hồ sơ ban đầu', /Rối loạn mỡ máu/.test(text()));
-  c('hPart', { v: 'visits' });
-  ok('Khám bệnh: các lần khám theo ngày, mới nhất trước, có tóm tắt cho bác sĩ', /Phòng khám mẫu B/.test(text()) && /Bệnh viện mẫu A/.test(text()) && text().indexOf('Phòng khám mẫu B') < text().indexOf('12/08/2026') && !!findBtn('go', { v: 'summary' }));
+  ok('Theo dõi: mỗi chỉ số có biểu đồ nhỏ (huyết áp, cân nặng, xét nghiệm, lối sống)', document.querySelectorAll('#view .spark svg.chart').length >= 5);
+  c('hPart', { v: 'record' });
+  ok('Hồ sơ gom ban đầu và khám bệnh: đột quỵ, bệnh viện, bệnh nền, thuốc đã dùng, ô Khác', /Nhồi máu não/.test(text()) && /Bệnh viện mẫu A/.test(text()) && /Rối loạn mỡ máu/.test(text()) && /Thuốc chống đông/.test(text()) && !!document.getElementById('oc') && /Khám bệnh/.test(text()) && /Phòng khám mẫu B/.test(text()));
+  c('go', { v: 'condition', id: 'htn' }); ok('Bệnh nền sửa ở màn con, quay lại Hồ sơ ban đầu', /Tăng huyết áp/.test(document.querySelector('#view h1').textContent)); c('back'); ok('Về đúng phần Hồ sơ', /Rối loạn mỡ máu/.test(text()));
+  ok('Hồ sơ: các lần khám theo ngày, mới nhất trước, có tóm tắt cho bác sĩ', /Phòng khám mẫu B/.test(text()) && /Bệnh viện mẫu A/.test(text()) && text().indexOf('Phòng khám mẫu B') < text().indexOf('12/08/2026') && !!findBtn('go', { v: 'summary' }));
   const n0 = P().visits.length; c('visitNew');
   ok('Form lần khám có ngày, bệnh viện, chẩn đoán, chụp phiếu', !!document.querySelector('input[data-field="visitDate"]') && !!document.getElementById('vp') && !!document.getElementById('vd') && !!findBtn('scan', { target: 'visit' }));
   c('visitSave'); ok('Chưa nhập bệnh viện thì không lưu', P().visits.length === n0 && screen() === 'visitForm');
@@ -371,9 +372,9 @@ test('Hồ sơ sức khỏe: ba phần', () => {
   ok('Lưu lần khám: ngày, bệnh viện, chẩn đoán, ảnh', P().visits.length === n0 + 1 && v.place === 'Bệnh viện mẫu C' && v.dx === 'Tăng huyết áp' && !!v.photo && dayKey(v.t) === dayKey(now()) && screen() === 'metrics' && /Bệnh viện mẫu C/.test(text()));
   c('visitEdit', { id: v.id }); set('vd', 'Đã sửa'); c('visitSave'); ok('Sửa lần khám', P().visits.find(x => x.id === v.id).dx === 'Đã sửa');
   c('visitEdit', { id: v.id }); c('visitDel'); c('visitDelYes'); ok('Xóa lần khám', P().visits.length === n0 && !/Bệnh viện mẫu C/.test(text()));
-  load('tu'); openTile('metrics'); c('hPart', { v: 'visits' }); ok('Chưa có lần khám', /Chưa có lần khám/.test(text()));
+  load('tu'); openTile('metrics'); c('hPart', { v: 'record' }); ok('Chưa có lần khám', /Chưa có lần khám/.test(text()));
   load('an'); c('go', { v: 'metrics' }); c('go', { v: 'symptoms' }); ok('Triệu chứng ghi được từ Theo dõi', /Có điều gì khác thường/.test(text()));
-  load('xau'); openTile('metrics'); c('hPart', { v: 'visits' }); ok('Dữ liệu xấu nhất: Khám bệnh vẫn hiện', /Thêm lần khám/.test(text()));
+  load('xau'); openTile('metrics'); c('hPart', { v: 'record' }); ok('Dữ liệu xấu nhất: Khám bệnh vẫn hiện', /Thêm lần khám/.test(text()));
 });
 test('Đăng nhập, đăng ký, quên và đổi mật khẩu, đăng xuất', () => {
   load('dn');
@@ -463,6 +464,19 @@ test('Liên hệ: chat, trợ lý AI, lịch hẹn, thêm bác sĩ', () => {
   c('docSend'); ok('Thêm bác sĩ: chờ bác sĩ đồng ý', screen() === 'contact' && P().doctors[0].state === 'pending' && /Chờ bác sĩ đồng ý/.test(text()));
   A.pDocOk(); render(); c('go', { v: 'contact' }); ok('Bác sĩ đồng ý thì liên kết, hiện bệnh viện', P().doctors[0].state === 'linked' && /Bệnh viện mẫu B/.test(text()));
   load('mai'); openTile('contact'); c('openChat'); ok('Người nhà nhập hộ: tin gửi ghi người gửi', (setField('chatText', 'Chào bác sĩ'), c('chatSend'), P().messages.some(m => m.mine && m.by === 'Trần Mai')));
+});
+test('Thông báo ba phần; Liên hệ nhận Trung tâm đột quỵ và câu hỏi thường gặp', () => {
+  load('an'); c('tab', { t: 'notif' });
+  ok('Thông báo có 3 phần: Tin nhắn, Nhắc thuốc, Chỉ số', document.querySelectorAll('#view .seg button').length === 3 && /Tin nhắn/.test(text()) && /Nhắc thuốc/.test(text()) && /Chỉ số/.test(text()));
+  c('ntab', { v: 'med' });
+  ok('Nhắc thuốc: từng buổi, tên thuốc kèm hàm lượng và số lượng theo thuốc đã cài', /Thuốc buổi sáng/.test(text()) && /Apixaban\s5\smg/.test(text()) && /1 viên/.test(text()) && /Thuốc buổi tối/.test(text()) && /Sắp hết thuốc/.test(text()) && /Amlodipine\s5\smg/.test(text()));
+  ok('Thuốc sắp hết không mở nhầm màn chi tiết thuốc', !findBtn('go', { v: 'medDetail' }));
+  c('ntab', { v: 'idx' }); ok('Cập nhật chỉ số: việc đo trong ngày', /Huyết áp buổi sáng/.test(text()) && !!findBtn('startBP'));
+  A.pMsg(); render(); c('tab', { t: 'notif' }); c('ntab', { v: 'msg' }); ok('Có tin nhắn mới: Đọc tất cả', !!findBtn('notifRead')); c('notifRead'); ok('Đọc tất cả thì hết tin mới', P().messages.every(m => m.read));
+  load('an'); openTile('contact'); ok('Liên hệ có Trung tâm đột quỵ và Câu hỏi thường gặp', !!findBtn('go', { v: 'centers' }) && !!findBtn('go', { v: 'faq' }));
+  c('go', { v: 'faq' }); ok('Câu hỏi thường gặp', /Câu hỏi thường gặp/.test(document.querySelector('#view h1').textContent) && /App có thay thế bác sĩ không/.test(text()));
+  load('an'); openTile('learn'); ok('Giáo dục sức khỏe không còn Trung tâm đột quỵ, Hỏi đáp, Tài liệu tham khảo', !/Trung tâm đột quỵ/.test(text()) && !/Hỏi đáp/.test(text()) && !/tham khảo/i.test(text()) && /Dấu hiệu đột quỵ/.test(text()));
+  load('moi'); c('onGuest'); ok('Người chỉ xem vẫn tìm thấy Trung tâm đột quỵ', /Trung tâm đột quỵ/.test(text()) && /Câu hỏi thường gặp/.test(text()));
 });
 test('Trang chủ, Thông báo, Liên hệ, Cài đặt', () => {
   load('an');

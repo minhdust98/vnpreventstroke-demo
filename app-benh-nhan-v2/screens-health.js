@@ -2,12 +2,12 @@
 // Hồ sơ sức khỏe: một hồ sơ chung, chia ba phần. Theo dõi (số liệu theo ngày), Hồ sơ ban đầu (người bệnh tự khai), Khám bệnh (các lần khám, theo mốc tái khám).
 // Nhập ở Hôm nay thì sau khi lưu số liệu nằm ở Theo dõi. Xem lại lịch sử và biểu đồ thì vào từng mục.
 
-const HPARTS = [['follow', 'Theo dõi'], ['intake', 'Hồ sơ ban đầu'], ['visits', 'Khám bệnh']];
+const HPARTS = [['follow', 'Theo dõi'], ['record', 'Hồ sơ']];
 
 V.metrics = () => {
   const p = P(), ms = now(), part = S.draft.hpart || 'follow';
   let h = topBar({ back: 'Trang chủ' }) + h1('Hồ sơ sức khỏe') + seg(HPARTS, part, 'hPart');
-  h += part === 'intake' ? intakeBlock(p, ms) : part === 'visits' ? visitsBlock(p, ms) : followBlock(p, ms);
+  h += part === 'record' ? intakeBlock(p, ms) + visitsBlock(p, ms) : followBlock(p, ms);
   return { chrome: 'push', html: h };
 };
 A.hPart = ({ v }) => { S.draft.hpart = v; S.scrollTo = 0; };
@@ -40,7 +40,7 @@ function visitEntries(p) {
 }
 function visitsBlock(p, ms) {
   const list = visitEntries(p);
-  let h = btn(`${icon('plus')}Thêm lần khám`, 'visitNew');
+  let h = `<div class="group-head"><h2>Khám bệnh</h2><button class="link" ${on('visitNew')}>${icon('plus')}Thêm lần khám</button></div>`;
   h += list.length ? group(list.map(x => row({ icon: 'hospital', title: x.title, value: x.value, a: x.a, p: x.p, wrap: true, pad: true }))) : '<section class="card empty"><p class="lead">Chưa có lần khám</p></section>';
   h += group(row({ icon: 'share', title: 'Tóm tắt cho bác sĩ', a: 'go', p: { v: 'summary' } }));
   return h;
@@ -68,7 +68,7 @@ A.visitSave = () => {
   const t = new Date(`${f.date}T12:00:00`).getTime(), rec = { id: f.id || `v${Date.now()}`, t, place: f.place.trim(), dx: f.dx.trim(), photo: f.photo, by: byWho() };
   p.visits = p.visits || [];
   if (f.id) Object.assign(p.visits.find(x => x.id === f.id), rec); else p.visits.push(rec);
-  S.draft.visit = null; S.draft.hpart = 'visits'; back(); toast('Đã lưu');
+  S.draft.visit = null; S.draft.hpart = 'record'; back(); toast('Đã lưu');
 };
 A.visitDel = () => dialog({ title: 'Xóa lần khám này?', body: '<p class="body">Không khôi phục được.</p>', buttons: [{ label: 'Giữ lại', a: 'closeDialog' }, { label: 'Xóa', a: 'visitDelYes', cls: 'soft' }] });
 A.visitDelYes = () => { const f = visitDraft(), p = P(); p.visits = p.visits.filter(x => x.id !== f.id); S.dialog = null; S.draft.visit = null; back(); toast('Đã xóa'); };

@@ -3,7 +3,7 @@
 
 const topicOf = id => TOPICS.find(t => t.id === id);
 const chromeLearn = () => (P() ? 'push' : 'bare');
-const backLearn = () => topBar({ back: 'Giáo dục sức khỏe' });
+const backLearn = () => topBar({ back: 'Quay lại' });
 
 V.learn = () => {
   const guest = !P();
@@ -15,7 +15,8 @@ V.learn = () => {
   const mine = fy.filter(x => !x.exercise).map(x => { const t = topicOf(x.topic), it = t.items.find(i => i.id === x.id); return row({ icon: t.icon, title: it.title, a: 'go', p: { v: 'article', topic: t.id, id: it.id } }); });
   const topics = (FEATURES.exercises ? [{ id: 'ex', icon: 'walk', title: 'Bài tập phục hồi', p: { v: 'exercises' } }] : []).concat(TOPICS.map(t => ({ id: t.id, icon: t.icon, title: t.title, p: { v: 'topic', topic: t.id } })));
   h += group(mine.concat(topics.map((t, i) => ({ t, k: rank(t.id) * 100 + i })).sort((a, b) => a.k - b.k).map(({ t }) => row({ icon: t.icon, title: t.title, a: 'go', p: t.p }))));
-  h += group([row({ icon: 'pin', title: 'Trung tâm đột quỵ', a: 'go', p: { v: 'centers' } }), row({ icon: 'msg', title: 'Hỏi đáp', a: 'go', p: { v: 'faq' } }), row({ icon: 'doc', title: 'Nguồn tham khảo', a: 'go', p: { v: 'refs' } })]);
+  // Người chỉ xem thông tin chưa có Liên hệ nên vẫn tìm thấy hai mục này ở đây
+  if (guest) h += group([row({ icon: 'pin', title: 'Trung tâm đột quỵ', a: 'go', p: { v: 'centers' } }), row({ icon: 'info', title: 'Câu hỏi thường gặp', a: 'go', p: { v: 'faq' } })]);
   if (guest) h += btn('Tạo hồ sơ', 'guestBack');
   return { chrome: guest ? 'bare' : 'push', html: h };
 };
@@ -80,5 +81,4 @@ V.center = ({ id }) => {
   const c = CENTERS.find(x => x.id === id);
   return { chrome: chromeLearn(), html: `${topBar({ back: 'Trung tâm' })}${h1(c.name, 'sm')}<div class="map" role="img" aria-label="Bản đồ minh họa vị trí ${esc(c.name)}">${mapSvg(c.id)}</div>${group([row({ title: 'Địa chỉ', value: esc(c.addr) }), row({ title: 'Khoảng cách', value: `${dec(c.km)} km` }), row({ title: 'Giờ mở', value: esc(c.open) })])}${btn(`${icon('phone')}Gọi 115`, 'call', { num: '115' }, 'red')}${btn(`${icon('phone')}Gọi bệnh viện`, 'call', { num: c.tel, who: c.name }, 'soft')}${btn(`${icon('pin')}Chỉ đường`, 'demo', { msg: 'Trên điện thoại thật, nút này mở bản đồ chỉ đường' }, 'soft')}` };
 };
-V.faq = () => ({ chrome: chromeLearn(), html: `${backLearn()}${h1('Hỏi đáp', 'sm')}${FAQ.map(([q, a]) => `<section class="card"><p class="lead">${q}</p><p class="body">${a}</p></section>`).join('')}` });
-V.refs = () => ({ chrome: chromeLearn(), html: `${backLearn()}${h1('Nguồn tham khảo', 'sm')}<ul class="bullets">${REFS.map(r => `<li>${r}</li>`).join('')}</ul>` });
+V.faq = () => ({ chrome: chromeLearn(), html: `${backLearn()}${h1('Câu hỏi thường gặp', 'sm')}${FAQ.map(([q, a]) => `<section class="card"><p class="lead">${q}</p><p class="body">${a}</p></section>`).join('')}` });

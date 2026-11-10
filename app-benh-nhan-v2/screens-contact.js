@@ -20,6 +20,7 @@ V.contact = () => {
   ]);
   const docs = (p.hospitalLinked ? [{ name: p.careTeam.doctor, hospital: p.careTeam.hospital, state: 'linked' }] : []).concat(p.doctors || []);
   h += group(docs.map(d => row({ icon: 'user', title: esc(d.name), value: d.state === 'pending' ? 'Chờ bác sĩ đồng ý' : esc(d.hospital || ''), tone2: d.state === 'pending' ? 'amber' : '', wrap: true })), docs.length ? { title: 'Bác sĩ của bạn' } : null);
+  h += group([row({ icon: 'pin', title: 'Trung tâm đột quỵ', a: 'go', p: { v: 'centers' } }), row({ icon: 'info', title: 'Câu hỏi thường gặp', a: 'go', p: { v: 'faq' } })]);
   h += group(row({ icon: 'plus', title: 'Thêm bác sĩ', a: 'go', p: { v: 'addDoctor' } }));
   return { chrome: 'push', html: h };
 };
@@ -82,6 +83,7 @@ const APPT_SLOT = { sang: ['Sáng', '08:00'], chieu: ['Chiều', '14:00'] };
 V.appts = () => {
   const p = P(), nxt = nextAppt(p), list = p.appts.slice().sort((a, b) => b.t - a.t);
   let h = topBar({ back: 'Liên hệ' }) + h1('Lịch hẹn', 'sm') + btn(`${icon('plus')}Đặt lịch`, 'apptNew');
+  if (nxt && nxt.t < now()) h += `<section class="card"><p class="lead">Bạn đã đi khám ngày ${ddmm(nxt.t)} chưa?</p><div class="two">${btn('Đã khám', 'apptDone')}${btn('Chưa', 'go', { v: 'apptChange' }, 'soft')}</div></section>`;
   h += list.length ? group(list.map(a => row({ icon: 'cal', title: `${WD_S[new Date(a.t).getDay()]} ${ddmm(a.t)} ${hhmm(a.t)}`, value: APPT_WORD[a.state] || '', tone2: a.state === 'pending' ? 'amber' : '', a: nxt && a.id === nxt.id ? 'go' : '', p: { v: 'visit' } }))) : '<section class="card empty"><p class="lead">Chưa có lịch</p></section>';
   return { chrome: 'push', html: h };
 };

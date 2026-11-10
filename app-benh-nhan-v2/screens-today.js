@@ -32,18 +32,11 @@ function todayBlock() {
 
   if (p.recheckAt) h += `<section class="card"><div class="card-head">Đo lại huyết áp<span class="aside">${hhmm(p.recheckAt)}</span></div>${btn('Đo lại', 'startBP')}</section>`;
   h += group(overdueDoses(p, ms, times()).map(o => row({ icon: 'pill', title: o.yesterday ? `Thuốc ${mo(o.key).word} qua` : `Thuốc buổi ${mo(o.key).word}`, value: 'Chưa ghi', tone2: 'amber', a: 'go', p: { v: 'missed', day: o.day, mk: o.key } })));
-  const ap = nextAppt(p);
-  if (ap && ap.t < ms) h += `<section class="card"><p class="lead">Bạn đã đi khám ngày ${ddmm(ap.t)} chưa?</p><div class="two">${btn('Đã khám', 'apptDone')}${btn('Chưa', 'go', { v: 'apptChange' }, 'soft')}</div></section>`;
   todo.forEach(it => { h += taskCard(cur, it); });
   h += group(done.map(it => doneRow(cur, it)));
 
-  const msg = p.messages.find(m => !m.read);
-  if (msg) h += `<button class="card" ${on('openChat')}><span class="card-head">${esc(msg.from)}<span class="aside">${ddmm(msg.t)}</span></span><span class="body">${esc(msg.text)}</span></button>`;
-
   const soon = [];
   pl.filter(m => !m.reached).forEach(m => m.items.forEach(it => soon.push(row({ icon: KIND[it.kind].icon, title: it.kind === 'meds' ? `Thuốc buổi ${m.word}` : `Đo ${KIND[it.kind].name.toLowerCase()}`, value: m.time }))));
-  if (ap && ap.t >= ms) soon.push(row({ icon: 'cal', title: 'Tái khám', value: `${WD_S[new Date(ap.t).getDay()]} ${ddmm(ap.t)}`, a: 'go', p: { v: 'visit' } }));
-  medsEnding(p, ms, 5).forEach(m => soon.push(row({ icon: 'pill', title: esc(m.name), value: `Còn ${daysLeft(m, ms)} ngày`, tone2: 'amber', a: 'go', p: { v: 'medDetail', id: m.id } })));
   h += group(soon, soon.length ? { title: 'Sắp tới' } : null);
 
   // Câu hỏi và lời mời chỉ hiện khi việc của buổi đã xong

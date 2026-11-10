@@ -246,7 +246,6 @@ const FAQ = [
   ['Ai xem được dữ liệu của tôi?', 'Chỉ những người bạn đã đồng ý. Bạn đổi ý được bất cứ lúc nào trong Hồ sơ.'],
   ['Người nhà nhập hộ được không?', 'Được. Mời người nhà trong Hồ sơ. App ghi rõ ai đã nhập.'],
 ];
-const REFS = ['BRD v6 của nhóm bác sĩ dự án VNPreventStroke', 'American Heart Association, American Stroke Association', 'Tổ chức Y tế Thế giới (WHO)', 'Hướng dẫn chẩn đoán và điều trị hiện hành của Bộ Y tế'];
 
 const CENTERS = [
   { id: 'a', name: 'Bệnh viện mẫu A', addr: '12 Đường Mẫu, Quận Một', km: 2.4, x: 62, y: 40, tel: '0900 000 001', open: 'Mở 24/7' },
