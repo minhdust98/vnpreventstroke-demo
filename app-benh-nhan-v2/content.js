@@ -3,10 +3,10 @@
 // Nội dung y khoa ở đây là bản mẫu, chờ bác sĩ và kỹ thuật viên phục hồi chức năng duyệt.
 
 // Cờ bật tắt. Bước 1 ẩn các phần chưa làm: code vẫn còn, đổi true để bật lại.
-// sos: nút 115 trên mọi màn, sheet 115 và thẻ cấp cứu. exercises: bài tập phục hồi và câu "Đi lại". plan: kế hoạch theo dõi tự đề xuất.
+// kidney: câu hỏi và mục bệnh thận (tạm bỏ). sos: nút 115 trên mọi màn, sheet 115 và thẻ cấp cứu. exercises: bài tập phục hồi và câu "Đi lại". plan: kế hoạch theo dõi tự đề xuất.
 // hba1c, egfr: hai xét nghiệm chưa theo dõi ở bước 1. deviceLink: máy đo huyết áp kết nối.
 // missedHelp: hướng dẫn khi quên liều và nút gọi bác sĩ, dược sĩ. Bước 1 chỉ ghi nhận quên, chờ bác sĩ chốt việc xử lý.
-const FEATURES = { sos: false, exercises: false, plan: false, hba1c: false, egfr: false, deviceLink: false, missedHelp: false };
+const FEATURES = { kidney: false, sos: false, exercises: false, plan: false, hba1c: false, egfr: false, deviceLink: false, missedHelp: false };
 
 const MOMENTS = [
   { key: 'sang', label: 'Sáng', time: '07:00' },
@@ -90,10 +90,10 @@ const CONDITIONS = [
   { id: 'dm', name: 'Đái tháo đường', qs: [{ k: 'year', t: 'Năm phát hiện', type: 'year' }, { k: 'fpg', t: 'Đường huyết lúc đói gần nhất', type: 'num', unit: 'mmol/L', min: 1, max: 40 }, { k: 'a1c', t: 'HbA1c gần nhất', type: 'num', unit: '%', min: 3, max: 20 }, { k: 'freq', t: 'Đo đường huyết', opts: ['Hằng ngày', 'Thỉnh thoảng', 'Không'] }, { k: 'treat', t: 'Đang dùng thuốc', opts: YN }] },
   { id: 'lipid', name: 'Rối loạn mỡ máu', qs: [{ k: 'year', t: 'Năm chẩn đoán', type: 'year' }, { k: 'ldl', t: 'LDL cao nhất', type: 'num', unit: 'mmol/L', min: 0.5, max: 15 }, { k: 'hdl', t: 'HDL', type: 'num', unit: 'mmol/L', min: 0.2, max: 5 }, { k: 'tg', t: 'Triglyceride cao nhất', type: 'num', unit: 'mmol/L', min: 0.2, max: 50 }, { k: 'tc', t: 'Cholesterol toàn phần cao nhất', type: 'num', unit: 'mmol/L', min: 1, max: 20 }, { k: 'treat', t: 'Đang điều trị', opts: YN }] },
   { id: 'af', name: 'Rung nhĩ', qs: [{ k: 'year', t: 'Năm chẩn đoán', type: 'year' }, { k: 'kind', t: 'Loại rung nhĩ', opts: ['Kịch phát', 'Dai dẳng', 'Mạn tính', 'Không rõ'] }, { k: 'valve', t: 'Do bệnh van tim', opts: ['Không', 'Có', 'Không rõ'] }, { k: 'treat', t: 'Đang điều trị', opts: YN }] },
-  { id: 'kidney', name: 'Bệnh thận', qs: [{ k: 'level', t: 'Mức độ', opts: ['Nhẹ', 'Vừa', 'Nặng', 'Không rõ'] }, { k: 'gfr', t: 'GFR', type: 'num', unit: 'mL/phút', min: 1, max: 200 }, { k: 'dialysis', t: 'Đang chạy thận nhân tạo', opts: YN }] },
+  { id: 'kidney', hidden: 'kidney', name: 'Bệnh thận', qs: [{ k: 'level', t: 'Mức độ', opts: ['Nhẹ', 'Vừa', 'Nặng', 'Không rõ'] }, { k: 'gfr', t: 'GFR', type: 'num', unit: 'mL/phút', min: 1, max: 200 }, { k: 'dialysis', t: 'Đang chạy thận nhân tạo', opts: YN }] },
   { id: 'memory', name: 'Trí nhớ và tinh thần', qs: [{ k: 'decline', t: 'Suy giảm trí nhớ', opts: YN }, { k: 'stress', t: 'Gần đây rất căng thẳng', opts: YN }, { k: 'dx', t: 'Đã được chẩn đoán bệnh trí nhớ', opts: YN }] },
   { id: 'apnea', name: 'Ngưng thở khi ngủ', qs: [{ k: 'dx', t: 'Đã được chẩn đoán', opts: YN }, { k: 'snore', t: 'Ngáy hoặc ban ngày buồn ngủ nhiều', opts: YN }] },
-  { id: 'family', name: 'Người thân đột quỵ hoặc bệnh tim trước 60 tuổi', qs: [{ k: 'kinds', t: 'Cha mẹ, anh chị em ruột từng bị', multi: ['Đột quỵ', 'Bệnh tim mạch', 'Tăng huyết áp', 'Đái tháo đường', 'Rối loạn mỡ máu'] }] },
+  { id: 'family', name: 'Người thân từng bị đột quỵ', qs: [{ k: 'age', t: 'Tuổi người thân bị đột quỵ', type: 'num', unit: 'tuổi', min: 1, max: 110 }] },
 ];
 const DRUG_HISTORY = [
   { id: 'anticoag', name: 'Thuốc chống đông', opts: ['Có', 'Đã từng', 'Không'] },
@@ -170,16 +170,20 @@ const SYMPTOMS = ['Mất thăng bằng, chóng mặt', 'Mờ mắt, mất thị 
 // Hồ sơ ban đầu: hỏi ngay khi khai báo để phân loại sớm và để bác sĩ mở hồ sơ là có đủ.
 // Mọi câu đều bỏ qua được. Ô trống không bao giờ được hiểu là "Không". Người đã nối hồ sơ bệnh viện không bị hỏi lại phần bệnh viện đã có.
 const HOSPITAL_KNOWN = ['htn', 'dm', 'cvd', 'af'];
-const INTAKE_FAMILY = ['Đột quỵ', 'Bệnh tim mạch', 'Tăng huyết áp', 'Đái tháo đường', 'Rối loạn mỡ máu'];
+// Hai câu về triệu chứng theo thiết kế cũ (Có, Không, Chưa rõ). Trả lời Có thì nhóm đó vào danh sách triệu chứng gửi bác sĩ.
+const INTAKE_SX = [['sxA', 'Bạn có gặp phải các cơn đau đầu, chóng mặt, tê bì chân tay không?', 'Đau đầu, chóng mặt, tê bì chân tay'], ['sxB', 'Bạn có bị khó nói, khó nuốt, mất thị lực không?', 'Khó nói, khó nuốt, mất thị lực']];
+// Thứ tự: bệnh nền (cùng hồ sơ sức khỏe), gia đình, tim mạch, sinh hoạt (theo bộ câu hỏi lối sống), triệu chứng.
+// dx: màn Bệnh nền hiện chẩn đoán đã có, chụp giấy chẩn đoán, cơ sở đăng ký khám chữa bệnh theo bảo hiểm.
+// Gia đình chỉ ghi tiền sử đột quỵ và tuổi bị đột quỵ, không ghi các bệnh khác.
 const INTAKE = [
-  { title: 'Bệnh nền', other: 'cond', qs: [{ k: 'fact', id: 'htn' }, { k: 'fact', id: 'dm' }, { k: 'fact', id: 'lipid', q: 'Bác sĩ có nói bạn bị rối loạn mỡ máu (mỡ máu cao) không?' }, { k: 'fact', id: 'kidney', q: 'Bác sĩ có nói bạn bị bệnh thận không?' }] },
+  { title: 'Bệnh nền', other: 'cond', dx: true, qs: [{ k: 'fact', id: 'htn' }, { k: 'fact', id: 'dm' }, { k: 'fact', id: 'lipid', q: 'Bác sĩ có nói bạn bị rối loạn mỡ máu (mỡ máu cao) không?' }] },
+  { title: 'Gia đình', qs: [{ k: 'fact', id: 'family', q: 'Cha mẹ, anh chị em ruột có ai từng bị đột quỵ không?' }, { k: 'age', id: 'familyAge', q: 'Người thân đó bị đột quỵ lúc bao nhiêu tuổi?', only: h => h.family === 'yes' }] },
   { title: 'Tim mạch', other: 'heart', qs: [{ k: 'fact', id: 'cvd' }, { k: 'fact', id: 'af' }, { k: 'drug', id: 'anticoag', q: 'Bạn có đang dùng thuốc chống đông không?', opts: ['Có', 'Đã từng', 'Không'] }] },
-  { title: 'Sinh hoạt', other: 'life', qs: [{ k: 'habit', id: 'smoke' }, { k: 'habit', id: 'alcohol' }, { k: 'habit', id: 'activity' }, { k: 'fact', id: 'apnea', q: 'Bạn có hay ngáy to hoặc ngừng thở khi ngủ không?' }] },
-  { title: 'Gia đình', other: 'family', qs: [{ k: 'fact', id: 'family', q: 'Cha mẹ, anh chị em ruột có ai bị đột quỵ hoặc bệnh tim trước 60 tuổi không?' }, { k: 'multi', id: 'familyKinds', q: 'Cha mẹ, anh chị em ruột có ai từng bị:', opts: INTAKE_FAMILY, none: 'Không ai', unknown: 'Chưa rõ' }] },
-  { title: 'Triệu chứng', other: 'symptoms', qs: [{ k: 'multi', id: 'symptoms', q: 'Trong 3 tháng qua, bạn có từng bị:', opts: SYMPTOMS, none: 'Không có', unknown: 'Không nhớ' }] },
+  { title: 'Sinh hoạt', other: 'life', qs: [{ k: 'ls', id: 'activity' }, { k: 'ls', id: 'smoke' }, { k: 'ls', id: 'alcohol' }, { k: 'ls', id: 'sleep' }, { k: 'ls', id: 'diet' }, { k: 'fact', id: 'apnea', q: 'Bạn có hay ngáy to hoặc ngừng thở khi ngủ không?' }] },
+  { title: 'Triệu chứng', other: 'symptoms', qs: INTAKE_SX.map(([id, q]) => ({ k: 'fact', id, q })) },
 ];
-// Ô "Khác" ở mỗi nhóm: chữ tự do, tối đa 200 ký tự. Bệnh khác dùng chung p.otherConditions; các ô còn lại nằm ở p.intake.other.
-const OTHER_LABEL = { cond: 'Bệnh khác', heart: 'Tim mạch khác', life: 'Sinh hoạt khác', family: 'Gia đình khác', symptoms: 'Triệu chứng khác' };
+// Ô "Khác" ở các nhóm còn lại: chữ tự do, tối đa 200 ký tự. Bệnh khác dùng chung p.otherConditions; các ô còn lại nằm ở p.intake.other.
+const OTHER_LABEL = { cond: 'Bệnh khác', heart: 'Tim mạch khác', life: 'Sinh hoạt khác', symptoms: 'Triệu chứng khác' };
 // Giá trị ngắn của thói quen, để dòng tóm tắt gọn
 const HABIT_SHORT = { smoke: { none: 'Không', little: 'Ít', mid: 'Vừa', much: 'Nhiều' }, alcohol: { none: 'Không', little: 'Ít', mid: 'Vừa', much: 'Nhiều' }, activity: { strong: 'Mạnh, đủ', good: 'Nhẹ, đủ', little: 'Không thường xuyên', none: 'Không' } };
 

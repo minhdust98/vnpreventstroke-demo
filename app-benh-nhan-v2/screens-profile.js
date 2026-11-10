@@ -65,8 +65,13 @@ A.condMulti = ({ id, k, v }) => { const f = factFor(id), d = f.detail = f.detail
 A.condNum = ({ id, k }) => { const q = CONDITIONS.find(x => x.id === id).qs.find(x => x.k === k), cur = (factFor(id).detail || {})[k]; S.draft.cond = { id, k }; openNum(q.type === 'year' ? { title: q.t, maxLen: 4, min: 1930, max: new Date(now()).getFullYear(), value: cur, onSave: 'condNumOk' } : { title: q.t, unit: q.unit, comma: true, maxLen: 5, min: q.min, max: q.max, value: cur, onSave: 'condNumOk' }); };
 A.condNumOk = v => { const { id, k } = S.draft.cond, f = factFor(id); (f.detail = f.detail || {})[k] = v; back(); };
 A.symHist = () => sheet('symHistSheet');
-V.symHistSheet = () => ({ title: 'Triệu chứng 3 tháng qua', html: `${sheetHead('Triệu chứng 3 tháng qua')}${chips(SYMPTOMS.map(x => [x, x]), (P().intake && P().intake.symptoms) || [], 'symHistSet')}` });
-A.symHistSet = ({ v }) => { const p = P(), i = p.intake || (p.intake = { t: now(), by: byWho(), symptoms: [] }), k = i.symptoms.indexOf(v); if (k >= 0) i.symptoms.splice(k, 1); else i.symptoms.push(v); i.unknown = false; };
+V.symHistSheet = () => { const sx = (P().intake && P().intake.sx) || {}; return { title: 'Triệu chứng 3 tháng qua', html: `${sheetHead('Triệu chứng 3 tháng qua')}${INTAKE_SX.map(([id, q]) => `<p class="label">${q}</p>${chips(YES_NO_UNSURE, sx[id], 'symHistSet', { id }, 'grid three')}`).join('')}` }; };
+A.symHistSet = ({ id, v }) => {
+  const p = P(), i = p.intake || (p.intake = { t: now(), by: byWho(), symptoms: [] }), sx = i.sx || (i.sx = {});
+  sx[id] = v;
+  i.symptoms = INTAKE_SX.filter(([k]) => sx[k] === 'yes').map(x => x[2]);
+  i.unknown = INTAKE_SX.every(([k]) => sx[k] === 'unknown');
+};
 A.drugSheet = ({ id }) => sheet('drugPick', { id });
 V.drugPick = ({ id }) => { const d = DRUG_HISTORY.find(x => x.id === id); return { title: d.name, html: `${sheetHead(d.name)}${chips(d.opts.map(o => [o, o]), P().drugs[id], 'drugSet', { id })}` }; };
 A.drugSet = ({ id, v }) => { P().drugs[id] = v; S.sheet = null; };

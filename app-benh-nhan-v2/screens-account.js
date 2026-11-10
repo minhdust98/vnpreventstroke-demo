@@ -2,7 +2,7 @@
 // Đăng nhập, đăng ký, mã OTP, quên và đổi mật khẩu, đăng xuất. Chỉ mô phỏng: không có máy chủ, mật khẩu không được lưu,
 // mã OTP nhận 6 số bất kỳ. Màn đăng nhập đứng trước phần bắt đầu; đổi mật khẩu và đăng xuất nằm ở Cài đặt › Tài khoản.
 
-const acc = () => S.draft.acc || (S.draft.acc = { phone: '', pw: '', pw2: '', old: '', code: '', agree: false, mode: 'login' });
+const acc = () => S.draft.acc || (S.draft.acc = { phone: D.lastPhone || '', pw: '', pw2: '', old: '', code: '', agree: false, mode: 'login', remember: true, sex: '', doctor: null, research: null });
 const phoneOk = v => String(v).replace(/\D/g, '').length >= 9;
 const accInput = (id, label, field, type, value, auto) => `<div><label class="label" for="${id}">${label}</label><input id="${id}" class="input" type="${type}"${type === 'tel' ? ' inputmode="tel"' : ''} data-field="${field}" value="${esc(value)}" autocomplete="${auto}"></div>`;
 const accTop = () => `<header class="top"><button class="nav" ${on('setting', { k: 'lang', v: D.settings.lang === 'vi' ? 'en' : 'vi' })}>${D.settings.lang === 'vi' ? 'English' : 'Tiếng Việt'}</button></header>`;
@@ -12,6 +12,7 @@ V.login = () => {
   const a = acc();
   let h = accTop() + `<div class="brand">${icon('brain')}</div>` + h1('Đăng nhập', 'q');
   h += accInput('ph', 'Số điện thoại', 'accPhone', 'tel', a.phone, 'tel') + accInput('pw', 'Mật khẩu', 'accPw', 'password', a.pw, 'current-password');
+  h += group(checkRow('Ghi nhớ đăng nhập', '', a.remember, 'accRemember'));
   h += btn('Đăng nhập', 'accLogin') + btn('Quên mật khẩu', 'accGo', { v: 'forgot', mode: 'forgot' }, 'plain') + btn('Đăng ký', 'accGo', { v: 'register', mode: 'register' }, 'soft') + btn('Chỉ xem thông tin', 'onGuest', {}, 'plain');
   return { chrome: 'bare', white: true, html: h };
 };
@@ -20,6 +21,7 @@ F.accPw = v => { acc().pw = v; };
 F.accPw2 = v => { acc().pw2 = v; };
 F.accOld = v => { acc().old = v; };
 F.accCode = v => { acc().code = v.replace(/\D/g, '').slice(0, 6); };
+A.accRemember = () => { acc().remember = !acc().remember; };
 A.accGo = ({ v, mode }) => { acc().mode = mode; go(v); };
 A.accLogin = () => {
   const a = acc();
@@ -32,10 +34,14 @@ V.register = () => {
   const a = acc();
   let h = accBack() + h1('Đăng ký', 'q');
   h += accInput('ph', 'Số điện thoại', 'accPhone', 'tel', a.phone, 'tel') + accInput('pw', 'Mật khẩu', 'accPw', 'password', a.pw, 'new-password') + accInput('pw2', 'Nhập lại mật khẩu', 'accPw2', 'password', a.pw2, 'new-password');
+  h += `<h2 class="label">Giới tính</h2>${chips([['male', 'Nam'], ['female', 'Nữ'], ['other', 'Khác']], a.sex, 'accSex', {}, 'grid three')}`;
+  h += [['doctor', 'Cho bác sĩ điều trị xem số đo và thuốc?'], ['research', 'Cho dùng dữ liệu cho nghiên cứu về đột quỵ?']].map(([k, q]) => `<section class="card"><p class="lead">${q}</p>${chips([['1', 'Đồng ý'], ['0', 'Không']], a[k] == null ? null : a[k] ? '1' : '0', 'accConsent', { k }, 'grid')}</section>`).join('');
   h += group([checkRow('Tôi đồng ý với điều khoản sử dụng', '', a.agree, 'accAgree'), row({ title: 'Điều khoản', a: 'go', p: { v: 'terms' } })]);
-  h += '<div class="spacer"></div>' + btn('Tạo tài khoản', 'accRegister', {}, '', a.agree ? '' : 'disabled');
+  h += '<div class="spacer"></div>' + btn('Tạo tài khoản', 'accRegister', {}, '', a.agree && a.sex && a.doctor != null && a.research != null ? '' : 'disabled');
   return { chrome: 'modal', white: true, html: h };
 };
+A.accSex = ({ v }) => { acc().sex = v; };
+A.accConsent = ({ k, v }) => { acc()[k] = v === '1'; };
 A.accAgree = () => { acc().agree = !acc().agree; };
 A.accRegister = () => {
   const a = acc();
@@ -61,7 +67,10 @@ A.accOtp = () => {
   if (a.code.length !== 6) { toast('Mã gồm 6 số'); return false; }
   a.code = '';
   if (a.mode === 'forgot') { go('newPw'); return; }
-  D.account = { phone: a.phone };
+  // Đăng ký mang theo giới tính và hai câu đồng ý; đăng nhập lại thì giữ những gì đã có
+  if (a.mode === 'register') D.accountKeep = { sex: a.sex, consent: { doctor: a.doctor, research: a.research } };
+  D.account = Object.assign({ phone: a.phone, remember: a.remember }, D.accountKeep);
+  D.lastPhone = a.remember ? a.phone : '';
   S.draft = {};
   // Đã có hồ sơ thì vào thẳng Trang chủ, chưa có thì bắt đầu khai báo
   if (D.owner && D.profiles[D.owner]) { D.active = D.active || D.owner; home(); } else S.stack = [{ v: 'welcome', p: {} }];

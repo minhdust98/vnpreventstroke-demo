@@ -22,12 +22,13 @@ function intakeBlock(p, ms) {
   if (p.stroke) top.push(row({ title: 'Đột quỵ', value: esc(`${(STROKE_TYPES.find(s => s[0] === p.strokeType) || [0, 'Có'])[1]}${p.strokeDate ? `, ${p.strokeDate}` : ''}`), a: 'go', p: { v: 'strokeType' } }));
   else if (p.stroke === false) top.push(row({ title: 'Đột quỵ', value: 'Chưa từng' }));
   if (p.hospitalLinked) top.push(row({ icon: 'hospital', title: 'Bệnh viện', value: esc(p.careTeam.hospital), wrap: true }));
+  top.push(`<div class="row stack-row"><label class="row-title" for="ins">Cơ sở đăng ký khám chữa bệnh (BHYT)</label></div><div class="row"><input id="ins" class="input" maxlength="120" data-field="insurance" value="${esc((p.insurance && p.insurance.facility) || '')}" autocomplete="off"></div>`);
   let h = group(top);
-  h += group(CONDITIONS.map(c => row({ title: c.name, value: esc(condValue(p, c)), a: 'go', p: { v: 'condition', id: c.id } })), { title: 'Bệnh nền' });
+  h += group(CONDITIONS.filter(c => !c.hidden || FEATURES[c.hidden]).map(c => row({ title: c.name, value: esc(condValue(p, c)), a: 'go', p: { v: 'condition', id: c.id } })), { title: 'Bệnh nền' });
   h += group(DRUG_HISTORY.map(d => row({ title: d.name, value: esc(p.drugs[d.id] || ''), a: 'drugSheet', p: { id: d.id } })), { title: 'Thuốc đã dùng' });
   h += group(row({ title: 'Triệu chứng 3 tháng qua', value: p.intake ? esc(p.intake.symptoms.length ? p.intake.symptoms.length + ' mục' : 'Không có') : '', a: 'symHist' }));
   h += `<label class="label" for="oc">${OTHER_LABEL.cond}</label><input id="oc" class="input" maxlength="200" data-field="otherCond" value="${esc(p.otherConditions)}">`;
-  ['heart', 'life', 'family', 'symptoms'].forEach(k => { h += `<label class="label" for="o-${k}">${OTHER_LABEL[k]}</label><input id="o-${k}" class="input" maxlength="200" data-field="otherIntake" data-key="${k}" value="${esc(((p.intake && p.intake.other) || {})[k] || '')}">`; });
+  ['heart', 'life', 'symptoms'].forEach(k => { h += `<label class="label" for="o-${k}">${OTHER_LABEL[k]}</label><input id="o-${k}" class="input" maxlength="200" data-field="otherIntake" data-key="${k}" value="${esc(((p.intake && p.intake.other) || {})[k] || '')}">`; });
   return h;
 }
 
@@ -72,3 +73,4 @@ A.visitSave = () => {
 };
 A.visitDel = () => dialog({ title: 'Xóa lần khám này?', body: '<p class="body">Không khôi phục được.</p>', buttons: [{ label: 'Giữ lại', a: 'closeDialog' }, { label: 'Xóa', a: 'visitDelYes', cls: 'soft' }] });
 A.visitDelYes = () => { const f = visitDraft(), p = P(); p.visits = p.visits.filter(x => x.id !== f.id); S.dialog = null; S.draft.visit = null; back(); toast('Đã xóa'); };
+F.insurance = v => { P().insurance = { facility: v }; store.set(); };

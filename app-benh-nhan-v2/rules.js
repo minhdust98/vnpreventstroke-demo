@@ -266,7 +266,7 @@ function forYou(p) {
 }
 
 // ---- Hồ sơ ban đầu: những gì người bệnh khai, để bác sĩ mở ra xem. Không tính điểm, không đổi nhóm theo dõi. ----
-const INTAKE_CONDS = [['htn', 'Tăng huyết áp'], ['dm', 'Đái tháo đường'], ['lipid', 'Rối loạn mỡ máu'], ['kidney', 'Bệnh thận'], ['cvd', 'Bệnh tim mạch'], ['af', 'Rung nhĩ'], ['apnea', 'Ngưng thở khi ngủ']];
+const INTAKE_CONDS = [['htn', 'Tăng huyết áp'], ['dm', 'Đái tháo đường'], ['lipid', 'Rối loạn mỡ máu'], ['kidney', 'Bệnh thận'], ['cvd', 'Bệnh tim mạch'], ['af', 'Rung nhĩ'], ['apnea', 'Ngưng thở khi ngủ']].filter(c => c[0] !== 'kidney' || FEATURES.kidney);
 const joinList = l => l.join(', ');
 function intakeSummary(p, ms) {
   const out = [{ k: 'Nhóm theo dõi', v: CARE_TITLE[careGroup(p, ms)] }];
@@ -280,12 +280,13 @@ function intakeSummary(p, ms) {
   if (hab.length) out.push({ k: 'Sinh hoạt', v: joinList(hab) });
   const fam = p.facts.family;
   if (fam && fam.v != null) {
-    const kinds = (fam.detail && fam.detail.kinds) || [];
-    out.push({ k: 'Gia đình', v: `${fam.v === 'yes' ? 'Đột quỵ hoặc bệnh tim trước 60 tuổi' : fam.v === 'no' ? 'Không có đột quỵ hoặc bệnh tim sớm' : 'Chưa rõ'}${kinds.length ? `. Từng bị: ${joinList(kinds.map(x => x.toLowerCase()))}` : ''}` });
+    const age = fam.detail && fam.detail.age;
+    out.push({ k: 'Gia đình', v: fam.v === 'yes' ? `Có người thân từng bị đột quỵ${age ? `, lúc ${age} tuổi` : ''}` : fam.v === 'no' ? 'Không có người thân từng bị đột quỵ' : 'Chưa rõ' });
   }
+  if (p.insurance && p.insurance.facility) out.push({ k: 'Cơ sở đăng ký khám chữa bệnh (BHYT)', v: p.insurance.facility });
   if (p.otherConditions) out.push({ k: OTHER_LABEL.cond, v: p.otherConditions });
   const ot = (p.intake && p.intake.other) || {};
-  ['heart', 'life', 'family', 'symptoms'].forEach(k => { if (ot[k]) out.push({ k: OTHER_LABEL[k], v: ot[k] }); });
+  ['heart', 'life', 'symptoms'].forEach(k => { if (ot[k]) out.push({ k: OTHER_LABEL[k], v: ot[k] }); });
   if (p.intake && p.intake.symptoms) out.push({ k: 'Triệu chứng 3 tháng qua', v: p.intake.symptoms.length ? joinList(p.intake.symptoms) : p.intake.unknown ? 'Không nhớ' : 'Không có' });
   return out;
 }

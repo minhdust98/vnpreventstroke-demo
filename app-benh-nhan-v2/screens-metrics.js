@@ -317,6 +317,7 @@ function scanned(img) {
   if (S.draft.scanTarget === 'bp') { Object.assign(S.draft.bp, { sys: '126', dia: '78', focus: 'dia' }); return; }
   if (S.draft.scanTarget === 'visit') { S.draft.visit.photo = img; return; }
   if (S.draft.scanTarget === 'rx') { rxStart(img); return; }
+  if (S.draft.scanTarget === 'dx') { onb().hist.dxPhoto = img; return; }
   S.sheet = null;
   S.draft.scan = { img, date: SCAN_SAMPLE.date, items: Object.entries(SCAN_SAMPLE.values).filter(([test]) => labOn(labDef(test))).map(([test, v]) => ({ test, v, on: true })) };
   go('scanReview');
@@ -380,17 +381,24 @@ V.lifestyle = ({ k }) => {
 F.lsNum = (v, el) => { S.draft.ls.ans[el.dataset.id] = v; };
 A.lsPick = ({ id, v }) => { S.draft.ls.ans[id] = v; };
 A.lsClose = () => { S.draft.ls = null; back(); };
+// Ghi câu trả lời lối sống vào hồ sơ: phân loại, nhật ký biểu đồ, thói quen. Dùng cả khi khai báo ban đầu.
+function lsApply(p, k, ans, by, ms) {
+  const v = lifestyleClass(k, ans);
+  (p.lifestyle = p.lifestyle || {})[k] = { t: ms, ans: Object.assign({}, ans), by };
+  (p.lifestyleLog = p.lifestyleLog || []).push({ k, t: ms, m: lifestyleMetric(k, ans) });
+  p.habits[k] = v; p.habitLog.push({ w: weekIdx(ms), kind: k, v, t: ms, by });
+  if (k === 'smoke') p.facts.smoke = { v: v === 'none' ? 'no' : 'yes', source: 'patient' };
+  return v;
+}
 A.lsSave = () => {
   const d = S.draft.ls, k = d.k, qs = lsQs(k, d.ans);
   const left = qs.filter(q => (q.kind === 'nums' ? q.nums.some(([id]) => lsBlank(d.ans[id])) : lsBlank(d.ans[q.id]))).length;
   if (left) { toast(`Còn ${left} câu chưa trả lời`); return false; }
   const bad = qs.filter(q => q.kind !== 'pick').some(q => (q.kind === 'nums' ? q.nums.map(n => n[0]) : [q.id]).some(id => { const n = Number(String(d.ans[id]).replace(',', '.')); return !Number.isFinite(n) || n < 0 || n > q.max; }));
   if (bad) { toast('Có số chưa đúng'); return false; }
-  const p = P(), H = HABITS[k], v = lifestyleClass(k, d.ans), ms = now();
-  (p.lifestyle = p.lifestyle || {})[k] = { t: ms, ans: Object.assign({}, d.ans), by: byWho() };
-  (p.lifestyleLog = p.lifestyleLog || []).push({ k, t: ms, m: lifestyleMetric(k, d.ans) });
-  p.habits[k] = v; p.habitLog.push({ w: weekIdx(ms), kind: k, v, t: ms, by: byWho() });
-  if (k === 'smoke') p.facts.smoke = { v: v === 'none' ? 'no' : 'yes', source: 'patient' };
+  // Lúc khai báo ban đầu chưa có hồ sơ: giữ câu trả lời, ghi vào hồ sơ khi xong
+  if (d.onb) { const o = onb(); (o.hist.ls = o.hist.ls || {})[k] = Object.assign({}, d.ans); S.draft.ls = null; back(); toast('Đã lưu'); return; }
+  const H = HABITS[k], v = lsApply(P(), k, d.ans, byWho(), now());
   S.draft.weekReply = { good: H.good(v), text: H.good(v) ? H.okText : H.badText };
   S.draft.ls = null; back(); toast('Đã lưu');
 };

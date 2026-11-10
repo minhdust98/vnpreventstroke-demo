@@ -4,8 +4,8 @@
 
 const FAM_CODE = '123456';
 const FAM_RELS = ['Vợ hoặc chồng', 'Con', 'Cha hoặc mẹ', 'Anh chị em', 'Người khác'];
-const FAM_PERMS = [['0', 'Chỉ xem'], ['1', 'Xem và nhập hộ']];
-const famPerm = f => (f.canEdit ? 'Xem và nhập hộ' : 'Chỉ xem');
+const FAM_PERMS = [['0', 'Chỉ xem'], ['1', 'Xem và sửa']];
+const famPerm = f => (f.canEdit ? 'Xem và sửa' : 'Chỉ xem');
 const famValue = f => (f.state === 'pending' ? 'Đang chờ' : f.canSee === false ? 'Đã tắt' : famPerm(f));
 
 V.family = () => {
