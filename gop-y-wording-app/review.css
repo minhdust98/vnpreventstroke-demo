@@ -24,6 +24,7 @@ a { color: var(--accent); }
 
 .layout { flex: 1; display: flex; min-height: 0; }
 #side { width: var(--side); flex: none; overflow-y: auto; border-right: 1px solid var(--line); background: var(--card); padding: 8px 0 40px; }
+#side a.all-fb { padding: 10px 16px; font-weight: 700; border-bottom: 1px solid var(--line); }
 #side details { border-bottom: 1px solid var(--line); }
 #side summary { list-style: none; cursor: pointer; padding: 10px 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 #side summary::-webkit-details-marker { display: none; }
@@ -97,3 +98,8 @@ a { color: var(--accent); }
   .shot { padding: 10px; }
   .phone { zoom: .8; }
 }
+
+.fb { margin-bottom: 12px; }
+.fb-where { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 6px 4px 0; font-size: 13px; }
+.fb-where a { text-decoration: none; }
+.fb-where .gh { margin-left: auto; color: var(--ink2); }
