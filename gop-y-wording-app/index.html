@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Góp ý wording · App bệnh nhân</title>
+<link rel="stylesheet" href="review.css?v=2">
+</head>
+<body>
+<header class="top">
+  <button class="menu" id="menuBtn" aria-label="Danh sách màn">☰</button>
+  <div class="brand"><b>Góp ý wording · App bệnh nhân</b><span>Bản demo, dữ liệu minh họa</span></div>
+  <input id="search" type="search" placeholder="Tìm chữ trong app" aria-label="Tìm chữ trong app" autocomplete="off">
+  <button id="help" class="ghost">Cách góp ý</button>
+</header>
+<div class="layout">
+  <nav id="side" aria-label="Các màn"></nav>
+  <main id="main"></main>
+  <aside id="drawer" hidden>
+    <div class="drawer-head"><span id="dKind"></span><button id="dClose" aria-label="Đóng">✕</button></div>
+    <p id="dText"></p>
+    <p id="dWhere" class="muted"></p>
+    <div id="giscus"></div>
+  </aside>
+</div>
+<div id="howto" class="howto" hidden>
+  <div class="howto-card">
+    <h2>Cách góp ý</h2>
+    <ol>
+      <li>Chọn màn ở cột trái. Mỗi cụm chữ trên ảnh có một số, khớp với ô cùng số bên cạnh.</li>
+      <li>Bấm vào ô (hoặc số trên ảnh) để mở khung góp ý.</li>
+      <li>Đăng nhập GitHub một lần, viết chữ đề xuất và lý do, bấm <b>Comment</b>. Đồng ý với góp ý của người khác thì bấm 👍 hoặc trả lời.</li>
+    </ol>
+    <p>Nhiều người góp ý cùng lúc được. Một câu chữ có ở nhiều màn thì dùng chung một chỗ góp ý. Ô đã có góp ý hiện số màu cam.</p>
+    <p><a href="https://github.com/minhdust98/vnpreventstroke-demo/discussions/categories/general" target="_blank" rel="noopener">Xem mọi góp ý trên GitHub</a> · <a href="../gop-y-wording/">Trang góp ý web bác sĩ</a></p>
+    <button id="howtoClose">Đã hiểu</button>
+  </div>
+</div>
+<script src="data.js?v=2"></script>
+<script src="review.js?v=2"></script>
+</body>
+</html>
